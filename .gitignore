@@ -1,0 +1,12 @@
+# IDE files
+.vscode/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Internal TODO tracking
+/todo/
+
+# Claude Code instructions
+CLAUDE.md
