@@ -121,10 +121,32 @@ git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 # Build Bitcoin Core with PoCX
 cd bitcoin-pocx/bitcoin
 cmake -B build -DENABLE_POCX=ON
-cmake --build build
+cmake --build build -j$(nproc)
 
 # Run tests
 ./build/src/test/test_bitcoin
+```
+
+### Windows Cross-Compilation
+
+Build Windows installer from Linux:
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt install g++-mingw-w64-x86-64-posix nsis
+
+# Build depends
+cd bitcoin-pocx/bitcoin/depends
+make HOST=x86_64-w64-mingw32 -j$(nproc)
+
+# Configure and build
+cd ..
+cmake -B build-win --toolchain depends/x86_64-w64-mingw32/toolchain.cmake
+cmake --build build-win -j$(nproc)
+
+# Create installer
+cmake --build build-win --target deploy -j$(nproc)
+# Output: build-win/bitcoin-pocx-win64-setup.exe
 ```
 
 ### Developer Resources
