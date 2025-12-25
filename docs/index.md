@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Bitcoin Core Base**: v30.0
 **Status**: Testnet Phase
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-25
 
 ---
 
@@ -17,7 +17,7 @@ This is the complete technical documentation for Bitcoin-PoCX, a Bitcoin Core in
 - **Developers**: All chapters
 - **Researchers**: Chapters 3, 4, 5
 
-Translations: [🇩🇪 German](translations/deu)
+Translations: [🇸🇦 Arabic](translations/ara/index.md) [🇫🇷 French](translations/fra/index.md) [🇨🇳 Chinese](translations/zho/index.md) [🇩🇪 German](translations/deu/index.md) [🇪🇸 Spanish](translations/spa/index.md)
 ---
 
 ## Table of Contents

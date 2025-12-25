@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Bitcoin Core Basis**: v30.0
 **Status**: Testnet-Phase
-**Letzte Aktualisierung**: 06.12.2025
+**Letzte Aktualisierung**: 25.12.2025
 
 ---
 
