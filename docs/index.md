@@ -17,7 +17,7 @@ This is the complete technical documentation for Bitcoin-PoCX, a Bitcoin Core in
 - **Developers**: All chapters
 - **Researchers**: Chapters 3, 4, 5
 
-Translations: [🇸🇦 Arabic](translations/ara/index.md) [🇫🇷 French](translations/fra/index.md) [🇨🇳 Chinese](translations/zho/index.md) [🇩🇪 German](translations/deu/index.md) [🇪🇸 Spanish](translations/spa/index.md)
+Translations: [🇸🇦 Arabic](translations/ara/index.md) [🇫🇷 French](translations/fra/index.md) [🇨🇳 Chinese](translations/zho/index.md) [🇩🇪 German](translations/deu/index.md) [🇯🇵 Japanese](translations/jpn/index.md) [🇰🇷 Korean](translations/kor/index.md) [🇪🇸 Spanish](translations/spa/index.md) [🇻🇳 Vietnamese](translations/vie/index.md)
 ---
 
 ## Table of Contents
