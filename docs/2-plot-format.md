@@ -39,7 +39,7 @@ PoCX plot files contain pre-computed Shabal256 hash values organized for efficie
 - ✅ **Fixed PoW distribution** (inherited from POC2)
 - ✅ **Patched XOR-transpose vulnerability** (unique to PoCX)
 - ✅ **Enhanced SIMD/GPU layout** optimized for parallel processing and memory coalescing
-- ✅ **Scalable proof-of-work** prevents time–memory trade-offs as computation power grows (PoW is performed only when creating or upgrading plotfiles)
+- ✅ **Scalable proof-of-work** prevents time–memory tradeoffs as computation power grows (PoW is performed only when creating or upgrading plotfiles)
 
 ## XOR-Transpose Encoding
 
@@ -60,7 +60,7 @@ The transpose step swaps scoop and nonce indices. In matrix terms—where rows r
 
 ### Why This Eliminates the Attack
 
-The XOR-transpose interlocks each scoop with an entire row and an entire column of the underlying X0 data. Recovering a single X1 scoop requires access to data spanning all 4,096 scoop indices. Any attempt to compute missing data would require regenerating 4,096 full nonces rather than a single nonce—removing the asymmetric cost structure exploited by the XOR attack.
+The XOR-transpose interlocks each scoop with an entire row and an entire column of the underlying X0 data. Recovering a single X1 scoop requires access to data spanning all 4096 scoop indices. Any attempt to compute missing data would require regenerating 4096 full nonces rather than a single nonce—removing the asymmetric cost structure exploited by the XOR attack.
 
 As a result, storing the full X1 warp becomes the only computationally viable strategy for miners.
 
@@ -86,8 +86,8 @@ All plot metadata is encoded in the filename using this exact format:
 
 3. **WARPS** (decimal number)
    - **NEW size unit in PoCX**: Replaces nonce-based sizing from POC1/POC2
-   - **XOR-transpose resistant design**: Each warp = exactly 4,096 nonces (partition size required for XOR-transpose resistant transformation)
-   - **Size**: 1 warp = 1,073,741,824 bytes = 1 GiB (very comprehensible unit)
+   - **XOR-transpose resistant design**: Each warp = exactly 4096 nonces (partition size required for XOR-transpose resistant transformation)
+   - **Size**: 1 warp = 1073741824 bytes = 1 GiB (convenient unit)
    - Example: `1024` (1 TiB plot = 1024 warps)
 
 4. **SCALING** (X-prefixed decimal)
@@ -124,11 +124,11 @@ Plot File (NO HEADER)
 
 | Constant        | Size                    | Description                                     |
 | --------------- | ----------------------- | ----------------------------------------------- |
-| **HASH\_SIZE**  | 32 B                    | Single Shabal256 hash output                    |
-| **SCOOP\_SIZE** | 64 B (2 × HASH\_SIZE)   | Hash pair read in a mining round                |
-| **NUM\_SCOOPS** | 4,096 (2¹²)             | Scoops per nonce; one selected per round        |
-| **NONCE\_SIZE** | 262,144 B (256 KiB)     | All scoops of a nonce (PoC1/PoC2 smallest unit) |
-| **WARP\_SIZE**  | 1,073,741,824 B (1 GiB) | Smallest unit in PoCX                           |
+| **HASH\_SIZE**  | 32 B                   | Single Shabal256 hash output                    |
+| **SCOOP\_SIZE** | 64 B (2 × HASH\_SIZE)  | Hash pair read in a mining round                |
+| **NUM\_SCOOPS** | 4096 (2¹²)             | Scoops per nonce; one selected per round        |
+| **NONCE\_SIZE** | 262144 B (256 KiB)     | All scoops of a nonce (PoC1/PoC2 smallest unit) |
+| **WARP\_SIZE**  | 1073741824 B (1 GiB)   | Smallest unit in PoCX                           |
 
 ### SIMD-Optimized Plot File Layout
 
@@ -246,11 +246,11 @@ Alternatively, you may continue using your current plots without upgrading, but 
 | Scalable Proof-of-Work | ❌ None | ❌ None | ✅ Yes |
 | Seed Support | ❌ None | ❌ None | ✅ Yes |
 
-The PoCX format represents the current state-of-the-art in Proof-of-Capacity plot formats, addressing all known vulnerabilities while providing significant performance improvements for modern hardware.
+The PoCX format represents the current state-of-the-art in Proof of Capacity plot formats, addressing all known vulnerabilities while providing significant performance improvements for modern hardware.
 
 ## References and Further Reading
 
-- **POC1/POC2 Background**: [Burstcoin Mining Overview](https://www.burstcoin.community/burstcoin-mining/) - Comprehensive guide to traditional Proof-of-Capacity mining formats
+- **POC1/POC2 Background**: [Burstcoin Mining Overview](https://www.burstcoin.community/burstcoin-mining/) - Comprehensive guide to traditional Proof of Capacity mining formats
 - **POC2×16 Research**: [CIP Announcement: POC2×16 - A new optimized plot format](https://www.reddit.com/r/burstcoin/comments/a1qyoq/cip_announcement_poc2x16_a_new_optimized_plot/) - Original SIMD optimization research that inspired PoCX
 - **Shabal Hash Algorithm**: [The Saphir Project: Shabal, a Submission to NIST's Cryptographic Hash Algorithm Competition](https://www.cs.rit.edu/~ark/20090927/Round2Candidates/Shabal.pdf) - Technical specification of the Shabal256 algorithm used in PoC mining
 

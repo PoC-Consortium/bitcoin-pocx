@@ -97,7 +97,7 @@ Unlike PoW, nearly all computation happens during plotting; active mining is pri
 The original Burstcoin POC1 format exhibited a structural bias: low-index scoops were significantly cheaper to recompute on-the-fly than high-index scoops. This introduced a non-uniform time–memory tradeoff, allowing attackers to reduce required storage for those scoops and breaking the assumption that all precomputed data was equally expensive.
 
 **XOR Compression Attack (POC2):**
-In POC2, an attacker can take any set of 8,192 nonces and partition them into two blocks of 4,096 nonces (A and B). Instead of storing both blocks, the attacker stores only a derived structure: `A ⊕ transpose(B)`, where the transpose swaps scoop and nonce indices—scoop S of nonce N in block B becomes scoop N of nonce S.
+In POC2, an attacker can take any set of 8192 nonces and partition them into two blocks of 4096 nonces (A and B). Instead of storing both blocks, the attacker stores only a derived structure: `A ⊕ transpose(B)`, where the transpose swaps scoop and nonce indices—scoop S of nonce N in block B becomes scoop N of nonce S.
 
 During mining, when scoop S of nonce N is needed, the attacker reconstructs it by:
 1. Reading the stored XOR value at position (S, N)
@@ -105,7 +105,7 @@ During mining, when scoop S of nonce N is needed, the attacker reconstructs it b
 3. Computing nonce S from block B to obtain the transposed scoop N
 4. XORing all three values to recover the original 64-byte scoop
 
-This reduces storage by 50%, while requiring only two nonce computations per lookup—a cost far below the threshold needed to enforce full precomputation. The attack is viable because computing a row (one nonce, 4,096 scoops) is inexpensive, whereas computing a column (a single scoop across 4,096 nonces) would require regenerating all nonces. The transpose structure exposes this imbalance.
+This reduces storage by 50%, while requiring only two nonce computations per lookup—a cost far below the threshold needed to enforce full precomputation. The attack is viable because computing a row (one nonce, 4096 scoops) is inexpensive, whereas computing a column (a single scoop across 4096 nonces) would require regenerating all nonces. The transpose structure exposes this imbalance.
 
 This demonstrated the need for a plot format that prevents such structured recombination and removes the underlying time–memory tradeoff. Section 3.3 describes how PoCX addresses and resolves this weakness.
 
@@ -147,7 +147,7 @@ This layout benefits both CPU and GPU miners, enabling high-throughput, parallel
 
 ### 3.3 Warp Structure and XOR-Transpose Encoding
 
-A warp is the fundamental storage unit in PoCX, consisting of 4,096 nonces (1 GiB). The uncompressed format, referred to as X0, contains base nonces exactly as produced by the construction in Section 3.1.
+A warp is the fundamental storage unit in PoCX, consisting of 4096 nonces (1 GiB). The uncompressed format, referred to as X0, contains base nonces exactly as produced by the construction in Section 3.1.
 
 **XOR-Transpose Encoding (X1)**
 
@@ -163,7 +163,7 @@ The transpose step swaps scoop and nonce indices. In matrix terms—where rows r
 
 **Why This Eliminates the Compression Attack Surface**
 
-The XOR-transpose interlocks each scoop with an entire row and an entire column of the underlying X0 data. Recovering a single X1 scoop therefore requires access to data spanning all 4,096 scoop indices. Any attempt to compute missing data would require regenerating 4,096 full nonces, rather than a single nonce—removing the asymmetric cost structure exploited by the XOR attack for POC2 (Section 2.4).
+The XOR-transpose interlocks each scoop with an entire row and an entire column of the underlying X0 data. Recovering a single X1 scoop therefore requires access to data spanning all 4096 scoop indices. Any attempt to compute missing data would require regenerating 4096 full nonces, rather than a single nonce—removing the asymmetric cost structure exploited by the XOR attack for POC2 (Section 2.4).
 
 As a result, storing the full X1 warp becomes the only computationally viable strategy for miners, closing the time–memory tradeoff exploited in prior designs.
 
@@ -193,7 +193,7 @@ The seed parameter enables multiple non-overlapping plots per address without ma
 
 ---
 
-## 4. Proof-of-Capacity Consensus
+## 4. Proof of Capacity Consensus
 
 PoCX extends Bitcoin's Nakamoto consensus with a storage-bound proof mechanism. Instead of expending energy on repeated hashing, miners commit large amounts of precomputed data—plots—to disk. During block generation, they must locate a small, unpredictable portion of this data and transform it into a proof. The miner who provides the best proof within the expected time window earns the right to forge the next block.
 
@@ -209,7 +209,7 @@ The proof embeds all consensus-relevant information needed by validators to reco
 
 ### 4.2 Generation Signature Chain
 
-The generation signature provides the unpredictability required for secure Proof-of-Capacity mining. Each block derives its generation signature from the previous block's signature and signer, ensuring that miners cannot anticipate future challenges or precompute advantageous plot regions:
+The generation signature provides the unpredictability required for secure Proof of Capacity mining. Each block derives its generation signature from the previous block's signature and signer, ensuring that miners cannot anticipate future challenges or precompute advantageous plot regions:
 
 `generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
 
@@ -227,7 +227,7 @@ Mining in PoCX consists of transforming stored data into a proof driven entirely
 
 ### 4.4 Time Bending
 
-Proof-of-Capacity produces exponentially distributed deadlines. After a short period—typically a few dozen seconds—every miner has already identified their best proof, and any additional waiting time contributes only latency, not security.
+Proof of Capacity produces exponentially distributed deadlines. After a short period—typically a few dozen seconds—every miner has already identified their best proof, and any additional waiting time contributes only latency, not security.
 
 Time Bending reshapes the distribution by applying a cube root transformation:
 
@@ -291,7 +291,7 @@ Forging assignments therefore introduce flexible delegation without introducing 
 
 ## 6. Dynamic Scaling
 
-As hardware evolves, the cost of computing plots decreases relative to reading precomputed work from disk. Without countermeasures, attackers could eventually generate proofs on-the-fly faster than miners reading stored work, undermining the security model of Proof-of-Capacity.
+As hardware evolves, the cost of computing plots decreases relative to reading precomputed work from disk. Without countermeasures, attackers could eventually generate proofs on-the-fly faster than miners reading stored work, undermining the security model of Proof of Capacity.
 
 To preserve the intended security margin, PoCX implements a scaling schedule: the minimum required scaling level for plots increases over time. Each scaling level Xn, as described in Section 3.5, embeds exponentially more proof-of-work within the plot structure, ensuring that miners continue to commit substantial storage resources even as computation becomes cheaper.
 
@@ -352,7 +352,7 @@ Finally, capacity attacks are far harder to rent than hashpower attacks. GPU com
 
 ### 8.3 Timing Attacks
 
-Timing plays a more critical role in Proof-of-Capacity than in Proof-of-Work. In PoW, timestamps primarily influence difficulty adjustment; in PoC, they determine whether a miner's deadline has elapsed and thus whether a block is eligible for forging. Deadlines are measured relative to the parent block's timestamp, but a node's local clock is used to judge whether an incoming block lies too far in the future. For this reason PoCX enforces a tight timestamp tolerance: blocks may not deviate more than 15 seconds from the node's local clock (compared to Bitcoin's 2-hour window). This limit works in both directions—blocks too far in the future are rejected, and nodes with slow clocks may incorrectly reject valid incoming blocks.
+Timing plays a more critical role in Proof of Capacity than in Proof of Work. In PoW, timestamps primarily influence difficulty adjustment; in PoC, they determine whether a miner's deadline has elapsed and thus whether a block is eligible for forging. Deadlines are measured relative to the parent block's timestamp, but a node's local clock is used to judge whether an incoming block lies too far in the future. For this reason PoCX enforces a tight timestamp tolerance: blocks may not deviate more than 15 seconds from the node's local clock (compared to Bitcoin's 2-hour window). This limit works in both directions—blocks too far in the future are rejected, and nodes with slow clocks may incorrectly reject valid incoming blocks.
 
 Nodes should therefore synchronize their clocks using NTP or an equivalent time source. PoCX deliberately avoids relying on network-internal time sources to prevent attackers from manipulating perceived network time. Nodes monitor their own drift and emit warnings if the local clock begins to diverge from recent block timestamps.
 
@@ -362,7 +362,7 @@ Attempts to manipulate difficulty via timestamps are bounded by a ±20% per-bloc
 
 ### 8.4 Time–Memory Tradeoff Attacks
 
-Time–memory tradeoffs attempt to reduce storage requirements by recomputing parts of the plot on demand. Prior Proof-of-Capacity systems were vulnerable to such attacks, most notably the POC1 scoop-imbalance flaw and the POC2 XOR-transpose compression attack (Section 2.4). Both exploited asymmetries in how expensive it was to regenerate certain portions of plot data, allowing adversaries to cut storage while paying only a small computational penalty. Also, alternative plot formats to PoC2 suffer from similar TMTO weaknesses; a prominent example is Chia, whose plot format can be arbitrarily reduced by a factor greater than 4.
+Time–memory tradeoffs attempt to reduce storage requirements by recomputing parts of the plot on demand. Prior Proof of Capacity systems were vulnerable to such attacks, most notably the POC1 scoop-imbalance flaw and the POC2 XOR-transpose compression attack (Section 2.4). Both exploited asymmetries in how expensive it was to regenerate certain portions of plot data, allowing adversaries to cut storage while paying only a small computational penalty. Also, alternative plot formats to PoC2 suffer from similar TMTO weaknesses; a prominent example is Chia, whose plot format can be arbitrarily reduced by a factor greater than 4.
 
 PoCX removes these attack surfaces entirely through its nonce construction and warp format. Within each nonce, the final diffusion step hashes the fully computed buffer and XORs the result across all bytes, ensuring that every part of the buffer depends on every other part and cannot be shortcut. Afterward, the PoC2 shuffle swaps the lower and upper halves of each scoop, equalizing the computational cost of recovering any scoop.
 
@@ -392,7 +392,7 @@ To mitigate denial-of-service vectors, signature and public key sizes are fixed�
 
 PoCX is implemented as a modular extension to Bitcoin Core, with all relevant code contained within its own dedicated subdirectory and activated through a feature flag. This design preserves the integrity of the original code, allowing PoCX to be enabled or disabled cleanly, which simplifies testing, auditing, and staying in sync with upstream changes.
 
-The integration touches only the essential points necessary to support Proof-of-Capacity. The block header has been extended to include PoCX-specific fields, and consensus validation has been adapted to process storage-based proofs alongside traditional Bitcoin checks. The forging system, responsible for managing deadlines, scheduling, and miner submissions, is fully contained within the PoCX modules, while RPC extensions expose mining and assignment functionality to external clients. For users, the wallet interface has been enhanced to manage assignments through OP_RETURN transactions, enabling seamless interaction with the new consensus features.
+The integration touches only the essential points necessary to support Proof of Capacity. The block header has been extended to include PoCX-specific fields, and consensus validation has been adapted to process storage-based proofs alongside traditional Bitcoin checks. The forging system, responsible for managing deadlines, scheduling, and miner submissions, is fully contained within the PoCX modules, while RPC extensions expose mining and assignment functionality to external clients. For users, the wallet interface has been enhanced to manage assignments through OP_RETURN transactions, enabling seamless interaction with the new consensus features.
 
 All consensus-critical operations are implemented in deterministic C++ without external dependencies, ensuring cross-platform consistency. Shabal256 is used for hashing, while Time Bending and quality calculation rely on fixed-point arithmetic and 256-bit operations. Cryptographic operations such as signature verification leverage Bitcoin Core's existing secp256k1 library.
 
@@ -415,7 +415,7 @@ The tables below summarize the resulting mainnet, testnet, and regtest settings,
 | Bech32 HRP | `pocx` |
 | Block time target | 120 seconds |
 | Initial subsidy | 10 BTC |
-| Halving interval | 1,050,000 blocks (~4 years) |
+| Halving interval | 1050000 blocks (~4 years) |
 | Total supply | ~21 million BTC |
 | Assignment activation | 30 blocks |
 | Assignment revocation | 720 blocks |

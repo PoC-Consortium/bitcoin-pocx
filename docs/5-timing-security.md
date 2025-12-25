@@ -12,7 +12,7 @@ PoCX consensus requires precise time synchronization across the network. This ch
 - 15-second future tolerance for block timestamps
 - 10-second clock drift warning system
 - Defensive forging (anti-clock manipulation)
-- Time bending algorithm integration
+- Time Bending algorithm integration
 
 ---
 
@@ -74,7 +74,7 @@ if (result.deadline > elapsed_time) {
 
 ### Time Bending Integration
 
-Time bending algorithm (detailed in [Chapter 3](3-consensus-and-mining.md#time-bending-calculation)) transforms raw deadlines using cube root:
+Time Bending algorithm (detailed in [Chapter 3](3-consensus-and-mining.md#time-bending-calculation)) transforms raw deadlines using cube root:
 
 ```
 time_bended_deadline = scale × (deadline_seconds)^(1/3)
@@ -379,7 +379,7 @@ A node **>15s behind** is catastrophic:
 - Defensive forging: `src/pocx/mining/scheduler.cpp`
 
 **Related Documentation**:
-- Time bending algorithm: [Chapter 3: Consensus and Mining](3-consensus-and-mining.md#time-bending-calculation)
+- Time Bending algorithm: [Chapter 3: Consensus and Mining](3-consensus-and-mining.md#time-bending-calculation)
 - Block validation: [Chapter 3: Block Validation](3-consensus-and-mining.md#block-validation)
 
 ---

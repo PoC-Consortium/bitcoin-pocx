@@ -6,7 +6,7 @@
 
 ## What is Bitcoin-PoCX?
 
-Bitcoin-PoCX is a Bitcoin Core integration that adds **Proof of Capacity neXt generation (PoCX)** consensus support. It maintains Bitcoin Core's existing architecture while enabling an energy-efficient Proof-of-Capacity mining alternative as a complete replacement for Proof of Work.
+Bitcoin-PoCX is a Bitcoin Core integration that adds **Proof of Capacity neXt generation (PoCX)** consensus support. It maintains Bitcoin Core's existing architecture while enabling an energy-efficient Proof of Capacity mining alternative as a complete replacement for Proof of Work.
 
 **Key Distinction**: This is a **new chain** without backward compatibility with Bitcoin PoW. PoCX blocks are incompatible with PoW nodes by design.
 
@@ -28,8 +28,8 @@ Proof of Capacity (PoC) is a consensus mechanism where mining power is proportio
 **Energy Efficiency**: Plot files are generated once and reused indefinitely. Mining consumes minimal CPU power—primarily disk I/O.
 
 **PoCX Enhancements**:
-- Fixed XOR-transpose compression attack (50% time-memory tradeoff in POC2)
-- 16-nonce aligned layout for modern hardware
+- Fixed XOR-transpose compression attack (50% time–memory tradeoff in POC2)
+- 16-nonce-aligned layout for modern hardware
 - Scalable proof-of-work in plot generation (Xn scaling levels)
 - Native C++ integration directly into Bitcoin Core
 - Time Bending algorithm for improved block time distribution
@@ -255,13 +255,13 @@ Based on POC2 format (Burstcoin) with enhancements:
 ## Technical Specifications Summary
 
 - **Block Time**: 120 seconds (mainnet), 1 second (regtest)
-- **Block Subsidy**: 10 BTC initial, halving every 1,050,000 blocks (~4 years)
+- **Block Subsidy**: 10 BTC initial, halving every 1050000 blocks (~4 years)
 - **Total Supply**: ~21 million BTC (same as Bitcoin)
 - **Future Tolerance**: 15 seconds (blocks up to 15s ahead accepted)
 - **Clock Warning**: 10 seconds (warns operators of time drift)
 - **Assignment Delay**: 30 blocks (~1 hour)
 - **Revocation Delay**: 720 blocks (~24 hours)
-- **Address Format**: P2WPKH (bech32, bc1q...) only for PoCX mining operations and forging assignments
+- **Address Format**: P2WPKH (bech32, pocx1q...) only for PoCX mining operations and forging assignments
 
 ---
 
@@ -280,7 +280,7 @@ Based on POC2 format (Burstcoin) with enhancements:
 - 15-second future tolerance prevents network fragmentation
 - 10-second warning threshold alerts operators to clock drift
 - Defensive forging eliminates incentive for clock manipulation
-- Time bending reduces impact of timing variance
+- Time Bending reduces impact of timing variance
 
 **Details**: [Chapter 5: Timing Security](5-timing-security.md)
 

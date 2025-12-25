@@ -173,7 +173,7 @@ bitcoin-cli submit_nonce 12345 \
 
 **Notes**:
 - Submission is asynchronous - RPC returns immediately, block forged later
-- Time bending delays good solutions to allow network-wide plot scanning
+- Time Bending delays good solutions to allow network-wide plot scanning
 - Assignment system: if plot assigned, wallet must have forging address key
 - Compression bounds dynamically adjusted based on block height
 
@@ -198,7 +198,7 @@ bitcoin-cli submit_nonce 12345 \
 **Return Values** (no assignment):
 ```json
 {
-  "plot_address": "bc1qplot...",
+  "plot_address": "pocx1qplot...",
   "height": 12345,
   "has_assignment": false,
   "state": "UNASSIGNED"
@@ -208,11 +208,11 @@ bitcoin-cli submit_nonce 12345 \
 **Return Values** (active assignment):
 ```json
 {
-  "plot_address": "bc1qplot...",
+  "plot_address": "pocx1qplot...",
   "height": 12345,
   "has_assignment": true,
   "state": "ASSIGNED",
-  "forging_address": "bc1qforger...",
+  "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 12000,
   "activation_height": 12030
@@ -222,11 +222,11 @@ bitcoin-cli submit_nonce 12345 \
 **Return Values** (revoking):
 ```json
 {
-  "plot_address": "bc1qplot...",
+  "plot_address": "pocx1qplot...",
   "height": 12345,
   "has_assignment": true,
   "state": "REVOKING",
-  "forging_address": "bc1qforger...",
+  "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 12000,
   "activation_height": 12030,
@@ -249,8 +249,8 @@ bitcoin-cli submit_nonce 12345 \
 
 **Example**:
 ```bash
-bitcoin-cli get_assignment "bc1qplot..."
-bitcoin-cli get_assignment "bc1qplot..." 800000
+bitcoin-cli get_assignment "pocx1qplot..."
+bitcoin-cli get_assignment "pocx1qplot..." 800000
 ```
 
 **Implementation**: `src/pocx/rpc/assignments.cpp:get_assignment()`
@@ -275,15 +275,15 @@ bitcoin-cli get_assignment "bc1qplot..." 800000
 {
   "txid": "abc123...",
   "hex": "020000...",
-  "plot_address": "bc1qplot...",
-  "forging_address": "bc1qforger..."
+  "plot_address": "pocx1qplot...",
+  "forging_address": "pocx1qforger..."
 }
 ```
 
 **Requirements**:
 - Wallet loaded and unlocked
 - Private key for plot_address in wallet
-- Both addresses must be P2WPKH (bech32 format: bc1q... or pocx1q...)
+- Both addresses must be P2WPKH (bech32 format: pocx1q... mainnet, tpocx1q... testnet)
 - Plot address must have confirmed UTXOs (proves ownership)
 - Plot must not have active assignment (use revoke first)
 
@@ -305,8 +305,8 @@ bitcoin-cli get_assignment "bc1qplot..." 800000
 
 **Example**:
 ```bash
-bitcoin-cli create_assignment "bc1qplot..." "bc1qforger..."
-bitcoin-cli create_assignment "bc1qplot..." "bc1qforger..." 0.0001
+bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
+bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ```
 
 **Implementation**: `src/pocx/rpc/assignments_wallet.cpp:create_assignment()`
@@ -330,7 +330,7 @@ bitcoin-cli create_assignment "bc1qplot..." "bc1qforger..." 0.0001
 {
   "txid": "def456...",
   "hex": "020000...",
-  "plot_address": "bc1qplot..."
+  "plot_address": "pocx1qplot..."
 }
 ```
 
@@ -359,8 +359,8 @@ bitcoin-cli create_assignment "bc1qplot..." "bc1qforger..." 0.0001
 
 **Example**:
 ```bash
-bitcoin-cli revoke_assignment "bc1qplot..."
-bitcoin-cli revoke_assignment "bc1qplot..." 0.0001
+bitcoin-cli revoke_assignment "pocx1qplot..."
+bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 ```
 
 **Notes**:
@@ -377,7 +377,7 @@ bitcoin-cli revoke_assignment "bc1qplot..." 0.0001
 
 **PoCX Modifications**:
 - **Calculation**: `reference_base_target / current_base_target`
-- **Reference**: 1 TiB network capacity (base_target = 36,650,387,593)
+- **Reference**: 1 TiB network capacity (base_target = 36650387593)
 - **Interpretation**: Estimated network storage capacity in TiB
   - Example: `1.0` = ~1 TiB
   - Example: `1024.0` = ~1 PiB
@@ -568,15 +568,15 @@ while True:
 **Assignment Management**:
 ```bash
 # Miner creates assignment (from miner's wallet)
-bitcoin-cli create_assignment "bc1qminer_plot..." "bc1qpool..."
+bitcoin-cli create_assignment "pocx1qminer_plot..." "pocx1qpool..."
 
-# Wait for activation (30 blocks mainnet, 720 blocks testnet)
+# Wait for activation (30 blocks mainnet)
 
 # Pool checks assignment status
-bitcoin-cli get_assignment "bc1qminer_plot..."
+bitcoin-cli get_assignment "pocx1qminer_plot..."
 
 # Pool can now submit nonces for this plot
-# (pool wallet must have bc1qpool... private key)
+# (pool wallet must have pocx1qpool... private key)
 ```
 
 ---
@@ -648,7 +648,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Assignment Activation Pending**:
 ```json
 {
-  "plot_address": "bc1qplot...",
+  "plot_address": "pocx1qplot...",
   "state": "ASSIGNING",
   "activation_height": 12030
 }

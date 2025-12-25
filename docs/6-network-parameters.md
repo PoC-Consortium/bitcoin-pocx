@@ -34,7 +34,7 @@ Complete reference for Bitcoin-PoCX network configuration across all network typ
 - Therefore: base_target = 2^42 / block_time
 
 **Calculated Values**:
-- Mainnet/Testnet/Signet (120s): `36,650,387,592`
+- Mainnet/Testnet/Signet (120s): `36650387592`
 - Regtest (1s): Uses low-capacity calibration mode
 
 ### Genesis Message
@@ -64,12 +64,12 @@ All networks share the Bitcoin genesis message:
 
 **Block Timing**:
 - **Block Time Target**: `120` seconds (2 minutes)
-- **Target Timespan**: `1,209,600` seconds (14 days)
+- **Target Timespan**: `1209600` seconds (14 days)
 - **MAX_FUTURE_BLOCK_TIME**: `15` seconds
 
 **Block Rewards**:
 - **Initial Subsidy**: `10 BTC`
-- **Halving Interval**: `1,050,000` blocks (~4 years)
+- **Halving Interval**: `1050000` blocks (~4 years)
 - **Halving Count**: 64 halvings maximum
 
 **Difficulty Adjustment**:
@@ -100,7 +100,7 @@ All networks share the Bitcoin genesis message:
 
 **Block Rewards**:
 - **Initial Subsidy**: `10 BTC`
-- **Halving Interval**: `1,050,000` blocks
+- **Halving Interval**: `1050000` blocks
 
 **Difficulty Adjustment**:
 - **Rolling Window**: `24` blocks
@@ -123,7 +123,7 @@ All networks share the Bitcoin genesis message:
 
 **Block Timing**:
 - **Block Time Target**: `1` second (instant mining for testing)
-- **Target Timespan**: `86,400` seconds (1 day)
+- **Target Timespan**: `86400` seconds (1 day)
 - **MAX_FUTURE_BLOCK_TIME**: `15` seconds
 
 **Block Rewards**:
@@ -153,7 +153,7 @@ All networks share the Bitcoin genesis message:
 
 **Block Rewards**:
 - **Initial Subsidy**: `10 BTC`
-- **Halving Interval**: `1,050,000` blocks
+- **Halving Interval**: `1050000` blocks
 
 **Difficulty Adjustment**:
 - **Rolling Window**: `24` blocks
@@ -217,16 +217,16 @@ All networks share the Bitcoin genesis message:
 **Initial Subsidy**: `10 BTC` (all networks)
 
 **Halving Schedule**:
-- Every `1,050,000` blocks (mainnet/testnet)
+- Every `1050000` blocks (mainnet/testnet)
 - Every `500` blocks (regtest)
 - Continues for 64 halvings maximum
 
 **Halving Progression**:
 ```
-Halving 0: 10.00000000 BTC  (blocks 0 - 1,049,999)
-Halving 1:  5.00000000 BTC  (blocks 1,050,000 - 2,099,999)
-Halving 2:  2.50000000 BTC  (blocks 2,100,000 - 3,149,999)
-Halving 3:  1.25000000 BTC  (blocks 3,150,000 - 4,199,999)
+Halving 0: 10.00000000 BTC  (blocks 0 - 1049999)
+Halving 1:  5.00000000 BTC  (blocks 1050000 - 2099999)
+Halving 2:  2.50000000 BTC  (blocks 2100000 - 3149999)
+Halving 3:  1.25000000 BTC  (blocks 3150000 - 4199999)
 ...
 ```
 
@@ -274,19 +274,19 @@ Scaling levels increase on **exponential schedule** based on halving intervals:
 
 | Time Period | Block Height | Halvings | Min | Target |
 |-------------|--------------|----------|-----|--------|
-| Years 0-4 | 0 to 1,049,999 | 0 | X1 | X2 |
-| Years 4-12 | 1,050,000 to 3,149,999 | 1-2 | X2 | X3 |
-| Years 12-28 | 3,150,000 to 7,349,999 | 3-6 | X3 | X4 |
-| Years 28-60 | 7,350,000 to 15,749,999 | 7-14 | X4 | X5 |
-| Years 60-124 | 15,750,000 to 32,549,999 | 15-30 | X5 | X6 |
-| Years 124+ | 32,550,000+ | 31+ | X6 | X7 |
+| Years 0-4 | 0 to 1049999 | 0 | X1 | X2 |
+| Years 4-12 | 1050000 to 3149999 | 1-2 | X2 | X3 |
+| Years 12-28 | 3150000 to 7349999 | 3-6 | X3 | X4 |
+| Years 28-60 | 7350000 to 15749999 | 7-14 | X4 | X5 |
+| Years 60-124 | 15750000 to 32549999 | 15-30 | X5 | X6 |
+| Years 124+ | 32550000+ | 31+ | X6 | X7 |
 
 **Key Heights** (years → halvings → blocks):
-- Year 4: Halving 1 at block 1,050,000
-- Year 12: Halving 3 at block 3,150,000
-- Year 28: Halving 7 at block 7,350,000
-- Year 60: Halving 15 at block 15,750,000
-- Year 124: Halving 31 at block 32,550,000
+- Year 4: Halving 1 at block 1050000
+- Year 12: Halving 3 at block 3150000
+- Year 28: Halving 7 at block 7350000
+- Year 60: Halving 15 at block 15750000
+- Year 124: Halving 31 at block 32550000
 
 ### Scaling Level Difficulty
 

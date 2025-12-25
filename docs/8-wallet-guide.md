@@ -70,10 +70,10 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 
 | Unit | Satoshis | Display |
 |------|----------|---------|
-| **BTCX** | 100,000,000 | 1.00000000 BTCX |
-| **mBTCX** | 100,000 | 1,000.00 mBTCX |
-| **µBTCX** | 100 | 1,000,000.00 µBTCX |
-| **satoshi** | 1 | 100,000,000 sat |
+| **BTCX** | 100000000 | 1.00000000 BTCX |
+| **mBTCX** | 100000 | 1000.00 mBTCX |
+| **µBTCX** | 100 | 1000000.00 µBTCX |
+| **satoshi** | 1 | 100000000 sat |
 
 **GUI Settings**: Preferences → Display → Unit
 
@@ -171,7 +171,7 @@ UNASSIGNED - No assignment exists
 **Orange - ASSIGNING**
 ```
 ASSIGNING - Assignment pending activation
-Forging Address: bc1qforger...
+Forging Address: pocx1qforger...
 Created at height: 12000
 Activates at height: 12030 (5 blocks remaining)
 ```
@@ -179,7 +179,7 @@ Activates at height: 12030 (5 blocks remaining)
 **Green - ASSIGNED**
 ```
 ASSIGNED - Active assignment
-Forging Address: bc1qforger...
+Forging Address: pocx1qforger...
 Created at height: 12000
 Activated at height: 12030
 ```
@@ -187,7 +187,7 @@ Activated at height: 12030
 **Red-Orange - REVOKING**
 ```
 REVOKING - Revocation pending
-Forging Address: bc1qforger... (still active)
+Forging Address: pocx1qforger... (still active)
 Assignment created at height: 12000
 Revoked at height: 12300
 Revocation effective at height: 13020 (50 blocks remaining)
@@ -196,7 +196,7 @@ Revocation effective at height: 13020 (50 blocks remaining)
 **Red - REVOKED**
 ```
 REVOKED - Assignment revoked
-Previously assigned to: bc1qforger...
+Previously assigned to: pocx1qforger...
 Assignment created at height: 12000
 Revoked at height: 12300
 Revocation effective at height: 13020
@@ -269,7 +269,7 @@ Revocation effective at height: 13020
 ### P2WPKH (SegWit v0) Only
 
 **Forging operations require**:
-- Bech32 encoded addresses (starting with "bc1q" mainnet, "tpocx1q" testnet/regtest)
+- Bech32 encoded addresses (starting with "pocx1q" mainnet, "tpocx1q" testnet, "rpocx1q" regtest)
 - P2WPKH (Pay-to-Witness-Public-Key-Hash) format
 - 20-byte key hash
 
@@ -390,7 +390,7 @@ server=1
 
 **Reward Schedule**:
 - Initial: 10 BTCX per block
-- Halving: Every 1,050,000 blocks (~4 years)
+- Halving: Every 1050000 blocks (~4 years)
 - Schedule: 10 → 5 → 2.5 → 1.25 → ...
 
 ---
@@ -418,7 +418,7 @@ server=1
 
 **Cause**: Address not P2WPKH bech32
 **Solution**:
-- Use addresses starting with "bc1q" (mainnet) or "tpocx1q" (testnet)
+- Use addresses starting with "pocx1q" (mainnet) or "tpocx1q" (testnet)
 - Generate new address if needed: `getnewaddress "" "bech32"`
 
 #### "Transaction fee too low"
@@ -462,13 +462,13 @@ server=1
 
 2. **Verify Address Ownership**:
    ```bash
-   bitcoin-cli getaddressinfo bc1qplot...
+   bitcoin-cli getaddressinfo pocx1qplot...
    # Check: "iswatchonly": false, "ismine": true
    ```
 
 3. **Check Assignment Status**:
    ```bash
-   bitcoin-cli get_assignment bc1qplot...
+   bitcoin-cli get_assignment pocx1qplot...
    ```
 
 4. **View Recent Transactions**:

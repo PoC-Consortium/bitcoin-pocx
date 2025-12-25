@@ -596,16 +596,16 @@ public:
 
 #### get_assignment
 ```bash
-bitcoin-cli get_assignment "bc1qplot..."
+bitcoin-cli get_assignment "pocx1qplot..."
 ```
 
 Returns current assignment status for a plot address:
 ```json
 {
-  "plot_address": "bc1qplot...",
+  "plot_address": "pocx1qplot...",
   "has_assignment": true,
   "state": "ASSIGNED",
-  "forging_address": "bc1qforger...",
+  "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
   "activation_height": 244,
@@ -619,7 +619,7 @@ Returns current assignment status for a plot address:
 
 #### create_assignment
 ```bash
-bitcoin-cli create_assignment "bc1qplot..." "bc1qforger..."
+bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 ```
 
 Creates an assignment transaction:
@@ -632,7 +632,7 @@ Creates an assignment transaction:
 
 #### revoke_assignment
 ```bash
-bitcoin-cli revoke_assignment "bc1qplot..."
+bitcoin-cli revoke_assignment "pocx1qplot..."
 ```
 
 Creates a revocation transaction:
@@ -718,7 +718,7 @@ Where n = number of assignments for a plot (typically small, < 10)
 ### Disk Usage
 
 - **Per assignment:** ~200 bytes on disk (with LevelDB overhead)
-- **10,000 assignments:** ~2 MB disk space
+- **10000 assignments:** ~2 MB disk space
 - **Negligible compared to UTXO set:** <0.001% of typical chainstate
 
 ## Current Limitations and Future Work
