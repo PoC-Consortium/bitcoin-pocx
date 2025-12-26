@@ -24,10 +24,12 @@ Tämä on Bitcoin-PoCX:n täydellinen tekninen dokumentaatio. Bitcoin-PoCX on Bi
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 arabia](translations/ara/index.md) | [🇨🇳 kiina](translations/zho/index.md) | [🇳🇱 hollanti](translations/nld/index.md) | [🇫🇷 ranska](translations/fra/index.md) | [🇩🇪 saksa](translations/deu/index.md) | [🇬🇷 kreikka](translations/ell/index.md) |
-| [🇮🇱 heprea](translations/heb/index.md) | [🇮🇳 hindi](translations/hin/index.md) | [🇮🇩 indonesia](translations/ind/index.md) | [🇮🇹 italia](translations/ita/index.md) | [🇯🇵 japani](translations/jpn/index.md) | [🇰🇷 korea](translations/kor/index.md) |
-| [🇵🇹 portugali](translations/por/index.md) | [🇷🇺 venäjä](translations/rus/index.md) | [🇷🇸 serbia](translations/srp/index.md) | [🇪🇸 espanja](translations/spa/index.md) | [🇹🇷 turkki](translations/tur/index.md) | [🇺🇦 ukraina](translations/ukr/index.md) |
-| [🇻🇳 vietnam](translations/vie/index.md) | | | | | |
+| [🇸🇦 arabia](../ara/index.md) | [🇧🇬 bulgaria](../bul/index.md) | [🇪🇸 espanja](../spa/index.md) | [🇵🇭 filipino](../fil/index.md) | [🇮🇱 heprea](../heb/index.md) | [🇮🇳 hindi](../hin/index.md) |
+| [🇳🇱 hollanti](../nld/index.md) | [🇮🇩 indonesia](../ind/index.md) | [🇮🇹 italia](../ita/index.md) | [🇯🇵 japani](../jpn/index.md) | [🇨🇳 kiina](../zho/index.md) | [🇰🇷 korea](../kor/index.md) |
+| [🇬🇷 kreikka](../ell/index.md) | [🇱🇻 latvia](../lav/index.md) | [🇱🇹 liettua](../lit/index.md) | [🇳🇴 norja](../nor/index.md) | [🇵🇱 puola](../pol/index.md) | [🇵🇹 portugali](../por/index.md) |
+| [🇫🇷 ranska](../fra/index.md) | [🇷🇴 romania](../ron/index.md) | [🇸🇪 ruotsi](../swe/index.md) | [🇩🇪 saksa](../deu/index.md) | [🇷🇸 serbia](../srp/index.md) | [🇫🇮 suomi](../fin/index.md) |
+| [🇰🇪 swahili](../swa/index.md) | [🇩🇰 tanska](../dan/index.md) | [🇨🇿 tšekki](../ces/index.md) | [🇹🇷 turkki](../tur/index.md) | [🇺🇦 ukraina](../ukr/index.md) | [🇭🇺 unkari](../hun/index.md) |
+| [🇷🇺 venäjä](../rus/index.md) | [🇻🇳 vietnam](../vie/index.md) | [🇪🇪 viro](../est/index.md) | | | |
 
 
 ---

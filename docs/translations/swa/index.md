@@ -24,11 +24,12 @@ Hizi ni nyaraka kamili za kiufundi za Bitcoin-PoCX, muungano wa Bitcoin Core una
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Kiarabu](translations/ara/index.md) | [🇨🇳 Kichina](translations/zho/index.md) | [🇨🇿 Kicheki](translations/ces/index.md) | [🇩🇰 Kideni](translations/dan/index.md) | [🇳🇱 Kiholanzi](translations/nld/index.md) | [🇪🇪 Kiestonia](translations/est/index.md) |
-| [🇫🇮 Kifini](translations/fin/index.md) | [🇫🇷 Kifaransa](translations/fra/index.md) | [🇩🇪 Kijerumani](translations/deu/index.md) | [🇬🇷 Kigiriki](translations/ell/index.md) | [🇮🇱 Kiebrania](translations/heb/index.md) | [🇮🇳 Kihindi](translations/hin/index.md) |
-| [🇮🇩 Kiindonesia](translations/ind/index.md) | [🇮🇹 Kiitaliano](translations/ita/index.md) | [🇯🇵 Kijapani](translations/jpn/index.md) | [🇰🇷 Kikorea](translations/kor/index.md) | [🇱🇻 Kilatvia](translations/lav/index.md) | [🇱🇹 Kilithuania](translations/lit/index.md) |
-| [🇳🇴 Kinorwei](translations/nor/index.md) | [🇵🇱 Kipolandi](translations/pol/index.md) | [🇵🇹 Kireno](translations/por/index.md) | [🇷🇺 Kirusi](translations/rus/index.md) | [🇷🇸 Kiserbia](translations/srp/index.md) | [🇪🇸 Kihispania](translations/spa/index.md) |
-| [🇸🇪 Kiswidi](translations/swe/index.md) | [🇹🇷 Kituruki](translations/tur/index.md) | [🇺🇦 Kiukraini](translations/ukr/index.md) | [🇻🇳 Kivietnam](translations/vie/index.md) | | |
+| [🇧🇬 Kibulgaria](../bul/index.md) | [🇨🇿 Kicheki](../ces/index.md) | [🇨🇳 Kichina](../zho/index.md) | [🇩🇰 Kideni](../dan/index.md) | [🇪🇪 Kiestonia](../est/index.md) | [🇫🇷 Kifaransa](../fra/index.md) |
+| [🇵🇭 Kifilipino](../fil/index.md) | [🇫🇮 Kifini](../fin/index.md) | [🇬🇷 Kigiriki](../ell/index.md) | [🇮🇱 Kiebrania](../heb/index.md) | [🇮🇳 Kihindi](../hin/index.md) | [🇪🇸 Kihispania](../spa/index.md) |
+| [🇳🇱 Kiholanzi](../nld/index.md) | [🇭🇺 Kihungari](../hun/index.md) | [🇮🇩 Kiindonesia](../ind/index.md) | [🇮🇹 Kiitaliano](../ita/index.md) | [🇯🇵 Kijapani](../jpn/index.md) | [🇩🇪 Kijerumani](../deu/index.md) |
+| [🇰🇷 Kikorea](../kor/index.md) | [🇱🇻 Kilatvia](../lav/index.md) | [🇱🇹 Kilithuania](../lit/index.md) | [🇳🇴 Kinorwei](../nor/index.md) | [🇵🇱 Kipolandi](../pol/index.md) | [🇵🇹 Kireno](../por/index.md) |
+| [🇷🇴 Kiromania](../ron/index.md) | [🇷🇺 Kirusi](../rus/index.md) | [🇷🇸 Kiserbia](../srp/index.md) | [🇸🇪 Kiswidi](../swe/index.md) | [🇹🇷 Kituruki](../tur/index.md) | [🇺🇦 Kiukraini](../ukr/index.md) |
+| [🇻🇳 Kivietnam](../vie/index.md) | [🇸🇦 Kiarabu](../ara/index.md) | | | | |
 
 
 ---

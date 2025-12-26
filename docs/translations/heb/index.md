@@ -17,7 +17,17 @@
 - **מפתחים**: כל הפרקים
 - **חוקרים**: פרקים 3, 4, 5
 
-תרגומים: [🇸🇦 ערבית](../ara/index.md) [🇫🇷 צרפתית](../fra/index.md) [🇨🇳 סינית](../zho/index.md) [🇩🇪 גרמנית](../deu/index.md) [🇯🇵 יפנית](../jpn/index.md) [🇰🇷 קוריאנית](../kor/index.md) [🇪🇸 ספרדית](../spa/index.md) [🇻🇳 וייטנאמית](../vie/index.md)
+## תרגומים
+
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇮🇹 איטלקית](../ita/index.md) | [🇮🇩 אינדונזית](../ind/index.md) | [🇺🇦 אוקראינית](../ukr/index.md) | [🇪🇪 אסטונית](../est/index.md) | [🇧🇬 בולגרית](../bul/index.md) | [🇻🇳 וייטנאמית](../vie/index.md) |
+| [🇭🇺 הונגרית](../hun/index.md) | [🇳🇱 הולנדית](../nld/index.md) | [🇮🇳 הינדי](../hin/index.md) | [🇬🇷 יוונית](../ell/index.md) | [🇯🇵 יפנית](../jpn/index.md) | [🇱🇻 לטבית](../lav/index.md) |
+| [🇱🇹 ליטאית](../lit/index.md) | [🇳🇴 נורווגית](../nor/index.md) | [🇷🇸 סרבית](../srp/index.md) | [🇨🇳 סינית](../zho/index.md) | [🇪🇸 ספרדית](../spa/index.md) | [🇰🇪 סווהילית](../swa/index.md) |
+| [🇸🇦 ערבית](../ara/index.md) | [🇮🇱 עברית](../heb/index.md) | [🇵🇭 פיליפינית](../fil/index.md) | [🇫🇮 פינית](../fin/index.md) | [🇵🇱 פולנית](../pol/index.md) | [🇵🇹 פורטוגזית](../por/index.md) |
+| [🇨🇿 צ'כית](../ces/index.md) | [🇫🇷 צרפתית](../fra/index.md) | [🇰🇷 קוריאנית](../kor/index.md) | [🇷🇴 רומנית](../ron/index.md) | [🇷🇺 רוסית](../rus/index.md) | [🇸🇪 שוודית](../swe/index.md) |
+| [🇩🇪 גרמנית](../deu/index.md) | [🇩🇰 דנית](../dan/index.md) | [🇹🇷 טורקית](../tur/index.md) | | | |
+
 ---
 
 ## תוכן העניינים

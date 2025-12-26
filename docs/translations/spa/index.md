@@ -17,7 +17,17 @@ Esta es la documentación técnica completa de Bitcoin-PoCX, una integración de
 - **Desarrolladores**: Todos los capítulos
 - **Investigadores**: Capítulos 3, 4, 5
 
-Traducciones: [Alemán](translations/deu/index.md)
+## Traducciones
+
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇩🇪 Alemán](../deu/index.md) | [🇸🇦 Árabe](../ara/index.md) | [🇧🇬 Búlgaro](../bul/index.md) | [🇨🇳 Chino](../zho/index.md) | [🇰🇷 Coreano](../kor/index.md) | [🇩🇰 Danés](../dan/index.md) |
+| [🇪🇪 Estonio](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) | [🇫🇮 Finlandés](../fin/index.md) | [🇫🇷 Francés](../fra/index.md) | [🇬🇷 Griego](../ell/index.md) | [🇮🇱 Hebreo](../heb/index.md) |
+| [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holandés](../nld/index.md) | [🇭🇺 Húngaro](../hun/index.md) | [🇮🇩 Indonesio](../ind/index.md) | [🇮🇹 Italiano](../ita/index.md) | [🇯🇵 Japonés](../jpn/index.md) |
+| [🇱🇻 Letón](../lav/index.md) | [🇱🇹 Lituano](../lit/index.md) | [🇳🇴 Noruego](../nor/index.md) | [🇵🇱 Polaco](../pol/index.md) | [🇵🇹 Portugués](../por/index.md) | [🇷🇴 Rumano](../ron/index.md) |
+| [🇷🇺 Ruso](../rus/index.md) | [🇷🇸 Serbio](../srp/index.md) | [🇸🇪 Sueco](../swe/index.md) | [🇰🇪 Suajili](../swa/index.md) | [🇨🇿 Checo](../ces/index.md) | [🇹🇷 Turco](../tur/index.md) |
+| [🇺🇦 Ucraniano](../ukr/index.md) | [🇻🇳 Vietnamita](../vie/index.md) | | | | |
+
 ---
 
 ## Tabla de contenidos

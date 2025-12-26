@@ -17,7 +17,17 @@ Esta é a documentação técnica completa do Bitcoin-PoCX, uma integração ao 
 - **Desenvolvedores**: Todos os capítulos
 - **Pesquisadores**: Capítulos 3, 4, 5
 
-Traduções: [🇸🇦 Árabe](../ara/index.md) [🇫🇷 Francês](../fra/index.md) [🇨🇳 Chinês](../zho/index.md) [🇩🇪 Alemão](../deu/index.md) [🇯🇵 Japonês](../jpn/index.md) [🇰🇷 Coreano](../kor/index.md) [🇪🇸 Espanhol](../spa/index.md) [🇻🇳 Vietnamita](../vie/index.md)
+## Traduções
+
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇩🇪 Alemão](../deu/index.md) | [🇸🇦 Árabe](../ara/index.md) | [🇧🇬 Búlgaro](../bul/index.md) | [🇨🇿 Checo](../ces/index.md) | [🇨🇳 Chinês](../zho/index.md) | [🇰🇷 Coreano](../kor/index.md) |
+| [🇩🇰 Dinamarquês](../dan/index.md) | [🇪🇸 Espanhol](../spa/index.md) | [🇪🇪 Estoniano](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) | [🇫🇮 Finlandês](../fin/index.md) | [🇫🇷 Francês](../fra/index.md) |
+| [🇬🇷 Grego](../ell/index.md) | [🇮🇱 Hebraico](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holandês](../nld/index.md) | [🇭🇺 Húngaro](../hun/index.md) | [🇮🇩 Indonésio](../ind/index.md) |
+| [🇮🇹 Italiano](../ita/index.md) | [🇯🇵 Japonês](../jpn/index.md) | [🇱🇻 Letão](../lav/index.md) | [🇱🇹 Lituano](../lit/index.md) | [🇳🇴 Norueguês](../nor/index.md) | [🇵🇱 Polaco](../pol/index.md) |
+| [🇷🇴 Romeno](../ron/index.md) | [🇷🇺 Russo](../rus/index.md) | [🇷🇸 Sérvio](../srp/index.md) | [🇸🇪 Sueco](../swe/index.md) | [🇰🇪 Suaíli](../swa/index.md) | [🇹🇷 Turco](../tur/index.md) |
+| [🇺🇦 Ucraniano](../ukr/index.md) | [🇻🇳 Vietnamita](../vie/index.md) | | | | |
+
 ---
 
 ## Índice

@@ -24,11 +24,12 @@ Ito ang kumpletong teknikal na dokumentasyon para sa Bitcoin-PoCX, isang integra
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabic](translations/ara/index.md) | [🇨🇳 Chinese](translations/zho/index.md) | [🇨🇿 Czech](translations/ces/index.md) | [🇩🇰 Danish](translations/dan/index.md) | [🇳🇱 Dutch](translations/nld/index.md) | [🇪🇪 Estonian](translations/est/index.md) |
-| [🇫🇮 Finnish](translations/fin/index.md) | [🇫🇷 French](translations/fra/index.md) | [🇩🇪 German](translations/deu/index.md) | [🇬🇷 Greek](translations/ell/index.md) | [🇮🇱 Hebrew](translations/heb/index.md) | [🇮🇳 Hindi](translations/hin/index.md) |
-| [🇮🇩 Indonesian](translations/ind/index.md) | [🇮🇹 Italian](translations/ita/index.md) | [🇯🇵 Japanese](translations/jpn/index.md) | [🇰🇷 Korean](translations/kor/index.md) | [🇱🇻 Latvian](translations/lav/index.md) | [🇱🇹 Lithuanian](translations/lit/index.md) |
-| [🇳🇴 Norwegian](translations/nor/index.md) | [🇵🇱 Polish](translations/pol/index.md) | [🇵🇹 Portuguese](translations/por/index.md) | [🇷🇺 Russian](translations/rus/index.md) | [🇷🇸 Serbian](translations/srp/index.md) | [🇪🇸 Spanish](translations/spa/index.md) |
-| [🇸🇪 Swedish](translations/swe/index.md) | [🇹🇷 Turkish](translations/tur/index.md) | [🇺🇦 Ukrainian](translations/ukr/index.md) | [🇻🇳 Vietnamese](translations/vie/index.md) | | |
+| [🇸🇦 Arabo](../ara/index.md) | [🇧🇬 Bulgarian](../bul/index.md) | [🇨🇿 Czech](../ces/index.md) | [🇩🇰 Danish](../dan/index.md) | [🇪🇪 Estonian](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) |
+| [🇫🇮 Finnish](../fin/index.md) | [🇫🇷 Pranses](../fra/index.md) | [🇩🇪 Aleman](../deu/index.md) | [🇬🇷 Griyego](../ell/index.md) | [🇮🇱 Hebreo](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) |
+| [🇭🇺 Hungarian](../hun/index.md) | [🇮🇩 Indonesian](../ind/index.md) | [🇮🇹 Italyano](../ita/index.md) | [🇯🇵 Hapon](../jpn/index.md) | [🇰🇷 Koreano](../kor/index.md) | [🇱🇻 Latvian](../lav/index.md) |
+| [🇱🇹 Lithuanian](../lit/index.md) | [🇳🇱 Olandes](../nld/index.md) | [🇳🇴 Norwegian](../nor/index.md) | [🇵🇱 Polish](../pol/index.md) | [🇵🇹 Portuges](../por/index.md) | [🇷🇴 Romanian](../ron/index.md) |
+| [🇷🇺 Ruso](../rus/index.md) | [🇷🇸 Serbian](../srp/index.md) | [🇨🇳 Tsino](../zho/index.md) | [🇪🇸 Espanyol](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇸🇪 Swedish](../swe/index.md) |
+| [🇹🇷 Turko](../tur/index.md) | [🇺🇦 Ukrainian](../ukr/index.md) | [🇻🇳 Vietnamese](../vie/index.md) | | | |
 
 
 ---

@@ -24,10 +24,12 @@ Detta är den fullständiga tekniska dokumentationen för Bitcoin-PoCX, en Bitco
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [Arabiska](../ara/index.md) | [Kinesiska](../zho/index.md) | [Nederländska](../nld/index.md) | [Franska](../fra/index.md) | [Tyska](../deu/index.md) | [Grekiska](../ell/index.md) |
-| [Hebreiska](../heb/index.md) | [Hindi](../hin/index.md) | [Indonesiska](../ind/index.md) | [Italienska](../ita/index.md) | [Japanska](../jpn/index.md) | [Koreanska](../kor/index.md) |
-| [Portugisiska](../por/index.md) | [Ryska](../rus/index.md) | [Serbiska](../srp/index.md) | [Spanska](../spa/index.md) | [Turkiska](../tur/index.md) | [Ukrainska](../ukr/index.md) |
-| [Vietnamesiska](../vie/index.md) | | | | | |
+| [🇸🇦 Arabiska](../ara/index.md) | [🇧🇬 Bulgariska](../bul/index.md) | [🇩🇰 Danska](../dan/index.md) | [🇪🇪 Estniska](../est/index.md) | [🇵🇭 Filippinska](../fil/index.md) | [🇫🇮 Finska](../fin/index.md) |
+| [🇫🇷 Franska](../fra/index.md) | [🇬🇷 Grekiska](../ell/index.md) | [🇮🇱 Hebreiska](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇮🇩 Indonesiska](../ind/index.md) | [🇮🇹 Italienska](../ita/index.md) |
+| [🇯🇵 Japanska](../jpn/index.md) | [🇨🇳 Kinesiska](../zho/index.md) | [🇰🇷 Koreanska](../kor/index.md) | [🇱🇻 Lettiska](../lav/index.md) | [🇱🇹 Litauiska](../lit/index.md) | [🇳🇱 Nederländska](../nld/index.md) |
+| [🇳🇴 Norska](../nor/index.md) | [🇵🇱 Polska](../pol/index.md) | [🇵🇹 Portugisiska](../por/index.md) | [🇷🇴 Rumänska](../ron/index.md) | [🇷🇺 Ryska](../rus/index.md) | [🇷🇸 Serbiska](../srp/index.md) |
+| [🇪🇸 Spanska](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇿 Tjeckiska](../ces/index.md) | [🇹🇷 Turkiska](../tur/index.md) | [🇩🇪 Tyska](../deu/index.md) | [🇺🇦 Ukrainska](../ukr/index.md) |
+| [🇭🇺 Ungerska](../hun/index.md) | [🇻🇳 Vietnamesiska](../vie/index.md) | | | | |
 
 
 ---

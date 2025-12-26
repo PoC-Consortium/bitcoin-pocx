@@ -24,11 +24,12 @@ Ez a Bitcoin-PoCX teljes műszaki dokumentációja, amely egy Bitcoin Core integ
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arab](translations/ara/index.md) | [🇨🇳 Kínai](translations/zho/index.md) | [🇨🇿 Cseh](translations/ces/index.md) | [🇩🇰 Dán](translations/dan/index.md) | [🇳🇱 Holland](translations/nld/index.md) | [🇪🇪 Észt](translations/est/index.md) |
-| [🇫🇮 Finn](translations/fin/index.md) | [🇫🇷 Francia](translations/fra/index.md) | [🇩🇪 Német](translations/deu/index.md) | [🇬🇷 Görög](translations/ell/index.md) | [🇮🇱 Héber](translations/heb/index.md) | [🇮🇳 Hindi](translations/hin/index.md) |
-| [🇮🇩 Indonéz](translations/ind/index.md) | [🇮🇹 Olasz](translations/ita/index.md) | [🇯🇵 Japán](translations/jpn/index.md) | [🇰🇷 Koreai](translations/kor/index.md) | [🇱🇻 Lett](translations/lav/index.md) | [🇱🇹 Litván](translations/lit/index.md) |
-| [🇳🇴 Norvég](translations/nor/index.md) | [🇵🇱 Lengyel](translations/pol/index.md) | [🇵🇹 Portugál](translations/por/index.md) | [🇷🇺 Orosz](translations/rus/index.md) | [🇷🇸 Szerb](translations/srp/index.md) | [🇪🇸 Spanyol](translations/spa/index.md) |
-| [🇸🇪 Svéd](translations/swe/index.md) | [🇹🇷 Török](translations/tur/index.md) | [🇺🇦 Ukrán](translations/ukr/index.md) | [🇻🇳 Vietnámi](translations/vie/index.md) | | |
+| [🇸🇦 Arab](../ara/index.md) | [🇧🇬 Bolgár](../bul/index.md) | [🇨🇿 Cseh](../ces/index.md) | [🇩🇰 Dán](../dan/index.md) | [🇪🇪 Észt](../est/index.md) | [🇵🇭 Filippínó](../fil/index.md) |
+| [🇫🇮 Finn](../fin/index.md) | [🇫🇷 Francia](../fra/index.md) | [🇬🇷 Görög](../ell/index.md) | [🇮🇱 Héber](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holland](../nld/index.md) |
+| [🇮🇩 Indonéz](../ind/index.md) | [🇯🇵 Japán](../jpn/index.md) | [🇰🇷 Koreai](../kor/index.md) | [🇨🇳 Kínai](../zho/index.md) | [🇵🇱 Lengyel](../pol/index.md) | [🇱🇻 Lett](../lav/index.md) |
+| [🇱🇹 Litván](../lit/index.md) | [🇭🇺 Magyar](../hun/index.md) | [🇩🇪 Német](../deu/index.md) | [🇳🇴 Norvég](../nor/index.md) | [🇮🇹 Olasz](../ita/index.md) | [🇷🇺 Orosz](../rus/index.md) |
+| [🇵🇹 Portugál](../por/index.md) | [🇷🇴 Román](../ron/index.md) | [🇪🇸 Spanyol](../spa/index.md) | [🇰🇪 Szuahéli](../swa/index.md) | [🇷🇸 Szerb](../srp/index.md) | [🇸🇪 Svéd](../swe/index.md) |
+| [🇹🇷 Török](../tur/index.md) | [🇺🇦 Ukrán](../ukr/index.md) | [🇻🇳 Vietnámi](../vie/index.md) | | | |
 
 
 ---

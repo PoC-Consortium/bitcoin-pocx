@@ -24,10 +24,12 @@ Tai išsami Bitcoin-PoCX techninė dokumentacija - Bitcoin Core integracijos su 
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabų](translations/ara/index.md) | [🇨🇳 Kinų](translations/zho/index.md) | [🇳🇱 Olandų](translations/nld/index.md) | [🇫🇷 Prancūzų](translations/fra/index.md) | [🇩🇪 Vokiečių](translations/deu/index.md) | [🇬🇷 Graikų](translations/ell/index.md) |
-| [🇮🇱 Hebrajų](translations/heb/index.md) | [🇮🇳 Hindi](translations/hin/index.md) | [🇮🇩 Indoneziečių](translations/ind/index.md) | [🇮🇹 Italų](translations/ita/index.md) | [🇯🇵 Japonų](translations/jpn/index.md) | [🇰🇷 Korėjiečių](translations/kor/index.md) |
-| [🇵🇹 Portugalų](translations/por/index.md) | [🇷🇺 Rusų](translations/rus/index.md) | [🇷🇸 Serbų](translations/srp/index.md) | [🇪🇸 Ispanų](translations/spa/index.md) | [🇹🇷 Turkų](translations/tur/index.md) | [🇺🇦 Ukrainiečių](translations/ukr/index.md) |
-| [🇻🇳 Vietnamiečių](translations/vie/index.md) | | | | | |
+| [🇸🇦 Arabų](../ara/index.md) | [🇧🇬 Bulgarų](../bul/index.md) | [🇨🇿 Čekų](../ces/index.md) | [🇩🇰 Danų](../dan/index.md) | [🇪🇪 Estų](../est/index.md) | [🇵🇭 Filipiniečių](../fil/index.md) |
+| [🇫🇮 Suomių](../fin/index.md) | [🇫🇷 Prancūzų](../fra/index.md) | [🇬🇷 Graikų](../ell/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇪🇸 Ispanų](../spa/index.md) | [🇮🇹 Italų](../ita/index.md) |
+| [🇯🇵 Japonų](../jpn/index.md) | [🇨🇳 Kinų](../zho/index.md) | [🇰🇷 Korėjiečių](../kor/index.md) | [🇱🇻 Latvių](../lav/index.md) | [🇵🇱 Lenkų](../pol/index.md) | [🇳🇱 Olandų](../nld/index.md) |
+| [🇳🇴 Norvegų](../nor/index.md) | [🇵🇹 Portugalų](../por/index.md) | [🇷🇴 Rumunų](../ron/index.md) | [🇷🇺 Rusų](../rus/index.md) | [🇷🇸 Serbų](../srp/index.md) | [🇰🇪 Svahilių](../swa/index.md) |
+| [🇸🇪 Švedų](../swe/index.md) | [🇹🇷 Turkų](../tur/index.md) | [🇺🇦 Ukrainiečių](../ukr/index.md) | [🇭🇺 Vengrų](../hun/index.md) | [🇻🇳 Vietnamiečių](../vie/index.md) | [🇩🇪 Vokiečių](../deu/index.md) |
+| [🇮🇱 Hebrajų](../heb/index.md) | [🇮🇩 Indoneziečių](../ind/index.md) | | | | |
 
 
 ---

@@ -19,6 +19,19 @@ Dies ist die vollständige technische Dokumentation für Bitcoin-PoCX, eine Bitc
 
 ---
 
+## Übersetzungen
+
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇸🇦 Arabisch](../ara/index.md) | [🇧🇬 Bulgarisch](../bul/index.md) | [🇨🇳 Chinesisch](../zho/index.md) | [🇩🇰 Dänisch](../dan/index.md) | [🇪🇪 Estnisch](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) |
+| [🇫🇮 Finnisch](../fin/index.md) | [🇫🇷 Französisch](../fra/index.md) | [🇬🇷 Griechisch](../ell/index.md) | [🇮🇱 Hebräisch](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇮🇩 Indonesisch](../ind/index.md) |
+| [🇮🇹 Italienisch](../ita/index.md) | [🇯🇵 Japanisch](../jpn/index.md) | [🇰🇷 Koreanisch](../kor/index.md) | [🇱🇻 Lettisch](../lav/index.md) | [🇱🇹 Litauisch](../lit/index.md) | [🇳🇱 Niederländisch](../nld/index.md) |
+| [🇳🇴 Norwegisch](../nor/index.md) | [🇵🇱 Polnisch](../pol/index.md) | [🇵🇹 Portugiesisch](../por/index.md) | [🇷🇴 Rumänisch](../ron/index.md) | [🇷🇺 Russisch](../rus/index.md) | [🇸🇪 Schwedisch](../swe/index.md) |
+| [🇷🇸 Serbisch](../srp/index.md) | [🇪🇸 Spanisch](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇿 Tschechisch](../ces/index.md) | [🇹🇷 Türkisch](../tur/index.md) | [🇺🇦 Ukrainisch](../ukr/index.md) |
+| [🇭🇺 Ungarisch](../hun/index.md) | [🇻🇳 Vietnamesisch](../vie/index.md) | | | | |
+
+---
+
 ## Inhaltsverzeichnis
 
 ### Teil I: Grundlagen

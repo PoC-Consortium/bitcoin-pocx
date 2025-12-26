@@ -17,7 +17,17 @@ Ini adalah dokumentasi teknis lengkap untuk Bitcoin-PoCX, integrasi Bitcoin Core
 - **Pengembang**: Semua bab
 - **Peneliti**: Bab 3, 4, 5
 
-Terjemahan: [Arab](../ara/index.md) [Prancis](../fra/index.md) [Tiongkok](../zho/index.md) [Jerman](../deu/index.md) [Jepang](../jpn/index.md) [Korea](../kor/index.md) [Spanyol](../spa/index.md) [Vietnam](../vie/index.md)
+## Terjemahan
+
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇸🇦 Arab](../ara/index.md) | [🇧🇬 Bulgaria](../bul/index.md) | [🇨🇿 Ceko](../ces/index.md) | [🇩🇰 Denmark](../dan/index.md) | [🇪🇪 Estonia](../est/index.md) | [🇵🇭 Filipina](../fil/index.md) |
+| [🇫🇮 Finlandia](../fin/index.md) | [🇬🇷 Yunani](../ell/index.md) | [🇮🇱 Ibrani](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇭🇺 Hongaria](../hun/index.md) | [🇮🇩 Indonesia](../ind/index.md) |
+| [🇮🇹 Italia](../ita/index.md) | [🇯🇵 Jepang](../jpn/index.md) | [🇩🇪 Jerman](../deu/index.md) | [🇰🇷 Korea](../kor/index.md) | [🇱🇻 Latvia](../lav/index.md) | [🇱🇹 Lituania](../lit/index.md) |
+| [🇳🇱 Belanda](../nld/index.md) | [🇳🇴 Norwegia](../nor/index.md) | [🇵🇱 Polandia](../pol/index.md) | [🇵🇹 Portugis](../por/index.md) | [🇫🇷 Prancis](../fra/index.md) | [🇷🇴 Rumania](../ron/index.md) |
+| [🇷🇺 Rusia](../rus/index.md) | [🇷🇸 Serbia](../srp/index.md) | [🇪🇸 Spanyol](../spa/index.md) | [🇸🇪 Swedia](../swe/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇳 Tionghoa](../zho/index.md) |
+| [🇹🇷 Turki](../tur/index.md) | [🇺🇦 Ukraina](../ukr/index.md) | [🇻🇳 Vietnam](../vie/index.md) | | | |
+
 ---
 
 ## Daftar Isi
