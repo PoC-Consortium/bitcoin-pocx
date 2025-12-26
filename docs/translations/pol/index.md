@@ -24,12 +24,12 @@ Jest to kompletna dokumentacja techniczna Bitcoin-PoCX, integracji Bitcoin Core 
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabski](../ara/index.md) | [🇧🇬 Bułgarski](../bul/index.md) | [🇨🇳 Chiński](../zho/index.md) | [🇨🇿 Czeski](../ces/index.md) | [🇩🇰 Duński](../dan/index.md) | [🇪🇪 Estoński](../est/index.md) |
-| [🇵🇭 Filipiński](../fil/index.md) | [🇫🇮 Fiński](../fin/index.md) | [🇫🇷 Francuski](../fra/index.md) | [🇬🇷 Grecki](../ell/index.md) | [🇮🇱 Hebrajski](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) |
-| [🇪🇸 Hiszpański](../spa/index.md) | [🇳🇱 Holenderski](../nld/index.md) | [🇮🇩 Indonezyjski](../ind/index.md) | [🇯🇵 Japoński](../jpn/index.md) | [🇰🇷 Koreański](../kor/index.md) | [🇱🇹 Litewski](../lit/index.md) |
-| [🇱🇻 Łotewski](../lav/index.md) | [🇩🇪 Niemiecki](../deu/index.md) | [🇳🇴 Norweski](../nor/index.md) | [🇵🇹 Portugalski](../por/index.md) | [🇷🇴 Rumuński](../ron/index.md) | [🇷🇺 Rosyjski](../rus/index.md) |
-| [🇷🇸 Serbski](../srp/index.md) | [🇰🇪 Suahili](../swa/index.md) | [🇸🇪 Szwedzki](../swe/index.md) | [🇹🇷 Turecki](../tur/index.md) | [🇺🇦 Ukraiński](../ukr/index.md) | [🇭🇺 Węgierski](../hun/index.md) |
-| [🇻🇳 Wietnamski](../vie/index.md) | [🇮🇹 Włoski](../ita/index.md) | | | | |
+| [🇬🇧 Angielski](../../index.md) | [🇸🇦 Arabski](../ara/index.md) | [🇧🇬 Bułgarski](../bul/index.md) | [🇨🇳 Chiński](../zho/index.md) | [🇨🇿 Czeski](../ces/index.md) | [🇩🇰 Duński](../dan/index.md) |
+| [🇪🇪 Estoński](../est/index.md) | [🇵🇭 Filipiński](../fil/index.md) | [🇫🇮 Fiński](../fin/index.md) | [🇫🇷 Francuski](../fra/index.md) | [🇬🇷 Grecki](../ell/index.md) | [🇮🇱 Hebrajski](../heb/index.md) |
+| [🇮🇳 Hindi](../hin/index.md) | [🇪🇸 Hiszpański](../spa/index.md) | [🇳🇱 Holenderski](../nld/index.md) | [🇮🇩 Indonezyjski](../ind/index.md) | [🇮🇹 Włoski](../ita/index.md) | [🇯🇵 Japoński](../jpn/index.md) |
+| [🇰🇷 Koreański](../kor/index.md) | [🇱🇹 Litewski](../lit/index.md) | [🇱🇻 Łotewski](../lav/index.md) | [🇩🇪 Niemiecki](../deu/index.md) | [🇳🇴 Norweski](../nor/index.md) | [🇵🇹 Portugalski](../por/index.md) |
+| [🇷🇺 Rosyjski](../rus/index.md) | [🇷🇴 Rumuński](../ron/index.md) | [🇷🇸 Serbski](../srp/index.md) | [🇰🇪 Suahili](../swa/index.md) | [🇸🇪 Szwedzki](../swe/index.md) | [🇹🇷 Turecki](../tur/index.md) |
+| [🇺🇦 Ukraiński](../ukr/index.md) | [🇭🇺 Węgierski](../hun/index.md) | [🇻🇳 Wietnamski](../vie/index.md) | | | |
 
 
 ---

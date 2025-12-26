@@ -24,10 +24,10 @@ Tämä on Bitcoin-PoCX:n täydellinen tekninen dokumentaatio. Bitcoin-PoCX on Bi
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 arabia](../ara/index.md) | [🇧🇬 bulgaria](../bul/index.md) | [🇪🇸 espanja](../spa/index.md) | [🇵🇭 filipino](../fil/index.md) | [🇮🇱 heprea](../heb/index.md) | [🇮🇳 hindi](../hin/index.md) |
-| [🇳🇱 hollanti](../nld/index.md) | [🇮🇩 indonesia](../ind/index.md) | [🇮🇹 italia](../ita/index.md) | [🇯🇵 japani](../jpn/index.md) | [🇨🇳 kiina](../zho/index.md) | [🇰🇷 korea](../kor/index.md) |
-| [🇬🇷 kreikka](../ell/index.md) | [🇱🇻 latvia](../lav/index.md) | [🇱🇹 liettua](../lit/index.md) | [🇳🇴 norja](../nor/index.md) | [🇵🇱 puola](../pol/index.md) | [🇵🇹 portugali](../por/index.md) |
-| [🇫🇷 ranska](../fra/index.md) | [🇷🇴 romania](../ron/index.md) | [🇸🇪 ruotsi](../swe/index.md) | [🇩🇪 saksa](../deu/index.md) | [🇷🇸 serbia](../srp/index.md) | [🇫🇮 suomi](../fin/index.md) |
+| [🇸🇦 arabia](../ara/index.md) | [🇧🇬 bulgaria](../bul/index.md) | [🇬🇧 englanti](../../index.md) | [🇪🇸 espanja](../spa/index.md) | [🇵🇭 filipino](../fil/index.md) | [🇮🇱 heprea](../heb/index.md) |
+| [🇮🇳 hindi](../hin/index.md) | [🇳🇱 hollanti](../nld/index.md) | [🇮🇩 indonesia](../ind/index.md) | [🇮🇹 italia](../ita/index.md) | [🇯🇵 japani](../jpn/index.md) | [🇨🇳 kiina](../zho/index.md) |
+| [🇰🇷 korea](../kor/index.md) | [🇬🇷 kreikka](../ell/index.md) | [🇱🇻 latvia](../lav/index.md) | [🇱🇹 liettua](../lit/index.md) | [🇳🇴 norja](../nor/index.md) | [🇵🇱 puola](../pol/index.md) |
+| [🇵🇹 portugali](../por/index.md) | [🇫🇷 ranska](../fra/index.md) | [🇷🇴 romania](../ron/index.md) | [🇸🇪 ruotsi](../swe/index.md) | [🇩🇪 saksa](../deu/index.md) | [🇷🇸 serbia](../srp/index.md) |
 | [🇰🇪 swahili](../swa/index.md) | [🇩🇰 tanska](../dan/index.md) | [🇨🇿 tšekki](../ces/index.md) | [🇹🇷 turkki](../tur/index.md) | [🇺🇦 ukraina](../ukr/index.md) | [🇭🇺 unkari](../hun/index.md) |
 | [🇷🇺 venäjä](../rus/index.md) | [🇻🇳 vietnam](../vie/index.md) | [🇪🇪 viro](../est/index.md) | | | |
 

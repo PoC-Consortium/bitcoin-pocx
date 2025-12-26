@@ -21,12 +21,12 @@
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇧🇬 Tiếng Bungari](../bul/index.md) | [🇨🇿 Tiếng Séc](../ces/index.md) | [🇩🇰 Tiếng Đan Mạch](../dan/index.md) | [🇩🇪 Tiếng Đức](../deu/index.md) | [🇪🇪 Tiếng Estonia](../est/index.md) | [🇬🇷 Tiếng Hy Lạp](../ell/index.md) |
-| [🇪🇸 Tiếng Tây Ban Nha](../spa/index.md) | [🇫🇮 Tiếng Phần Lan](../fin/index.md) | [🇫🇷 Tiếng Pháp](../fra/index.md) | [🇮🇱 Tiếng Do Thái](../heb/index.md) | [🇮🇳 Tiếng Hindi](../hin/index.md) | [🇭🇺 Tiếng Hungary](../hun/index.md) |
-| [🇮🇩 Tiếng Indonesia](../ind/index.md) | [🇮🇹 Tiếng Ý](../ita/index.md) | [🇯🇵 Tiếng Nhật](../jpn/index.md) | [🇰🇷 Tiếng Hàn](../kor/index.md) | [🇱🇻 Tiếng Latvia](../lav/index.md) | [🇱🇹 Tiếng Litva](../lit/index.md) |
-| [🇳🇱 Tiếng Hà Lan](../nld/index.md) | [🇳🇴 Tiếng Na Uy](../nor/index.md) | [🇵🇭 Tiếng Philippines](../fil/index.md) | [🇵🇱 Tiếng Ba Lan](../pol/index.md) | [🇵🇹 Tiếng Bồ Đào Nha](../por/index.md) | [🇷🇴 Tiếng Romania](../ron/index.md) |
-| [🇷🇺 Tiếng Nga](../rus/index.md) | [🇷🇸 Tiếng Serbia](../srp/index.md) | [🇸🇪 Tiếng Thụy Điển](../swe/index.md) | [🇰🇪 Tiếng Swahili](../swa/index.md) | [🇹🇷 Tiếng Thổ Nhĩ Kỳ](../tur/index.md) | [🇺🇦 Tiếng Ukraina](../ukr/index.md) |
-| [🇨🇳 Tiếng Trung](../zho/index.md) | [🇸🇦 Tiếng Ả Rập](../ara/index.md) | | | | |
+| [🇸🇦 Tiếng Ả Rập](../ara/index.md) | [🇬🇧 Tiếng Anh](../../index.md) | [🇵🇱 Tiếng Ba Lan](../pol/index.md) | [🇵🇹 Tiếng Bồ Đào Nha](../por/index.md) | [🇧🇬 Tiếng Bungari](../bul/index.md) | [🇩🇰 Tiếng Đan Mạch](../dan/index.md) |
+| [🇩🇪 Tiếng Đức](../deu/index.md) | [🇮🇱 Tiếng Do Thái](../heb/index.md) | [🇪🇪 Tiếng Estonia](../est/index.md) | [🇳🇱 Tiếng Hà Lan](../nld/index.md) | [🇰🇷 Tiếng Hàn](../kor/index.md) | [🇮🇳 Tiếng Hindi](../hin/index.md) |
+| [🇭🇺 Tiếng Hungary](../hun/index.md) | [🇬🇷 Tiếng Hy Lạp](../ell/index.md) | [🇮🇩 Tiếng Indonesia](../ind/index.md) | [🇱🇻 Tiếng Latvia](../lav/index.md) | [🇱🇹 Tiếng Litva](../lit/index.md) | [🇳🇴 Tiếng Na Uy](../nor/index.md) |
+| [🇯🇵 Tiếng Nhật](../jpn/index.md) | [🇷🇺 Tiếng Nga](../rus/index.md) | [🇫🇮 Tiếng Phần Lan](../fin/index.md) | [🇵🇭 Tiếng Philippines](../fil/index.md) | [🇫🇷 Tiếng Pháp](../fra/index.md) | [🇷🇴 Tiếng Romania](../ron/index.md) |
+| [🇨🇿 Tiếng Séc](../ces/index.md) | [🇷🇸 Tiếng Serbia](../srp/index.md) | [🇰🇪 Tiếng Swahili](../swa/index.md) | [🇪🇸 Tiếng Tây Ban Nha](../spa/index.md) | [🇸🇪 Tiếng Thụy Điển](../swe/index.md) | [🇹🇷 Tiếng Thổ Nhĩ Kỳ](../tur/index.md) |
+| [🇨🇳 Tiếng Trung](../zho/index.md) | [🇺🇦 Tiếng Ukraina](../ukr/index.md) | [🇮🇹 Tiếng Ý](../ita/index.md) | | | |
 
 ---
 

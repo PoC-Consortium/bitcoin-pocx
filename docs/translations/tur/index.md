@@ -22,11 +22,11 @@ Bu, Bitcoin-PoCX için kapsamlı teknik dokümantasyondur. Bitcoin-PoCX, Bitcoin
 | | | | | | |
 |---|---|---|---|---|---|
 | [🇩🇪 Almanca](../deu/index.md) | [🇸🇦 Arapça](../ara/index.md) | [🇧🇬 Bulgarca](../bul/index.md) | [🇨🇿 Çekçe](../ces/index.md) | [🇨🇳 Çince](../zho/index.md) | [🇩🇰 Danca](../dan/index.md) |
-| [🇪🇪 Estonca](../est/index.md) | [🇵🇭 Filipince](../fil/index.md) | [🇫🇮 Fince](../fin/index.md) | [🇫🇷 Fransızca](../fra/index.md) | [🇮🇳 Hintçe](../hin/index.md) | [🇳🇱 Hollandaca](../nld/index.md) |
-| [🇮🇱 İbranice](../heb/index.md) | [🇮🇩 Endonezce](../ind/index.md) | [🇪🇸 İspanyolca](../spa/index.md) | [🇸🇪 İsveççe](../swe/index.md) | [🇮🇹 İtalyanca](../ita/index.md) | [🇯🇵 Japonca](../jpn/index.md) |
-| [🇰🇷 Korece](../kor/index.md) | [🇱🇻 Letonca](../lav/index.md) | [🇱🇹 Litvanca](../lit/index.md) | [🇭🇺 Macarca](../hun/index.md) | [🇳🇴 Norveççe](../nor/index.md) | [🇵🇱 Lehçe](../pol/index.md) |
-| [🇵🇹 Portekizce](../por/index.md) | [🇷🇴 Romence](../ron/index.md) | [🇷🇺 Rusça](../rus/index.md) | [🇷🇸 Sırpça](../srp/index.md) | [🇰🇪 Svahili](../swa/index.md) | [🇺🇦 Ukraynaca](../ukr/index.md) |
-| [🇻🇳 Vietnamca](../vie/index.md) | [🇬🇷 Yunanca](../ell/index.md) | | | | |
+| [🇮🇩 Endonezce](../ind/index.md) | [🇪🇪 Estonca](../est/index.md) | [🇵🇭 Filipince](../fil/index.md) | [🇫🇮 Fince](../fin/index.md) | [🇫🇷 Fransızca](../fra/index.md) | [🇮🇳 Hintçe](../hin/index.md) |
+| [🇳🇱 Hollandaca](../nld/index.md) | [🇮🇱 İbranice](../heb/index.md) | [🇬🇧 İngilizce](../../index.md) | [🇪🇸 İspanyolca](../spa/index.md) | [🇸🇪 İsveççe](../swe/index.md) | [🇮🇹 İtalyanca](../ita/index.md) |
+| [🇯🇵 Japonca](../jpn/index.md) | [🇰🇷 Korece](../kor/index.md) | [🇵🇱 Lehçe](../pol/index.md) | [🇱🇻 Letonca](../lav/index.md) | [🇱🇹 Litvanca](../lit/index.md) | [🇭🇺 Macarca](../hun/index.md) |
+| [🇳🇴 Norveççe](../nor/index.md) | [🇵🇹 Portekizce](../por/index.md) | [🇷🇴 Romence](../ron/index.md) | [🇷🇺 Rusça](../rus/index.md) | [🇷🇸 Sırpça](../srp/index.md) | [🇰🇪 Svahili](../swa/index.md) |
+| [🇺🇦 Ukraynaca](../ukr/index.md) | [🇻🇳 Vietnamca](../vie/index.md) | [🇬🇷 Yunanca](../ell/index.md) | | | |
 
 ---
 

@@ -24,12 +24,12 @@ Dette er den komplette tekniske dokumentation for Bitcoin-PoCX, en Bitcoin Core-
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabisk](../ara/index.md) | [🇧🇬 Bulgarsk](../bul/index.md) | [🇪🇪 Estisk](../est/index.md) | [🇵🇭 Filippinsk](../fil/index.md) | [🇫🇮 Finsk](../fin/index.md) | [🇫🇷 Fransk](../fra/index.md) |
-| [🇬🇷 Græsk](../ell/index.md) | [🇮🇱 Hebraisk](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Hollandsk](../nld/index.md) | [🇮🇩 Indonesisk](../ind/index.md) | [🇮🇹 Italiensk](../ita/index.md) |
-| [🇯🇵 Japansk](../jpn/index.md) | [🇨🇳 Kinesisk](../zho/index.md) | [🇰🇷 Koreansk](../kor/index.md) | [🇱🇻 Lettisk](../lav/index.md) | [🇱🇹 Litauisk](../lit/index.md) | [🇳🇴 Norsk](../nor/index.md) |
-| [🇵🇱 Polsk](../pol/index.md) | [🇵🇹 Portugisisk](../por/index.md) | [🇷🇴 Rumænsk](../ron/index.md) | [🇷🇺 Russisk](../rus/index.md) | [🇷🇸 Serbisk](../srp/index.md) | [🇪🇸 Spansk](../spa/index.md) |
-| [🇰🇪 Swahili](../swa/index.md) | [🇸🇪 Svensk](../swe/index.md) | [🇨🇿 Tjekkisk](../ces/index.md) | [🇹🇷 Tyrkisk](../tur/index.md) | [🇩🇪 Tysk](../deu/index.md) | [🇺🇦 Ukrainsk](../ukr/index.md) |
-| [🇭🇺 Ungarsk](../hun/index.md) | [🇻🇳 Vietnamesisk](../vie/index.md) | | | | |
+| [🇸🇦 Arabisk](../ara/index.md) | [🇧🇬 Bulgarsk](../bul/index.md) | [🇬🇧 Engelsk](../../index.md) | [🇪🇪 Estisk](../est/index.md) | [🇵🇭 Filippinsk](../fil/index.md) | [🇫🇮 Finsk](../fin/index.md) |
+| [🇫🇷 Fransk](../fra/index.md) | [🇬🇷 Græsk](../ell/index.md) | [🇮🇱 Hebraisk](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Hollandsk](../nld/index.md) | [🇮🇩 Indonesisk](../ind/index.md) |
+| [🇮🇹 Italiensk](../ita/index.md) | [🇯🇵 Japansk](../jpn/index.md) | [🇨🇳 Kinesisk](../zho/index.md) | [🇰🇷 Koreansk](../kor/index.md) | [🇱🇻 Lettisk](../lav/index.md) | [🇱🇹 Litauisk](../lit/index.md) |
+| [🇳🇴 Norsk](../nor/index.md) | [🇵🇱 Polsk](../pol/index.md) | [🇵🇹 Portugisisk](../por/index.md) | [🇷🇴 Rumænsk](../ron/index.md) | [🇷🇺 Russisk](../rus/index.md) | [🇷🇸 Serbisk](../srp/index.md) |
+| [🇪🇸 Spansk](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇸🇪 Svensk](../swe/index.md) | [🇨🇿 Tjekkisk](../ces/index.md) | [🇹🇷 Tyrkisk](../tur/index.md) | [🇩🇪 Tysk](../deu/index.md) |
+| [🇺🇦 Ukrainsk](../ukr/index.md) | [🇭🇺 Ungarsk](../hun/index.md) | [🇻🇳 Vietnamesisk](../vie/index.md) | | | |
 
 
 ---

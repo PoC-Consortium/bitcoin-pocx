@@ -21,12 +21,12 @@ Dit is de volledige technische documentatie voor Bitcoin-PoCX, een Bitcoin Core-
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabisch](../ara/index.md) | [🇧🇬 Bulgaars](../bul/index.md) | [🇨🇳 Chinees](../zho/index.md) | [🇩🇰 Deens](../dan/index.md) | [🇩🇪 Duits](../deu/index.md) | [🇪🇪 Estisch](../est/index.md) |
-| [🇵🇭 Filipijns](../fil/index.md) | [🇫🇮 Fins](../fin/index.md) | [🇫🇷 Frans](../fra/index.md) | [🇬🇷 Grieks](../ell/index.md) | [🇮🇱 Hebreeuws](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) |
-| [🇭🇺 Hongaars](../hun/index.md) | [🇮🇩 Indonesisch](../ind/index.md) | [🇮🇹 Italiaans](../ita/index.md) | [🇯🇵 Japans](../jpn/index.md) | [🇰🇷 Koreaans](../kor/index.md) | [🇱🇻 Lets](../lav/index.md) |
-| [🇱🇹 Litouws](../lit/index.md) | [🇳🇴 Noors](../nor/index.md) | [🇺🇦 Oekraïens](../ukr/index.md) | [🇵🇱 Pools](../pol/index.md) | [🇵🇹 Portugees](../por/index.md) | [🇷🇴 Roemeens](../ron/index.md) |
-| [🇷🇺 Russisch](../rus/index.md) | [🇷🇸 Servisch](../srp/index.md) | [🇪🇸 Spaans](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇿 Tsjechisch](../ces/index.md) | [🇹🇷 Turks](../tur/index.md) |
-| [🇻🇳 Vietnamees](../vie/index.md) | [🇸🇪 Zweeds](../swe/index.md) | | | | |
+| [🇸🇦 Arabisch](../ara/index.md) | [🇧🇬 Bulgaars](../bul/index.md) | [🇨🇳 Chinees](../zho/index.md) | [🇩🇰 Deens](../dan/index.md) | [🇩🇪 Duits](../deu/index.md) | [🇬🇧 Engels](../../index.md) |
+| [🇪🇪 Estisch](../est/index.md) | [🇵🇭 Filipijns](../fil/index.md) | [🇫🇮 Fins](../fin/index.md) | [🇫🇷 Frans](../fra/index.md) | [🇬🇷 Grieks](../ell/index.md) | [🇮🇱 Hebreeuws](../heb/index.md) |
+| [🇮🇳 Hindi](../hin/index.md) | [🇭🇺 Hongaars](../hun/index.md) | [🇮🇩 Indonesisch](../ind/index.md) | [🇮🇹 Italiaans](../ita/index.md) | [🇯🇵 Japans](../jpn/index.md) | [🇰🇷 Koreaans](../kor/index.md) |
+| [🇱🇻 Lets](../lav/index.md) | [🇱🇹 Litouws](../lit/index.md) | [🇳🇴 Noors](../nor/index.md) | [🇺🇦 Oekraïens](../ukr/index.md) | [🇵🇱 Pools](../pol/index.md) | [🇵🇹 Portugees](../por/index.md) |
+| [🇷🇴 Roemeens](../ron/index.md) | [🇷🇺 Russisch](../rus/index.md) | [🇷🇸 Servisch](../srp/index.md) | [🇪🇸 Spaans](../spa/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇿 Tsjechisch](../ces/index.md) |
+| [🇹🇷 Turks](../tur/index.md) | [🇻🇳 Vietnamees](../vie/index.md) | [🇸🇪 Zweeds](../swe/index.md) | | | |
 
 ---
 

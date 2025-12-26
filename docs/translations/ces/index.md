@@ -24,12 +24,12 @@ Toto je kompletní technická dokumentace pro Bitcoin-PoCX, integraci do Bitcoin
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arabština](../ara/index.md) | [🇧🇬 Bulharština](../bul/index.md) | [🇨🇳 Čínština](../zho/index.md) | [🇩🇰 Dánština](../dan/index.md) | [🇪🇪 Estonština](../est/index.md) | [🇵🇭 Filipínština](../fil/index.md) |
-| [🇫🇮 Finština](../fin/index.md) | [🇫🇷 Francouzština](../fra/index.md) | [🇮🇱 Hebrejština](../heb/index.md) | [🇮🇳 Hindština](../hin/index.md) | [🇳🇱 Nizozemština](../nld/index.md) | [🇮🇩 Indonéština](../ind/index.md) |
-| [🇮🇹 Italština](../ita/index.md) | [🇯🇵 Japonština](../jpn/index.md) | [🇰🇷 Korejština](../kor/index.md) | [🇱🇻 Lotyština](../lav/index.md) | [🇱🇹 Litevština](../lit/index.md) | [🇭🇺 Maďarština](../hun/index.md) |
-| [🇩🇪 Němčina](../deu/index.md) | [🇳🇴 Norština](../nor/index.md) | [🇵🇱 Polština](../pol/index.md) | [🇵🇹 Portugalština](../por/index.md) | [🇬🇷 Řečtina](../ell/index.md) | [🇷🇴 Rumunština](../ron/index.md) |
-| [🇷🇺 Ruština](../rus/index.md) | [🇷🇸 Srbština](../srp/index.md) | [🇰🇪 Svahilština](../swa/index.md) | [🇪🇸 Španělština](../spa/index.md) | [🇸🇪 Švédština](../swe/index.md) | [🇹🇷 Turečtina](../tur/index.md) |
-| [🇺🇦 Ukrajinština](../ukr/index.md) | [🇻🇳 Vietnamština](../vie/index.md) | | | | |
+| [🇬🇧 Angličtina](../../index.md) | [🇸🇦 Arabština](../ara/index.md) | [🇧🇬 Bulharština](../bul/index.md) | [🇨🇳 Čínština](../zho/index.md) | [🇩🇰 Dánština](../dan/index.md) | [🇪🇪 Estonština](../est/index.md) |
+| [🇵🇭 Filipínština](../fil/index.md) | [🇫🇮 Finština](../fin/index.md) | [🇫🇷 Francouzština](../fra/index.md) | [🇮🇱 Hebrejština](../heb/index.md) | [🇮🇳 Hindština](../hin/index.md) | [🇮🇩 Indonéština](../ind/index.md) |
+| [🇮🇹 Italština](../ita/index.md) | [🇯🇵 Japonština](../jpn/index.md) | [🇰🇷 Korejština](../kor/index.md) | [🇱🇹 Litevština](../lit/index.md) | [🇱🇻 Lotyština](../lav/index.md) | [🇭🇺 Maďarština](../hun/index.md) |
+| [🇩🇪 Němčina](../deu/index.md) | [🇳🇱 Nizozemština](../nld/index.md) | [🇳🇴 Norština](../nor/index.md) | [🇵🇱 Polština](../pol/index.md) | [🇵🇹 Portugalština](../por/index.md) | [🇬🇷 Řečtina](../ell/index.md) |
+| [🇷🇴 Rumunština](../ron/index.md) | [🇷🇺 Ruština](../rus/index.md) | [🇷🇸 Srbština](../srp/index.md) | [🇰🇪 Svahilština](../swa/index.md) | [🇪🇸 Španělština](../spa/index.md) | [🇸🇪 Švédština](../swe/index.md) |
+| [🇹🇷 Turečtina](../tur/index.md) | [🇺🇦 Ukrajinština](../ukr/index.md) | [🇻🇳 Vietnamština](../vie/index.md) | | | |
 
 
 ---

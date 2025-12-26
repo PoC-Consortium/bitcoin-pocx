@@ -24,11 +24,11 @@ Ez a Bitcoin-PoCX teljes műszaki dokumentációja, amely egy Bitcoin Core integ
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arab](../ara/index.md) | [🇧🇬 Bolgár](../bul/index.md) | [🇨🇿 Cseh](../ces/index.md) | [🇩🇰 Dán](../dan/index.md) | [🇪🇪 Észt](../est/index.md) | [🇵🇭 Filippínó](../fil/index.md) |
-| [🇫🇮 Finn](../fin/index.md) | [🇫🇷 Francia](../fra/index.md) | [🇬🇷 Görög](../ell/index.md) | [🇮🇱 Héber](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holland](../nld/index.md) |
-| [🇮🇩 Indonéz](../ind/index.md) | [🇯🇵 Japán](../jpn/index.md) | [🇰🇷 Koreai](../kor/index.md) | [🇨🇳 Kínai](../zho/index.md) | [🇵🇱 Lengyel](../pol/index.md) | [🇱🇻 Lett](../lav/index.md) |
-| [🇱🇹 Litván](../lit/index.md) | [🇭🇺 Magyar](../hun/index.md) | [🇩🇪 Német](../deu/index.md) | [🇳🇴 Norvég](../nor/index.md) | [🇮🇹 Olasz](../ita/index.md) | [🇷🇺 Orosz](../rus/index.md) |
-| [🇵🇹 Portugál](../por/index.md) | [🇷🇴 Román](../ron/index.md) | [🇪🇸 Spanyol](../spa/index.md) | [🇰🇪 Szuahéli](../swa/index.md) | [🇷🇸 Szerb](../srp/index.md) | [🇸🇪 Svéd](../swe/index.md) |
+| [🇬🇧 Angol](../../index.md) | [🇸🇦 Arab](../ara/index.md) | [🇧🇬 Bolgár](../bul/index.md) | [🇨🇿 Cseh](../ces/index.md) | [🇩🇰 Dán](../dan/index.md) | [🇪🇪 Észt](../est/index.md) |
+| [🇵🇭 Filippínó](../fil/index.md) | [🇫🇮 Finn](../fin/index.md) | [🇫🇷 Francia](../fra/index.md) | [🇬🇷 Görög](../ell/index.md) | [🇮🇱 Héber](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) |
+| [🇳🇱 Holland](../nld/index.md) | [🇮🇩 Indonéz](../ind/index.md) | [🇯🇵 Japán](../jpn/index.md) | [🇨🇳 Kínai](../zho/index.md) | [🇰🇷 Koreai](../kor/index.md) | [🇵🇱 Lengyel](../pol/index.md) |
+| [🇱🇻 Lett](../lav/index.md) | [🇱🇹 Litván](../lit/index.md) | [🇩🇪 Német](../deu/index.md) | [🇳🇴 Norvég](../nor/index.md) | [🇮🇹 Olasz](../ita/index.md) | [🇷🇺 Orosz](../rus/index.md) |
+| [🇵🇹 Portugál](../por/index.md) | [🇷🇴 Román](../ron/index.md) | [🇪🇸 Spanyol](../spa/index.md) | [🇸🇪 Svéd](../swe/index.md) | [🇰🇪 Szuahéli](../swa/index.md) | [🇷🇸 Szerb](../srp/index.md) |
 | [🇹🇷 Török](../tur/index.md) | [🇺🇦 Ukrán](../ukr/index.md) | [🇻🇳 Vietnámi](../vie/index.md) | | | |
 
 

@@ -24,12 +24,12 @@
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Arābu](../ara/index.md) | [🇧🇬 Bulgāru](../bul/index.md) | [🇨🇿 Čehu](../ces/index.md) | [🇩🇰 Dāņu](../dan/index.md) | [🇪🇪 Igauņu](../est/index.md) | [🇵🇭 Filipīniešu](../fil/index.md) |
-| [🇫🇷 Franču](../fra/index.md) | [🇬🇷 Grieķu](../ell/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holandiešu](../nld/index.md) | [🇮🇩 Indonēziešu](../ind/index.md) | [🇮🇹 Itāļu](../ita/index.md) |
-| [🇮🇱 Ivrits](../heb/index.md) | [🇯🇵 Japāņu](../jpn/index.md) | [🇰🇷 Korejiešu](../kor/index.md) | [🇷🇺 Krievu](../rus/index.md) | [🇨🇳 Ķīniešu](../zho/index.md) | [🇱🇻 Latviešu](../lav/index.md) |
+| [🇬🇧 Angļu](../../index.md) | [🇸🇦 Arābu](../ara/index.md) | [🇧🇬 Bulgāru](../bul/index.md) | [🇨🇿 Čehu](../ces/index.md) | [🇩🇰 Dāņu](../dan/index.md) | [🇵🇭 Filipīniešu](../fil/index.md) |
+| [🇫🇷 Franču](../fra/index.md) | [🇬🇷 Grieķu](../ell/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇳🇱 Holandiešu](../nld/index.md) | [🇪🇪 Igauņu](../est/index.md) | [🇮🇩 Indonēziešu](../ind/index.md) |
+| [🇮🇹 Itāļu](../ita/index.md) | [🇮🇱 Ivrits](../heb/index.md) | [🇯🇵 Japāņu](../jpn/index.md) | [🇰🇷 Korejiešu](../kor/index.md) | [🇷🇺 Krievu](../rus/index.md) | [🇨🇳 Ķīniešu](../zho/index.md) |
 | [🇱🇹 Lietuviešu](../lit/index.md) | [🇳🇴 Norvēģu](../nor/index.md) | [🇵🇱 Poļu](../pol/index.md) | [🇵🇹 Portugāļu](../por/index.md) | [🇷🇴 Rumāņu](../ron/index.md) | [🇷🇸 Serbu](../srp/index.md) |
-| [🇫🇮 Somu](../fin/index.md) | [🇪🇸 Spāņu](../spa/index.md) | [🇰🇪 Svahili](../swa/index.md) | [🇸🇪 Zviedru](../swe/index.md) | [🇹🇷 Turku](../tur/index.md) | [🇺🇦 Ukraiņu](../ukr/index.md) |
-| [🇭🇺 Ungāru](../hun/index.md) | [🇩🇪 Vācu](../deu/index.md) | [🇻🇳 Vjetnamiešu](../vie/index.md) | | | |
+| [🇫🇮 Somu](../fin/index.md) | [🇪🇸 Spāņu](../spa/index.md) | [🇰🇪 Svahili](../swa/index.md) | [🇹🇷 Turku](../tur/index.md) | [🇺🇦 Ukraiņu](../ukr/index.md) | [🇭🇺 Ungāru](../hun/index.md) |
+| [🇩🇪 Vācu](../deu/index.md) | [🇻🇳 Vjetnamiešu](../vie/index.md) | [🇸🇪 Zviedru](../swe/index.md) | | | |
 
 
 ---

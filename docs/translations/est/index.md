@@ -24,8 +24,8 @@ See on Bitcoin-PoCX terviklik tehniline dokumentatsioon. Bitcoin-PoCX on Bitcoin
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇸🇦 Araabia](../ara/index.md) | [🇧🇬 Bulgaaria](../bul/index.md) | [🇪🇪 Eesti](../est/index.md) | [🇵🇭 Filipiini](../fil/index.md) | [🇮🇱 Heebrea](../heb/index.md) | [🇨🇳 Hiina](../zho/index.md) |
-| [🇮🇳 Hindi](../hin/index.md) | [🇪🇸 Hispaania](../spa/index.md) | [🇳🇱 Hollandi](../nld/index.md) | [🇮🇩 Indoneesia](../ind/index.md) | [🇮🇹 Itaalia](../ita/index.md) | [🇯🇵 Jaapani](../jpn/index.md) |
+| [🇸🇦 Araabia](../ara/index.md) | [🇧🇬 Bulgaaria](../bul/index.md) | [🇵🇭 Filipiini](../fil/index.md) | [🇮🇱 Heebrea](../heb/index.md) | [🇨🇳 Hiina](../zho/index.md) | [🇮🇳 Hindi](../hin/index.md) |
+| [🇪🇸 Hispaania](../spa/index.md) | [🇳🇱 Hollandi](../nld/index.md) | [🇮🇩 Indoneesia](../ind/index.md) | [🇬🇧 Inglise](../../index.md) | [🇮🇹 Itaalia](../ita/index.md) | [🇯🇵 Jaapani](../jpn/index.md) |
 | [🇰🇷 Korea](../kor/index.md) | [🇬🇷 Kreeka](../ell/index.md) | [🇱🇹 Leedu](../lit/index.md) | [🇱🇻 Läti](../lav/index.md) | [🇳🇴 Norra](../nor/index.md) | [🇵🇱 Poola](../pol/index.md) |
 | [🇵🇹 Portugali](../por/index.md) | [🇫🇷 Prantsuse](../fra/index.md) | [🇸🇪 Rootsi](../swe/index.md) | [🇷🇴 Rumeenia](../ron/index.md) | [🇩🇪 Saksa](../deu/index.md) | [🇷🇸 Serbia](../srp/index.md) |
 | [🇫🇮 Soome](../fin/index.md) | [🇰🇪 Suahiili](../swa/index.md) | [🇩🇰 Taani](../dan/index.md) | [🇨🇿 Tšehhi](../ces/index.md) | [🇹🇷 Türgi](../tur/index.md) | [🇺🇦 Ukraina](../ukr/index.md) |

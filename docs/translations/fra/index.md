@@ -21,8 +21,8 @@ Ceci est la documentation technique complète de Bitcoin-PoCX, une intégration 
 
 | | | | | | |
 |---|---|---|---|---|---|
-| [🇩🇪 Allemand](../deu/index.md) | [🇸🇦 Arabe](../ara/index.md) | [🇧🇬 Bulgare](../bul/index.md) | [🇨🇳 Chinois](../zho/index.md) | [🇰🇷 Coréen](../kor/index.md) | [🇩🇰 Danois](../dan/index.md) |
-| [🇪🇸 Espagnol](../spa/index.md) | [🇪🇪 Estonien](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) | [🇫🇮 Finnois](../fin/index.md) | [🇫🇷 Français](../fra/index.md) | [🇬🇷 Grec](../ell/index.md) |
+| [🇩🇪 Allemand](../deu/index.md) | [🇬🇧 Anglais](../../index.md) | [🇸🇦 Arabe](../ara/index.md) | [🇧🇬 Bulgare](../bul/index.md) | [🇨🇳 Chinois](../zho/index.md) | [🇰🇷 Coréen](../kor/index.md) |
+| [🇩🇰 Danois](../dan/index.md) | [🇪🇸 Espagnol](../spa/index.md) | [🇪🇪 Estonien](../est/index.md) | [🇵🇭 Filipino](../fil/index.md) | [🇫🇮 Finnois](../fin/index.md) | [🇬🇷 Grec](../ell/index.md) |
 | [🇮🇱 Hébreu](../heb/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇭🇺 Hongrois](../hun/index.md) | [🇮🇩 Indonésien](../ind/index.md) | [🇮🇹 Italien](../ita/index.md) | [🇯🇵 Japonais](../jpn/index.md) |
 | [🇱🇻 Letton](../lav/index.md) | [🇱🇹 Lituanien](../lit/index.md) | [🇳🇱 Néerlandais](../nld/index.md) | [🇳🇴 Norvégien](../nor/index.md) | [🇵🇱 Polonais](../pol/index.md) | [🇵🇹 Portugais](../por/index.md) |
 | [🇷🇴 Roumain](../ron/index.md) | [🇷🇺 Russe](../rus/index.md) | [🇷🇸 Serbe](../srp/index.md) | [🇸🇪 Suédois](../swe/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇨🇿 Tchèque](../ces/index.md) |

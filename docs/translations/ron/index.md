@@ -25,11 +25,11 @@ Aceasta este documentația tehnică completă pentru Bitcoin-PoCX, o integrare B
 | | | | | | |
 |---|---|---|---|---|---|
 | [🇸🇦 Arabă](../ara/index.md) | [🇧🇬 Bulgară](../bul/index.md) | [🇨🇿 Cehă](../ces/index.md) | [🇨🇳 Chineză](../zho/index.md) | [🇰🇷 Coreeană](../kor/index.md) | [🇩🇰 Daneză](../dan/index.md) |
-| [🇮🇱 Ebraică](../heb/index.md) | [🇪🇪 Estonă](../est/index.md) | [🇵🇭 Filipineză](../fil/index.md) | [🇫🇮 Finlandeză](../fin/index.md) | [🇫🇷 Franceză](../fra/index.md) | [🇩🇪 Germană](../deu/index.md) |
-| [🇬🇷 Greacă](../ell/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇮🇩 Indoneziană](../ind/index.md) | [🇮🇹 Italiană](../ita/index.md) | [🇯🇵 Japoneză](../jpn/index.md) | [🇱🇻 Letonă](../lav/index.md) |
-| [🇱🇹 Lituaniană](../lit/index.md) | [🇭🇺 Maghiară](../hun/index.md) | [🇳🇴 Norvegiană](../nor/index.md) | [🇳🇱 Olandeză](../nld/index.md) | [🇵🇱 Poloneză](../pol/index.md) | [🇵🇹 Portugheză](../por/index.md) |
-| [🇷🇺 Rusă](../rus/index.md) | [🇷🇸 Sârbă](../srp/index.md) | [🇪🇸 Spaniolă](../spa/index.md) | [🇸🇪 Suedeză](../swe/index.md) | [🇰🇪 Swahili](../swa/index.md) | [🇹🇷 Turcă](../tur/index.md) |
-| [🇺🇦 Ucraineană](../ukr/index.md) | [🇻🇳 Vietnameză](../vie/index.md) | | | | |
+| [🇮🇱 Ebraică](../heb/index.md) | [🇬🇧 Engleză](../../index.md) | [🇪🇪 Estonă](../est/index.md) | [🇵🇭 Filipineză](../fil/index.md) | [🇫🇮 Finlandeză](../fin/index.md) | [🇫🇷 Franceză](../fra/index.md) |
+| [🇩🇪 Germană](../deu/index.md) | [🇬🇷 Greacă](../ell/index.md) | [🇮🇳 Hindi](../hin/index.md) | [🇮🇩 Indoneziană](../ind/index.md) | [🇮🇹 Italiană](../ita/index.md) | [🇯🇵 Japoneză](../jpn/index.md) |
+| [🇱🇻 Letonă](../lav/index.md) | [🇱🇹 Lituaniană](../lit/index.md) | [🇭🇺 Maghiară](../hun/index.md) | [🇳🇴 Norvegiană](../nor/index.md) | [🇳🇱 Olandeză](../nld/index.md) | [🇵🇱 Poloneză](../pol/index.md) |
+| [🇵🇹 Portugheză](../por/index.md) | [🇷🇺 Rusă](../rus/index.md) | [🇷🇸 Sârbă](../srp/index.md) | [🇪🇸 Spaniolă](../spa/index.md) | [🇸🇪 Suedeză](../swe/index.md) | [🇰🇪 Swahili](../swa/index.md) |
+| [🇹🇷 Turcă](../tur/index.md) | [🇺🇦 Ucraineană](../ukr/index.md) | [🇻🇳 Vietnameză](../vie/index.md) | | | |
 
 
 ---
