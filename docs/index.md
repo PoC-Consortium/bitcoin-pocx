@@ -22,11 +22,13 @@ This is the complete technical documentation for Bitcoin-PoCX, a Bitcoin Core in
 
 ## Translations
 
-|--------------------------------------------|-----------------------------------------|--------------------------------------------|-----------------------------------------|------------------------------------------|-------------------------------------------|
-| [🇸🇦 Arabic](translations/ara/index.md)     | [🇨🇳 Chinese](translations/zho/index.md) | [🇳🇱 Dutch](translations/nld/index.md)      | [🇫🇷 French](translations/fra/index.md)  | [🇩🇪 German](translations/deu/index.md)   | [🇬🇷 Greek](translations/ell/index.md)     |
-| [🇮🇱 Hebrew](translations/heb/index.md)     | [🇮🇳 Hindi](translations/hin/index.md)   | [🇮🇩 Indonesian](translations/ind/index.md) | [🇮🇹 Italian](translations/ita/index.md) | [🇯🇵 Japanese](translations/jpn/index.md) | [🇰🇷 Korean](translations/kor/index.md)    |
-| [🇵🇹 Portuguese](translations/por/index.md) | [🇷🇺 Russian](translations/rus/index.md) | [🇷🇸 Serbian](translations/srp/index.md)    | [🇪🇸 Spanish](translations/spa/index.md) | [🇹🇷 Turkish](translations/tur/index.md)  | [🇺🇦 Ukrainian](translations/ukr/index.md) |
-| [🇻🇳 Vietnamese](translations/vie/index.md) |                                         |                                            |                                         |                                          |                                           |
+| | | | | | |
+|---|---|---|---|---|---|
+| [🇸🇦 Arabic](translations/ara/index.md) | [🇨🇳 Chinese](translations/zho/index.md) | [🇨🇿 Czech](translations/ces/index.md) | [🇩🇰 Danish](translations/dan/index.md) | [🇳🇱 Dutch](translations/nld/index.md) | [🇪🇪 Estonian](translations/est/index.md) |
+| [🇫🇮 Finnish](translations/fin/index.md) | [🇫🇷 French](translations/fra/index.md) | [🇩🇪 German](translations/deu/index.md) | [🇬🇷 Greek](translations/ell/index.md) | [🇮🇱 Hebrew](translations/heb/index.md) | [🇮🇳 Hindi](translations/hin/index.md) |
+| [🇮🇩 Indonesian](translations/ind/index.md) | [🇮🇹 Italian](translations/ita/index.md) | [🇯🇵 Japanese](translations/jpn/index.md) | [🇰🇷 Korean](translations/kor/index.md) | [🇱🇻 Latvian](translations/lav/index.md) | [🇱🇹 Lithuanian](translations/lit/index.md) |
+| [🇳🇴 Norwegian](translations/nor/index.md) | [🇵🇱 Polish](translations/pol/index.md) | [🇵🇹 Portuguese](translations/por/index.md) | [🇷🇺 Russian](translations/rus/index.md) | [🇷🇸 Serbian](translations/srp/index.md) | [🇪🇸 Spanish](translations/spa/index.md) |
+| [🇸🇪 Swedish](translations/swe/index.md) | [🇹🇷 Turkish](translations/tur/index.md) | [🇺🇦 Ukrainian](translations/ukr/index.md) | [🇻🇳 Vietnamese](translations/vie/index.md) | | |
 
 
 ---
