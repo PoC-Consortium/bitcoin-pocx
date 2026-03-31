@@ -5,3 +5,9 @@
 [submodule "pocx"]
 	path = pocx
 	url = https://github.com/PoC-Consortium/pocx.git
+[submodule "btchd"]
+	path = btchd
+	url = https://github.com/btchd/btchd
+[submodule "burstcoin"]
+	path = burstcoin
+	url = https://github.com/PoC-Consortium/burstcoin

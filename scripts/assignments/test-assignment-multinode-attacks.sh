@@ -6,7 +6,7 @@ set -e
 
 # Get script directory for sourcing setup-regtest-template.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/assignments/setup-regtest-template.sh"
+source "$SCRIPT_DIR/setup-regtest-template.sh"
 
 BITCOIN_DIR="bitcoin"
 BITCOIN_CLI="$BITCOIN_DIR/build/bin/bitcoin-cli"
