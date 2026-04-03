@@ -21,29 +21,9 @@ Complete reference for Bitcoin-PoCX RPC commands, including mining RPCs, assignm
 
 ## Configuration
 
-### Mining Server Mode
+### Mining RPCs
 
-**Flag**: `-miningserver`
-
-**Purpose**: Enables RPC access for external miners to call mining-specific RPCs
-
-**Requirements**:
-- Required for `submit_nonce` to function
-- Required for visibility of forging assignment dialog in Qt wallet
-
-**Usage**:
-```bash
-# Command line
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Security Considerations**:
-- No additional authentication beyond standard RPC credentials
-- Mining RPCs are rate-limited by queue capacity
-- Standard RPC authentication still required
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
 **Implementation**: `src/pocx/rpc/mining.cpp`
 
@@ -54,7 +34,7 @@ miningserver=1
 ### get_mining_info
 
 **Category**: mining
-**Requires Mining Server**: No
+
 **Requires Wallet**: No
 
 **Purpose**: Returns current mining parameters needed for external miners to scan plot files and calculate deadlines.
@@ -65,7 +45,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 characters
-  "base_target": 36650387593,                // numeric
+  "base_target": 36650387592,                // numeric
   "height": 12345,                           // numeric, next block height
   "block_hash": "def456...",                 // hex, previous block
   "target_quality": 18446744073709551615,    // uint64_max (all solutions accepted)
@@ -98,25 +78,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Category**: mining
-**Requires Mining Server**: Yes
 **Requires Wallet**: Yes (for private keys)
 
 **Purpose**: Submit a PoCX mining solution. Validates proof, queues for time-bended forging, and automatically creates block at scheduled time.
 
 **Parameters**:
-1. `height` (numeric, required) - Block height
-2. `generation_signature` (string hex, required) - Generation signature (64 characters)
-3. `account_id` (string, required) - Plot account ID (40 hex characters = 20 bytes)
-4. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
-5. `nonce` (numeric, required) - Mining nonce
-6. `compression` (numeric, required) - Scaling/compression level used (1-255)
-7. `quality` (numeric, optional) - Quality value (recalculated if omitted)
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Return Values** (success):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // difficulty-adjusted deadline in seconds
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended forge time in seconds
 }
 ```
@@ -134,8 +115,10 @@ bitcoin-cli get_mining_info
    - Account ID: exactly 40 hex characters
    - Seed: exactly 64 hex characters
 2. **Context Validation**:
+   - Block hash must match current tip
    - Height must match current tip + 1
    - Generation signature must match current
+   - Base target must match current
 3. **Wallet Verification**:
    - Determine effective signer (check for active assignments)
    - Verify wallet has private key for effective signer
@@ -163,12 +146,16 @@ bitcoin-cli get_mining_info
 
 **Example**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Notes**:
@@ -186,7 +173,7 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Category**: mining
-**Requires Mining Server**: No
+
 **Requires Wallet**: No
 
 **Purpose**: Query forging assignment status for a plot address. Read-only, no wallet required.
@@ -260,7 +247,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Category**: wallet
-**Requires Mining Server**: No
+
 **Requires Wallet**: Yes (must be loaded and unlocked)
 
 **Purpose**: Create forging assignment transaction to delegate forging rights to another address (e.g., mining pool).
@@ -294,7 +281,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Activation**:
 - Assignment becomes ASSIGNING at confirmation
-- Becomes ACTIVE after `nForgingAssignmentDelay` blocks
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Delay prevents rapid reassignment during chain forks
 
 **Error Codes**:
@@ -316,7 +303,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Category**: wallet
-**Requires Mining Server**: No
+
 **Requires Wallet**: Yes (must be loaded and unlocked)
 
 **Purpose**: Revoke existing forging assignment, returning forging rights to plot owner.
@@ -377,7 +364,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX Modifications**:
 - **Calculation**: `reference_base_target / current_base_target`
-- **Reference**: 1 TiB network capacity (base_target = 36650387593)
+- **Reference**: 1 TiB network capacity (base_target = 36650387592)
 - **Interpretation**: Estimated network storage capacity in TiB
   - Example: `1.0` = ~1 TiB
   - Example: `1024.0` = ~1 PiB
@@ -401,7 +388,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numeric) - PoCX difficulty base target
 - `generation_signature` (string hex) - Generation signature
 - `pocx_proof` (object):
-  - `account_id` (string hex) - Plot account ID (20 bytes)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (string hex) - Plot seed (32 bytes)
   - `nonce` (numeric) - Mining nonce
   - `compression` (numeric) - Scaling level used
@@ -464,7 +451,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numeric) - For pool mining
 
 **PoCX Removed Fields**:
-- `target` - Removed (PoW-specific)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Removed (PoW-specific)
 - `bits` - Removed (PoW-specific)
 
@@ -494,10 +481,11 @@ The following PoW-specific RPCs are **disabled** in PoCX mode:
 - **Alternative**: Use `get_mining_info` (PoCX-specific)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Reason**: CPU mining not applicable to PoCX (requires pre-generated plots)
-- **Alternative**: Use external plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementation**: `src/rpc/mining.cpp` (RPCs return error when ENABLE_POCX defined)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -538,15 +526,19 @@ while True:
 
     # 3. Submit best solution
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
-        print(f"Solution accepted! Quality: {result['quality']}s, "
+        print(f"Solution accepted! Quality: {result['raw_quality']}, "
               f"Forge time: {result['poc_time']}s")
 
     # 4. Wait for next block
@@ -662,7 +654,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mining RPCs**: `src/pocx/rpc/mining.cpp`
 **Assignment RPCs**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain RPCs**: `src/rpc/blockchain.cpp`
-**Proof Validation**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Proof Validation**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Assignment State**: `src/pocx/assignments/assignment_state.cpp`
 **Transaction Creation**: `src/pocx/assignments/transactions.cpp`
 

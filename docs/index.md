@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Technical Documentation
 
 **Version**: 1.0
-**Bitcoin Core Base**: v30.0
+**Bitcoin Core Base**: v30.2
 **Status**: Testnet Phase
 **Last Updated**: 2025-12-25
 
@@ -118,8 +118,8 @@ User guide for Bitcoin-PoCX Qt wallet: forging assignment dialog, transaction hi
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Configure with PoCX enabled
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Build
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Build Variants**:
 ```bash
 # With Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug build
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Dependencies**: Standard Bitcoin Core build dependencies. See [Bitcoin Core build documentation](https://github.com/bitcoin/bitcoin/tree/master/doc#building) for platform-specific requirements.
@@ -188,7 +188,7 @@ Contributions to documentation are welcome. Please maintain:
 
 ## License
 
-Bitcoin-PoCX inherits Bitcoin Core's MIT license. See `COPYING` in repository root.
+Bitcoin-PoCX inherits Bitcoin Core's MIT license. See `bitcoin/COPYING` in repository root.
 
 PoCX core framework attribution documented in [Chapter 2: Plot Format](2-plot-format.md).
 

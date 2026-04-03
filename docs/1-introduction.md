@@ -42,7 +42,7 @@ Proof of Capacity (PoC) is a consensus mechanism where mining power is proportio
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integration
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integration
 │   └── src/pocx/        # PoCX implementation
 ├── pocx/                # PoCX core framework (submodule, read-only)
 └── docs/                # This documentation
@@ -56,7 +56,7 @@ bitcoin-pocx/
 
 **Upstream Compatibility**: Regular sync with Bitcoin Core updates maintained through isolated integration points.
 
-**Native C++ Implementation**: Scalar cryptographic algorithms (Shabal256, scoop calculation, compression) integrated directly into Bitcoin Core for consensus validation.
+**Native C++ Implementation**: SIMD-optimized cryptographic algorithms (Shabal256 with AVX2/SSE2, scoop calculation, compression) integrated directly into Bitcoin Core for consensus validation.
 
 ---
 
@@ -67,7 +67,7 @@ bitcoin-pocx/
 - **Block Structure**: PoCX-specific fields replace PoW nonce and difficulty bits
   - Generation signature (deterministic mining entropy)
   - Base target (inverse of difficulty)
-  - PoCX proof (account ID, seed, nonce)
+  - PoCX proof (account ID, seed, nonce, compression, quality)
   - Block signature (proves plot ownership)
 
 - **Validation**: 5-stage validation pipeline from header check through block connection
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Problem**: Traditional PoC block times follow exponential distribution, leading to long blocks when no miner finds a good solution.
 
-**Solution**: Distribution transformation from exponential to chi-squared using cube root: `Y = scale × (X^(1/3))`.
+**Solution**: Distribution transformation from exponential to chi-squared using cube root: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Effect**: Very good solutions forge later (network has time to scan all disks, reduces fast blocks), poor solutions improved. Average block time maintained at 120 seconds, long blocks reduced.
+**Effect**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Details**: [Chapter 3: Consensus and Mining](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Same as Bitcoin Core**:
 - **CPU**: Modern x86_64 processor
 - **Memory**: 4-8 GB RAM
-- **Storage**: New chain, currently empty (can grow ~4× faster than Bitcoin due to 2-minute blocks and assignment database)
+- **Storage**: New chain, currently empty (can grow ~5× faster than Bitcoin due to 2-minute blocks and assignment database)
 - **Network**: Stable internet connection
 - **Clock**: NTP synchronization recommended for optimal operation
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Build with PoCX enabled
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Details**: See `CLAUDE.md` in repository root
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Run Node
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **For mining** (enables RPC access for external miners):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # or
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Details**: [Chapter 6: Network Parameters](6-network-parameters.md)

@@ -28,7 +28,7 @@ Complete guide to Bitcoin-PoCX Qt wallet and forging assignment management.
 The Bitcoin-PoCX Qt wallet (`bitcoin-qt`) provides:
 - Standard Bitcoin Core wallet functionality (send, receive, transaction management)
 - **Forging Assignment Manager**: GUI for creating/revoking plot assignments
-- **Mining Server Mode**: `-miningserver` flag enables mining-related features
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Transaction History**: Assignment and revocation transaction display
 
 ### Starting the Wallet
@@ -38,20 +38,19 @@ The Bitcoin-PoCX Qt wallet (`bitcoin-qt`) provides:
 ./build/bin/bitcoin-qt
 ```
 
-**With Mining** (enables assignment dialog):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Command Line Alternative**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Mining Requirements
 
 **For Mining Operations**:
-- `-miningserver` flag required
 - Wallet with P2WPKH addresses and private keys
 - External plotter (`pocx_plotter`) for plot generation
 - External miner (`pocx_miner`) for mining
@@ -83,8 +82,7 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 
 ### Accessing the Dialog
 
-**Menu**: `Wallet → Forging Assignments`
-**Toolbar**: Mining icon (visible only with `-miningserver` flag)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Window Size**: 600×450 pixels
 
 ### Dialog Modes
@@ -118,7 +116,7 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- OP_RETURN output: `POCX` marker + plot_address + forging_address (46 bytes)
+- OP_RETURN output: `POCX` marker + plot_address + forging_address (44 bytes)
 - Change output: Returned to wallet
 
 #### Mode 2: Revoke Assignment
@@ -146,7 +144,7 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- OP_RETURN output: `XCOP` marker + plot_address (26 bytes)
+- OP_RETURN output: `XCOP` marker + plot_address (24 bytes)
 - Change output: Returned to wallet
 
 #### Mode 3: Check Assignment Status
@@ -255,12 +253,12 @@ Revocation effective at height: 13020
 
 ### Transaction Sorting
 
-**Sort Order** (by type):
-- Generated (type 0)
-- Received (type 1-3)
-- Assignment (type 4)
-- Revocation (type 5)
-- Sent (type 6+)
+**Sort Order** (by UI sort key):
+- Sent (SendToAddress, SendToOther)
+- Received (RecvWithAddress, RecvFromOther)
+- Assignment (PoCXAssignment)
+- Revocation (PoCXRevocation)
+- Other / Generated
 
 ---
 
@@ -296,8 +294,8 @@ Revocation effective at height: 13020
 ### Validation Error Messages
 
 **Dialog Errors**:
-- "Plot address must be P2WPKH (bech32)"
-- "Forging address must be P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Invalid address format"
 - "No coins available at the plot address. Cannot prove ownership."
 - "Cannot create transactions with watch-only wallet"
@@ -313,7 +311,6 @@ Revocation effective at height: 13020
 **Node Configuration**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -335,9 +332,9 @@ server=1
    pocx_plotter --account <plot_address_hash160> --seed <32_bytes> --nonces <count>
    ```
 
-2. **Start Node** with mining server:
+2. **Start Node** with RPC enabled:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configure Miner**:
@@ -365,7 +362,7 @@ server=1
    - Select plot address
    - Enter pool's forging address
    - Click "Send Assignment"
-   - Wait for activation delay (30 blocks testnet)
+   - Wait for activation delay (30 blocks mainnet/testnet)
 
 3. **Configure Miner**:
    - Point to **pool** endpoint (not local node)
@@ -399,19 +396,19 @@ server=1
 
 ### Common Issues
 
-#### "Wallet does not have private key for plot address"
+#### "Cannot create transactions with watch-only wallet"
 
-**Cause**: Wallet doesn't own the address
+**Cause**: Wallet imported address without private key
 **Solution**:
 - Import private key via `importprivkey` RPC
 - Or use different plot address owned by wallet
 
-#### "Assignment already exists for this plot"
+#### "Cannot create assignment: plot is in ... state"
 
-**Cause**: Plot already assigned to another address
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
 **Solution**:
 1. Revoke existing assignment
-2. Wait for revocation delay (720 blocks testnet)
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
 3. Create new assignment
 
 #### "Address format not supported"
@@ -442,16 +439,6 @@ server=1
 1. Send funds to plot address
 2. Wait for 1 confirmation
 3. Retry assignment creation
-
-#### "Cannot create transactions with watch-only wallet"
-
-**Cause**: Wallet imported address without private key
-**Solution**: Import full private key, not just address
-
-#### "Forging Assignment tab not visible"
-
-**Cause**: Node started without `-miningserver` flag
-**Solution**: Restart with `bitcoin-qt -server -miningserver`
 
 ### Debug Steps
 
@@ -525,12 +512,12 @@ server=1
 
 ### Assignment Delays
 
-**Activation Delay** (30 blocks testnet):
+**Activation Delay** (30 blocks mainnet/testnet):
 - Prevents rapid reassignment during chain forks
 - Allows network to reach consensus
 - Cannot be bypassed
 
-**Revocation Delay** (720 blocks testnet):
+**Revocation Delay** (720 blocks mainnet/testnet):
 - Provides stability for mining pools
 - Prevents assignment "griefing" attacks
 - Forging address remains active during delay

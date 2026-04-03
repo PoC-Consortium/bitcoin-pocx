@@ -16,7 +16,7 @@ Our implementation introduces several key innovations:
 (3) An OP_RETURN-based forging-assignment mechanism enabling non-custodial pool mining; and
 (4) Dynamic compression scaling, which increases plot-generation difficulty in alignment with halving schedules to maintain long-term security margins as hardware improves.
 
-Bitcoin-PoCX maintains Bitcoin Core's architecture through minimal, feature-flagged modifications, isolating PoC logic from the existing consensus code. The system preserves Bitcoin's monetary policy by targeting a 120-second block interval and adjusting the block subsidy to 10 BTC. The reduced subsidy offsets the five-fold increase in block frequency, keeping the long-term issuance rate aligned with Bitcoin's original schedule and maintaining the ~21 million maximum supply.
+Bitcoin-PoCX maintains Bitcoin Core's architecture through minimal, feature-flagged modifications, isolating PoC logic from the existing consensus code. The system preserves Bitcoin's monetary policy by targeting a 120-second block interval and adjusting the block subsidy to 10 BTCX. The reduced subsidy offsets the five-fold increase in block frequency, keeping the long-term issuance rate aligned with Bitcoin's original schedule and maintaining the ~21 million maximum supply.
 
 ---
 
@@ -211,9 +211,9 @@ The proof embeds all consensus-relevant information needed by validators to reco
 
 The generation signature provides the unpredictability required for secure Proof of Capacity mining. Each block derives its generation signature from the previous block's signature and signer, ensuring that miners cannot anticipate future challenges or precompute advantageous plot regions:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-This produces a sequence of cryptographically strong, miner-dependent entropy values. Because a miner's public key is unknown until the previous block is published, no participant can predict future scoop selections. This prevents selective precomputation or strategic plotting and ensures that every block introduces genuinely fresh mining work.
+Where `account_id` is the 20-byte HASH160 of the miner's public key. This produces a sequence of cryptographically strong, miner-dependent entropy values. Because a miner's account ID is unknown until the previous block is published, no participant can predict future scoop selections. This prevents selective precomputation or strategic plotting and ensures that every block introduces genuinely fresh mining work.
 
 ### 4.3 Forging Process
 
@@ -231,9 +231,9 @@ Proof of Capacity produces exponentially distributed deadlines. After a short pe
 
 Time Bending reshapes the distribution by applying a cube root transformation:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
-The scale factor preserves the expected block time (120 seconds) while dramatically reducing variance. Short deadlines are expanded, improving block propagation and network safety. Long deadlines are compressed, preventing outliers from delaying the chain.
+Where `scale = block_time / (block_time^(1/3) × Γ(4/3))` and `Γ(4/3) ≈ 0.893`. The Gamma normalization ensures the expected block time (120 seconds) is preserved while dramatically reducing variance. Short deadlines are expanded, improving block propagation and network safety. Long deadlines are compressed, preventing outliers from delaying the chain.
 
 ![Block Time Distributions](blocktime_distributions.svg)
 
@@ -243,7 +243,7 @@ Time Bending maintains the informational content of the underlying proof. It doe
 
 PoCX regulates block production using the base target, an inverse difficulty measure. The expected block time is proportional to the ratio `quality / base_target`, so increasing the base target accelerates block creation while decreasing it slows the chain down.
 
-Difficulty adjusts every block using the measured time between recent blocks compared to the target interval. This frequent adjustment is necessary because storage capacity can be added or removed quickly—unlike Bitcoin's hashpower, which changes more slowly.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times. This frequent adjustment is necessary because storage capacity can be added or removed quickly—unlike Bitcoin's hashpower, which changes more slowly.
 
 The adjustment follows two guiding constraints: **Graduality**—per-block changes are bounded (±20% maximum) to avoid oscillations or manipulation; **Hardening**—the base target cannot exceed its genesis value, preventing the network from ever lowering difficulty below the original security assumptions.
 
@@ -411,12 +411,12 @@ The tables below summarize the resulting mainnet, testnet, and regtest settings,
 | Parameter | Value |
 |-----------|-------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Default port | 8888 |
+| Default port | 8338 |
 | Bech32 HRP | `pocx` |
 | Block time target | 120 seconds |
-| Initial subsidy | 10 BTC |
+| Initial subsidy | 10 BTCX |
 | Halving interval | 1050000 blocks (~4 years) |
-| Total supply | ~21 million BTC |
+| Total supply | ~21 million BTCX |
 | Assignment activation | 30 blocks |
 | Assignment revocation | 720 blocks |
 | Rolling window | 24 blocks |
@@ -425,8 +425,8 @@ The tables below summarize the resulting mainnet, testnet, and regtest settings,
 
 | Parameter | Value |
 |-----------|-------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Default port | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Default port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Block time target | 120 seconds |
 | Other parameters | Same as mainnet |

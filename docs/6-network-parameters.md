@@ -39,12 +39,7 @@ Complete reference for Bitcoin-PoCX network configuration across all network typ
 
 ### Genesis Message
 
-All networks share the Bitcoin genesis message:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementation**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ All networks share the Bitcoin genesis message:
 
 **Network Identity**:
 - **Magic Bytes**: `0xa7 0x3c 0x91 0x5e`
-- **Default Port**: `8888`
+- **Default Port**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Address Prefixes** (Base58):
@@ -84,14 +79,14 @@ All networks share the Bitcoin genesis message:
 ### Testnet Parameters
 
 **Network Identity**:
-- **Magic Bytes**: `0x6d 0xf2 0x48 0xb3`
-- **Default Port**: `18888`
+- **Magic Bytes**: `0x6d 0xf2 0x48 0xb4`
+- **Default Port**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Address Prefixes** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Block Timing**:
 - **Block Time Target**: `120` seconds
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementation**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementation**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Structure**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum accepted level
-    uint8_t nPoCXTargetCompression;  // Recommended level
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimum accepted level
+    uint32_t nPoCXTargetCompression;  // Recommended level
 };
 ```
 
@@ -313,7 +308,7 @@ Scaling levels increase on **exponential schedule** based on halving intervals:
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementation**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementation**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -410,9 +405,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #testnet=1
 #regtest=1
 
-# PoCX mining server (required for external miners)
-miningserver=1
-
 # RPC settings
 server=1
 rpcuser=yourusername
@@ -422,7 +414,7 @@ rpcport=8332
 
 # Connection settings
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Block time target (informational, consensus enforced)
@@ -435,9 +427,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Consensus Parameters**: `src/consensus/params.h`
-**Compression Bounds**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Compression Bounds**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesis Base Target Calculation**: `src/pocx/consensus/params.cpp`
-**Coinbase Payment Logic**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase Payment Logic**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Assignment State Storage**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache extensions)
 
 ---

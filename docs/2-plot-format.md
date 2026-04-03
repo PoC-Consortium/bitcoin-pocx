@@ -77,12 +77,12 @@ All plot metadata is encoded in the filename using this exact format:
 1. **ACCOUNT_PAYLOAD** (40 hex characters)
    - Raw 20-byte account payload as uppercase hex
    - Network-independent (no network ID or checksum)
-   - Example: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Example: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 hex characters)  
-   - 32-byte seed value as lowercase hex
+   - 32-byte seed value as uppercase hex
    - **New in PoCX**: Random 32-byte seed in filename replaces consecutive nonce numbering — preventing plot overlaps
-   - Example: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Example: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (decimal number)
    - **NEW size unit in PoCX**: Replaces nonce-based sizing from POC1/POC2
@@ -97,8 +97,8 @@ All plot metadata is encoded in the filename using this exact format:
 
 ### Example Filenames
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

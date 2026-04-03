@@ -32,16 +32,16 @@ PoCX consensus requires precise time synchronization across the network. This ch
 
 **Bitcoin-PoCX Configuration:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 seconds
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 seconds
 ```
 
 ### Validation Checks
 
-**Block Timestamp Validation** (`src/validation.cpp:4547-4561`):
+**Block Timestamp Validation** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotonic check: timestamp >= previous block timestamp
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Deadline check: elapsed time >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Your mining height 100, competitor publishes block 99
 - Validation completes in milliseconds
 
 **Resource Usage:** Minimal
-- ~20 lines of core logic
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Reuses existing validation infrastructure
 - Single lock acquisition
 
@@ -372,9 +372,9 @@ A node **>15s behind** is catastrophic:
 ## Implementation References
 
 **Core Files**:
-- Time validation: `src/validation.cpp:4547-4561`
-- Future tolerance constant: `src/chain.h:31`
-- Warning threshold: `src/node/timeoffsets.h:27`
+- Time validation: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Future tolerance constant: `src/chain.h`
+- Warning threshold: `src/node/timeoffsets.h`
 - Time offset monitoring: `src/node/timeoffsets.cpp`
 - Defensive forging: `src/pocx/mining/scheduler.cpp`
 
