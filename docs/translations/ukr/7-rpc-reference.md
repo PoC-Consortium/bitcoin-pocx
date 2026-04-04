@@ -23,7 +23,7 @@
 
 ### Режим сервера майнінгу
 
-**Прапорець**: `-miningserver`
+**Прапорець**: ``
 
 **Призначення**: Вмикає RPC-доступ для зовнішніх майнерів для виклику специфічних для майнінгу RPC
 
@@ -34,10 +34,9 @@
 **Використання**:
 ```bash
 # Командний рядок
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Міркування безпеки**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 символи
-  "base_target": 36650387593,                // числове
+  "base_target": 36650387592,                // числове
   "height": 12345,                           // числове, висота наступного блоку
   "block_hash": "def456...",                 // hex, попередній блок
   "target_quality": 18446744073709551615,    // uint64_max (усі рішення приймаються)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **Призначення**: Подання рішення майнінгу PoCX. Валідує доказ, ставить у чергу для time-bended кування та автоматично створює блок у запланований час.
 
-**Параметри**:
-1. `height` (числове, обов'язково) - Висота блоку
-2. `generation_signature` (рядок hex, обов'язково) - Сигнатура генерації (64 символи)
-3. `account_id` (рядок, обов'язково) - ID облікового запису плоту (40 hex символів = 20 байтів)
-4. `seed` (рядок, обов'язково) - Seed плоту (64 hex символи = 32 байти)
-5. `nonce` (числове, обов'язково) - Nonce майнінгу
-6. `compression` (числове, обов'язково) - Використаний рівень масштабування/стиснення (1-255)
-7. `quality` (числове, опціонально) - Значення якості (перераховується якщо не вказано)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Повертані значення** (успіх):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Приклад**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Примітки**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Модифікації PoCX**:
 - **Обчислення**: `reference_base_target / current_base_target`
-- **Референс**: Мережева ємність 1 TiB (base_target = 36650387593)
+- **Референс**: Мережева ємність 1 TiB (base_target = 36650387592)
 - **Інтерпретація**: Приблизна ємність сховища мережі в TiB
   - Приклад: `1.0` = ~1 TiB
   - Приклад: `1024.0` = ~1 PiB
@@ -494,10 +499,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Альтернатива**: Використовуйте `get_mining_info` (специфічний для PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Причина**: CPU-майнінг не застосовується до PoCX (потрібні попередньо згенеровані плоти)
-- **Альтернатива**: Використовуйте зовнішній плотер + майнер + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Реалізація**: `src/rpc/mining.cpp` (RPC повертають помилку коли визначено ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +536,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Сканування файлів плотів (зовнішня реалізація)
@@ -538,11 +544,15 @@ while True:
 
     # 3. Подання найкращого рішення
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +672,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC майнінгу**: `src/pocx/rpc/mining.cpp`
 **RPC призначень**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC блокчейну**: `src/rpc/blockchain.cpp`
-**Валідація доказу**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Валідація доказу**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Стан призначень**: `src/pocx/assignments/assignment_state.cpp`
 **Створення транзакцій**: `src/pocx/assignments/transactions.cpp`
 

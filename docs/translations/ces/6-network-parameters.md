@@ -39,12 +39,7 @@ Kompletní reference pro konfiguraci sítě Bitcoin-PoCX napříč všemi typy s
 
 ### Genesis zpráva
 
-Všechny sítě sdílejí genesis zprávu Bitcoinu:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementace**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Všechny sítě sdílejí genesis zprávu Bitcoinu:
 
 **Identita sítě**:
 - **Magic bajty**: `0xa7 0x3c 0x91 0x5e`
-- **Výchozí port**: `8888`
+- **Výchozí port**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Prefixy adres** (Base58):
@@ -84,14 +79,14 @@ Všechny sítě sdílejí genesis zprávu Bitcoinu:
 ### Parametry testnetu
 
 **Identita sítě**:
-- **Magic bajty**: `0x6d 0xf2 0x48 0xb3`
-- **Výchozí port**: `18888`
+- **Magic bajty**: `0x6d 0xf2 0x48 0xb4`
+- **Výchozí port**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Prefixy adres** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Časování bloků**:
 - **Cílový čas bloku**: `120` sekund
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementace**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementace**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Struktura**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimální přijatá úroveň
-    uint8_t nPoCXTargetCompression;  // Doporučená úroveň
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimální přijatá úroveň
+    uint32_t nPoCXTargetCompression;  // Doporučená úroveň
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementace**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementace**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Verze protokolu
 
-**Základ**: P2P protokol Bitcoin Core v30.0
+**Základ**: P2P protokol Bitcoin Core v30.2
 - **Verze protokolu**: Zděděna z Bitcoin Core
 - **Servisní bity**: Standardní služby Bitcoinu
 - **Typy zpráv**: Standardní P2P zprávy Bitcoinu
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Těžební server PoCX (vyžadován pro externí těžaře)
-miningserver=1
 
 # Nastavení RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Nastavení připojení
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Cílový čas bloku (informativní, vynuceno konsenzem)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konsensuální parametry**: `src/consensus/params.h`
-**Hranice komprese**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Hranice komprese**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Výpočet genesis base target**: `src/pocx/consensus/params.cpp`
-**Logika platby coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Logika platby coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Úložiště stavu přiřazení**: `src/coins.h`, `src/coins.cpp` (rozšíření CCoinsViewCache)
 
 ---

@@ -16,7 +16,7 @@ Implementasi kami memperkenalkan beberapa inovasi utama:
 (3) Mekanisme penugasan forging berbasis OP_RETURN yang memungkinkan penambangan pool non-kustodial; dan
 (4) Penskalaan kompresi dinamis, yang meningkatkan kesulitan pembuatan plot selaras dengan jadwal halving untuk mempertahankan margin keamanan jangka panjang seiring peningkatan perangkat keras.
 
-Bitcoin-PoCX mempertahankan arsitektur Bitcoin Core melalui modifikasi minimal yang ditandai dengan fitur, mengisolasi logika PoC dari kode konsensus yang ada. Sistem ini mempertahankan kebijakan moneter Bitcoin dengan menargetkan interval blok 120 detik dan menyesuaikan subsidi blok menjadi 10 BTC. Subsidi yang dikurangi mengimbangi peningkatan lima kali lipat dalam frekuensi blok, menjaga tingkat penerbitan jangka panjang selaras dengan jadwal asli Bitcoin dan mempertahankan pasokan maksimum ~21 juta.
+Bitcoin-PoCX mempertahankan arsitektur Bitcoin Core melalui modifikasi minimal yang ditandai dengan fitur, mengisolasi logika PoC dari kode konsensus yang ada. Sistem ini mempertahankan kebijakan moneter Bitcoin dengan menargetkan interval blok 120 detik dan menyesuaikan subsidi blok menjadi 10 BTCX. Subsidi yang dikurangi mengimbangi peningkatan lima kali lipat dalam frekuensi blok, menjaga tingkat penerbitan jangka panjang selaras dengan jadwal asli Bitcoin dan mempertahankan pasokan maksimum ~21 juta.
 
 ---
 
@@ -211,9 +211,9 @@ Bukti menanamkan semua informasi yang relevan konsensus yang diperlukan oleh val
 
 Tanda tangan generasi menyediakan ketidakprediktabilan yang diperlukan untuk penambangan Proof of Capacity yang aman. Setiap blok menurunkan tanda tangan generasinya dari tanda tangan dan penanda tangan blok sebelumnya, memastikan bahwa penambang tidak dapat mengantisipasi tantangan masa depan atau melakukan prakomputasi wilayah plot yang menguntungkan:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Ini menghasilkan urutan nilai entropi yang kuat secara kriptografis dan bergantung pada penambang. Karena kunci publik penambang tidak diketahui sampai blok sebelumnya dipublikasikan, tidak ada peserta yang dapat memprediksi pemilihan scoop masa depan. Ini mencegah prakomputasi selektif atau plotting strategis dan memastikan bahwa setiap blok memperkenalkan pekerjaan penambangan yang benar-benar segar.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Ini menghasilkan urutan nilai entropi yang kuat secara kriptografis dan bergantung pada penambang. Karena account ID penambang tidak diketahui sampai blok sebelumnya dipublikasikan, tidak ada peserta yang dapat memprediksi pemilihan scoop masa depan. Ini mencegah prakomputasi selektif atau plotting strategis dan memastikan bahwa setiap blok memperkenalkan pekerjaan penambangan yang benar-benar segar.
 
 ### 4.3 Proses Forging
 
@@ -243,7 +243,7 @@ Time Bending mempertahankan konten informasional dari bukti yang mendasarinya. I
 
 PoCX mengatur produksi blok menggunakan base target, ukuran kesulitan terbalik. Waktu blok yang diharapkan proporsional dengan rasio `quality / base_target`, jadi meningkatkan base target mempercepat pembuatan blok sementara menurunkannya memperlambat rantai.
 
-Kesulitan menyesuaikan setiap blok menggunakan waktu terukur antara blok terbaru dibandingkan dengan interval target. Penyesuaian yang sering ini diperlukan karena kapasitas penyimpanan dapat ditambahkan atau dihapus dengan cepat—tidak seperti hashpower Bitcoin, yang berubah lebih lambat.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 Penyesuaian mengikuti dua batasan panduan: **Gradualitas**—perubahan per-blok dibatasi (maksimum +-20%) untuk menghindari osilasi atau manipulasi; **Pengerasan**—base target tidak dapat melebihi nilai genesisnya, mencegah jaringan dari pernah menurunkan kesulitan di bawah asumsi keamanan asli.
 
@@ -411,12 +411,12 @@ Tabel di bawah merangkum pengaturan mainnet, testnet, dan regtest yang dihasilka
 | Parameter | Nilai |
 |-----------|-------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Port default | 8888 |
+| Port default | 8338 |
 | Bech32 HRP | `pocx` |
 | Target waktu blok | 120 detik |
-| Subsidi awal | 10 BTC |
+| Subsidi awal | 10 BTCX |
 | Interval halving | 1050000 blok (~4 tahun) |
-| Total pasokan | ~21 juta BTC |
+| Total pasokan | ~21 juta BTCX |
 | Aktivasi penugasan | 30 blok |
 | Pencabutan penugasan | 720 blok |
 | Jendela bergulir | 24 blok |
@@ -425,8 +425,8 @@ Tabel di bawah merangkum pengaturan mainnet, testnet, dan regtest yang dihasilka
 
 | Parameter | Nilai |
 |-----------|-------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Port default | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Port default | 18338 |
 | Bech32 HRP | `tpocx` |
 | Target waktu blok | 120 detik |
 | Parameter lain | Sama dengan mainnet |

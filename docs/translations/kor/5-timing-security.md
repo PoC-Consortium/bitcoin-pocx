@@ -32,16 +32,16 @@ PoCX 합의는 네트워크 전체에 걸쳐 정확한 시간 동기화를 요�
 
 **Bitcoin-PoCX 구성:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15초
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10초
 ```
 
 ### 검증 검사
 
-**블록 타임스탬프 검증** (`src/validation.cpp:4547-4561`):
+**블록 타임스탬프 검증** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. 단조 증가 검사: 타임스탬프 >= 이전 블록 타임스탬프
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. 데드라인 검사: 경과 시간 >= 데드라인
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Bitcoin-PoCX는 노드와 네트워크 피어 간의 시간 오프셋을 모니�
 - 검증이 밀리초 내에 완료
 
 **리소스 사용:** 최소
-- ~20줄의 핵심 로직
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - 기존 검증 인프라 재사용
 - 단일 잠금 획득
 
@@ -372,9 +372,9 @@ Bitcoin-PoCX는 노드와 네트워크 피어 간의 시간 오프셋을 모니�
 ## 구현 참조
 
 **핵심 파일**:
-- 시간 검증: `src/validation.cpp:4547-4561`
-- 미래 허용 상수: `src/chain.h:31`
-- 경고 임계값: `src/node/timeoffsets.h:27`
+- 시간 검증: `src/validation.cpp:ContextualCheckBlockHeader()`
+- 미래 허용 상수: `src/chain.h`
+- 경고 임계값: `src/node/timeoffsets.h`
 - 시간 오프셋 모니터링: `src/node/timeoffsets.cpp`
 - 방어적 포징: `src/pocx/mining/scheduler.cpp`
 

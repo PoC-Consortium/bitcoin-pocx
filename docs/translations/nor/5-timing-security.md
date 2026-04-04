@@ -32,16 +32,16 @@ PoCX-konsensus krever presis tidssynkronisering på tvers av nettverket. Dette k
 
 **Bitcoin-PoCX-konfigurasjon:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekunder
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekunder
 ```
 
 ### Valideringssjekker
 
-**Blokktidsstempel-validering** (`src/validation.cpp:4547-4561`):
+**Blokktidsstempel-validering** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monoton sjekk: tidsstempel >= forrige blokks tidsstempel
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Deadline-sjekk: forløpt tid >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Din mininghøyde 100, konkurrent publiserer blokk 99
 - Validering fullføres i løpet av millisekunder
 
 **Ressursbruk:** Minimal
-- ~20 linjer med kjernelogikk
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Gjenbruker eksisterende valideringsinfrastruktur
 - Enkelt låsanskaffelse
 
@@ -372,9 +372,9 @@ En node **>15s bak** er katastrofalt:
 ## Implementasjonsreferanser
 
 **Kjernefiler**:
-- Tidsvalidering: `src/validation.cpp:4547-4561`
-- Fremtidstoleransekonstant: `src/chain.h:31`
-- Advarselsterskel: `src/node/timeoffsets.h:27`
+- Tidsvalidering: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Fremtidstoleransekonstant: `src/chain.h`
+- Advarselsterskel: `src/node/timeoffsets.h`
 - Tidsavvikovervåking: `src/node/timeoffsets.cpp`
 - Defensiv forging: `src/pocx/mining/scheduler.cpp`
 

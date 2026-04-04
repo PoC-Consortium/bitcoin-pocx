@@ -39,12 +39,7 @@
 
 ### Генезис порука
 
-Све мреже деле Bitcoin генезис поруку:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Имплементација**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **Идентитет мреже**:
 - **Магични бајтови**: `0xa7 0x3c 0x91 0x5e`
-- **Подразумевани порт**: `8888`
+- **Подразумевани порт**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Префикси адреса** (Base58):
@@ -84,14 +79,14 @@
 ### Testnet параметри
 
 **Идентитет мреже**:
-- **Магични бајтови**: `0x6d 0xf2 0x48 0xb3`
-- **Подразумевани порт**: `18888`
+- **Магични бајтови**: `0x6d 0xf2 0x48 0xb4`
+- **Подразумевани порт**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Префикси адреса** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Време блока**:
 - **Циљано време блока**: `120` секунди
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Имплементација**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Имплементација**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Структура**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Минимални прихваћен ниво
-    uint8_t nPoCXTargetCompression;  // Препоручени ниво
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Минимални прихваћен ниво
+    uint32_t nPoCXTargetCompression;  // Препоручени ниво
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Имплементација**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Имплементација**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Верзија протокола
 
-**Основа**: Bitcoin Core v30.0 протокол
+**Основа**: Bitcoin Core v30.2 протокол
 - **Верзија протокола**: Наслеђена од Bitcoin Core
 - **Service bits**: Стандардни Bitcoin сервиси
 - **Типови порука**: Стандардне Bitcoin P2P поруке
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX сервер за рударење (потребан за спољне рударе)
-miningserver=1
 
 # RPC подешавања
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Подешавања конекције
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Циљано време блока (информативно, примењује консензус)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Параметри консензуса**: `src/consensus/params.h`
-**Границе компресије**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Границе компресије**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Израчунавање базног циља генезиса**: `src/pocx/consensus/params.cpp`
-**Логика плаћања coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Логика плаћања coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Складиштење стања додељивања**: `src/coins.h`, `src/coins.cpp` (проширења CCoinsViewCache)
 
 ---

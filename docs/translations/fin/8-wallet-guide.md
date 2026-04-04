@@ -28,7 +28,7 @@ Täydellinen opas Bitcoin-PoCX Qt -lompakolle ja forging-delegointien hallinnall
 Bitcoin-PoCX Qt -lompakko (`bitcoin-qt`) tarjoaa:
 - Vakio Bitcoin Core -lompakkotoiminnot (lähetä, vastaanota, transaktioiden hallinta)
 - **Forging-delegointien hallinta**: Graafinen käyttöliittymä plottidelegointien luomiseen/peruuttamiseen
-- **Louhintapalvelintila**: `-miningserver`-lippu mahdollistaa louhintaan liittyvät ominaisuudet
+- **Louhintapalvelintila**: ``-lippu mahdollistaa louhintaan liittyvät ominaisuudet
 - **Transaktiohistoria**: Delegointi- ja peruutustransaktioiden näyttö
 
 ### Lompakon käynnistäminen
@@ -40,18 +40,18 @@ Bitcoin-PoCX Qt -lompakko (`bitcoin-qt`) tarjoaa:
 
 **Louhinnan kanssa** (mahdollistaa delegointidialogin):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Komentoriviltä vaihtoehtoisesti**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Louhintavaatimukset
 
 **Louhintaoperaatioihin**:
-- `-miningserver`-lippu vaadittu
+- ``-lippu vaadittu
 - Lompakko P2WPKH-osoitteilla ja yksityisillä avaimilla
 - Ulkoinen plotteri (`pocx_plotter`) plottien generointiin
 - Ulkoinen louhija (`pocx_miner`) louhintaan
@@ -83,8 +83,7 @@ Bitcoin-PoCX käyttää **BTCX**-valuuttayksikköä (ei BTC):
 
 ### Dialogin avaaminen
 
-**Valikko**: `Lompakko → Forging-delegoinnit`
-**Työkalupalkki**: Louhintakuvake (näkyvissä vain `-miningserver`-lipulla)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Ikkunan koko**: 600×450 pikseliä
 
 ### Dialogin tilat
@@ -296,8 +295,8 @@ Peruutus voimassa korkeudessa: 13020
 ### Validointivirheilmoitukset
 
 **Dialogin virheet**:
-- "Plotin osoitteen on oltava P2WPKH (bech32)"
-- "Forging-osoitteen on oltava P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Kelvoton osoitemuoto"
 - "Ei kolikoita saatavilla plotin osoitteessa. Omistajuutta ei voida todistaa."
 - "Ei voi luoda transaktioita vain seurattavalla lompakolla"
@@ -313,7 +312,6 @@ Peruutus voimassa korkeudessa: 13020
 **Solmun konfiguraatio**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Käynnistä solmu** louhintapalvelimella:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfiguroi louhija**:
@@ -365,7 +363,7 @@ server=1
    - Valitse plotin osoite
    - Syötä poolin forging-osoite
    - Napsauta "Lähetä delegointi"
-   - Odota aktivointiviivettä (30 lohkoa testnetissä)
+   - Odota aktivointiviivettä (30 blocks mainnet/testnet)issä)
 
 3. **Konfiguroi louhija**:
    - Osoita **poolin** päätepisteeseen (ei paikalliseen solmuun)
@@ -406,13 +404,13 @@ server=1
 - Tuo yksityinen avain `importprivkey`-RPC:llä
 - Tai käytä eri plotin osoitetta jonka lompakko omistaa
 
-#### "Delegointi on jo olemassa tälle plotille"
+#### "Cannot create assignment: plot is in ... state"
 
-**Syy**: Plotti jo delegoitu toiselle osoitteelle
-**Ratkaisu**:
-1. Peruuta olemassa oleva delegointi
-2. Odota peruutusviivettä (720 lohkoa testnetissä)
-3. Luo uusi delegointi
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Osoitemuotoa ei tueta"
 
@@ -450,8 +448,8 @@ server=1
 
 #### "Forging-delegointivälilehti ei näkyvissä"
 
-**Syy**: Solmu käynnistetty ilman `-miningserver`-lippua
-**Ratkaisu**: Käynnistä uudelleen `bitcoin-qt -server -miningserver`
+**Syy**: Solmu käynnistetty ilman ``-lippua
+**Ratkaisu**: Käynnistä uudelleen `bitcoin-qt -server`
 
 ### Vianetsintävaiheet
 
@@ -525,12 +523,12 @@ server=1
 
 ### Delegointiviiveet
 
-**Aktivointiviive** (30 lohkoa testnetissä):
+**Aktivointiviive** (30 blocks mainnet/testnet)issä):
 - Estää nopean uudelleendelegoinnin ketjuhaarautumien aikana
 - Antaa verkon saavuttaa konsensus
 - Ei voida ohittaa
 
-**Peruutusviive** (720 lohkoa testnetissä):
+**Peruutusviive** (720 blocks mainnet/testnet)issä):
 - Tarjoaa vakautta louhintapooleille
 - Estää delegoinnin "häiriköinti"-hyökkäykset
 - Forging-osoite pysyy aktiivisena viiveen ajan

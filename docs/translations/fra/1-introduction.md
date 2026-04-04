@@ -42,7 +42,7 @@ La preuve de capacité (PoC) est un mécanisme de consensus où la puissance de 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + intégration PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + intégration PoCX
 │   └── src/pocx/        # Implémentation PoCX
 ├── pocx/                # Framework PoCX core (sous-module, lecture seule)
 └── docs/                # Cette documentation
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Identique à Bitcoin Core** :
 - **CPU** : Processeur x86_64 moderne
 - **Mémoire** : 4-8 Go de RAM
-- **Stockage** : Nouvelle chaîne, actuellement vide (peut croître ~4× plus vite que Bitcoin en raison des blocs de 2 minutes et de la base de données d'assignations)
+- **Stockage** : Nouvelle chaîne, actuellement vide (peut croître ~5× plus vite que Bitcoin en raison des blocs de 2 minutes et de la base de données d'assignations)
 - **Réseau** : Connexion internet stable
 - **Horloge** : Synchronisation NTP recommandée pour un fonctionnement optimal
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Compiler avec PoCX activé
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Détails** : Voir `CLAUDE.md` à la racine du dépôt
+**Details**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 ### 2. Exécuter le nœud
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Pour le minage** (active l'accès RPC pour les mineurs externes) :
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # ou
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Détails** : [Chapitre 6 : Paramètres réseau](6-network-parameters.md)

@@ -16,7 +16,7 @@ Nuestra implementación introduce varias innovaciones clave:
 (3) Un mecanismo de asignación de forjado basado en OP_RETURN que permite minería en pool sin custodia; y
 (4) Escalado de compresión dinámico, que aumenta la dificultad de generación de parcelas en alineación con los programas de halving para mantener márgenes de seguridad a largo plazo a medida que mejora el hardware.
 
-Bitcoin-PoCX mantiene la arquitectura de Bitcoin Core a través de modificaciones mínimas marcadas con banderas de características, aislando la lógica PoC del código de consenso existente. El sistema preserva la política monetaria de Bitcoin apuntando a un intervalo de bloque de 120 segundos y ajustando el subsidio de bloque a 10 BTC. El subsidio reducido compensa el aumento de cinco veces en la frecuencia de bloques, manteniendo la tasa de emisión a largo plazo alineada con el programa original de Bitcoin y manteniendo el suministro máximo de ~21 millones.
+Bitcoin-PoCX mantiene la arquitectura de Bitcoin Core a través de modificaciones mínimas marcadas con banderas de características, aislando la lógica PoC del código de consenso existente. El sistema preserva la política monetaria de Bitcoin apuntando a un intervalo de bloque de 120 segundos y ajustando el subsidio de bloque a 10 BTCX. El subsidio reducido compensa el aumento de cinco veces en la frecuencia de bloques, manteniendo la tasa de emisión a largo plazo alineada con el programa original de Bitcoin y manteniendo el suministro máximo de ~21 millones.
 
 ---
 
@@ -243,7 +243,7 @@ La flexión temporal mantiene el contenido informacional de la prueba subyacente
 
 PoCX regula la producción de bloques usando el objetivo base, una medida de dificultad inversa. El tiempo de bloque esperado es proporcional a la relación `calidad / objetivo_base`, por lo que aumentar el objetivo base acelera la creación de bloques mientras que disminuirlo desacelera la cadena.
 
-La dificultad se ajusta cada bloque usando el tiempo medido entre bloques recientes comparado con el intervalo objetivo. Este ajuste frecuente es necesario porque la capacidad de almacenamiento puede añadirse o eliminarse rápidamente, a diferencia del poder de hash de Bitcoin, que cambia más lentamente.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 El ajuste sigue dos restricciones guía: **Gradualidad**, los cambios por bloque están acotados (±20% máximo) para evitar oscilaciones o manipulación; **Endurecimiento**, el objetivo base no puede exceder su valor del génesis, previniendo que la red alguna vez baje la dificultad por debajo de las suposiciones de seguridad originales.
 
@@ -411,12 +411,12 @@ Las tablas a continuación resumen las configuraciones resultantes de mainnet, t
 | Parámetro | Valor |
 |-----------|-------|
 | Bytes mágicos | `0xa7 0x3c 0x91 0x5e` |
-| Puerto predeterminado | 8888 |
+| Puerto predeterminado | 8338 |
 | HRP Bech32 | `pocx` |
 | Objetivo de tiempo de bloque | 120 segundos |
-| Subsidio inicial | 10 BTC |
+| Subsidio inicial | 10 BTCX |
 | Intervalo de halving | 1050000 bloques (~4 años) |
-| Suministro total | ~21 millones BTC |
+| Suministro total | ~21 millones BTCX |
 | Activación de asignación | 30 bloques |
 | Revocación de asignación | 720 bloques |
 | Ventana móvil | 24 bloques |
@@ -425,8 +425,8 @@ Las tablas a continuación resumen las configuraciones resultantes de mainnet, t
 
 | Parámetro | Valor |
 |-----------|-------|
-| Bytes mágicos | `0x6d 0xf2 0x48 0xb3` |
-| Puerto predeterminado | 18888 |
+| Bytes mágicos | `0x6d 0xf2 0x48 0xb4` |
+| Puerto predeterminado | 18338 |
 | HRP Bech32 | `tpocx` |
 | Objetivo de tiempo de bloque | 120 segundos |
 | Otros parámetros | Igual que mainnet |

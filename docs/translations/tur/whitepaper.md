@@ -16,7 +16,7 @@ Uygulamamız birkaç önemli yenilik sunar:
 (3) Velayet gerektirmeyen havuz madenciliğini mümkün kılan OP_RETURN tabanlı dövme-atama mekanizması; ve
 (4) Donanım geliştikçe uzun vadeli güvenlik marjlarını korumak için plot üretim zorluğunu yarılanma programlarıyla uyumlu şekilde artıran dinamik sıkıştırma ölçeklendirmesi.
 
-Bitcoin-PoCX, minimum, özellik işaretli değişikliklerle Bitcoin Core mimarisini korur ve PoC mantığını mevcut konsensüs kodundan izole eder. Sistem, 120 saniyelik blok aralığı hedefleyerek ve blok sübvansiyonunu 10 BTC'ye ayarlayarak Bitcoin'in para politikasını korur. Azaltılmış sübvansiyon, beş kat artan blok frekansını dengeleyerek uzun vadeli ihraç oranını Bitcoin'in orijinal programıyla uyumlu tutar ve ~21 milyon maksimum arzı korur.
+Bitcoin-PoCX, minimum, özellik işaretli değişikliklerle Bitcoin Core mimarisini korur ve PoC mantığını mevcut konsensüs kodundan izole eder. Sistem, 120 saniyelik blok aralığı hedefleyerek ve blok sübvansiyonunu 10 BTCX'ye ayarlayarak Bitcoin'in para politikasını korur. Azaltılmış sübvansiyon, beş kat artan blok frekansını dengeleyerek uzun vadeli ihraç oranını Bitcoin'in orijinal programıyla uyumlu tutar ve ~21 milyon maksimum arzı korur.
 
 ---
 
@@ -211,9 +211,9 @@ Kanıt, doğrulayıcıların zorluğu yeniden hesaplaması, seçilen scoop'u do�
 
 Üretim imzası, güvenli Kapasite Kanıtı madenciliği için gereken tahmin edilemezliği sağlar. Her blok, üretim imzasını önceki bloğun imzasından ve imzalayanından türetir, madencilerin gelecek zorlukları önceden tahmin etmesini veya avantajlı plot bölgelerini önceden hesaplamasını engeller:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Bu, kriptografik olarak güçlü, madenciye bağlı entropi değerleri dizisi üretir. Bir madencinin açık anahtarı önceki blok yayınlanana kadar bilinmediğinden, hiçbir katılımcı gelecek scoop seçimlerini tahmin edemez. Bu, seçici ön hesaplamayı veya stratejik plot oluşturmayı önler ve her bloğun gerçekten taze madencilik işi sunmasını sağlar.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Bu, kriptografik olarak güçlü, madenciye bağlı entropi değerleri dizisi üretir. Bir madencinin account IDı önceki blok yayınlanana kadar bilinmediğinden, hiçbir katılımcı gelecek scoop seçimlerini tahmin edemez. Bu, seçici ön hesaplamayı veya stratejik plot oluşturmayı önler ve her bloğun gerçekten taze madencilik işi sunmasını sağlar.
 
 ### 4.3 Dövme Süreci
 
@@ -231,7 +231,7 @@ Kapasite Kanıtı üstel dağılımlı son tarihler üretir. Kısa bir süreden 
 
 Zaman Bükme, küp kök dönüşümü uygulayarak dağılımı yeniden şekillendirir:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Ölçek faktörü, varyansı önemli ölçüde azaltırken beklenen blok süresini (120 saniye) korur. Kısa son tarihler genişletilerek blok yayılımı ve ağ güvenliği iyileştirilir. Uzun son tarihler sıkıştırılarak aykırı değerlerin zinciri geciktirmesi önlenir.
 
@@ -411,12 +411,12 @@ Aşağıdaki tablolar, PoCX'in Bitcoin'in çekirdek parametrelerini depolama ba�
 | Parametre | Değer |
 |-----------|-------|
 | Sihirli baytlar | `0xa7 0x3c 0x91 0x5e` |
-| Varsayılan port | 8888 |
+| Varsayılan port | 8338 |
 | Bech32 HRP | `pocx` |
 | Blok süresi hedefi | 120 saniye |
-| Başlangıç sübvansiyonu | 10 BTC |
+| Başlangıç sübvansiyonu | 10 BTCX |
 | Yarılanma aralığı | 1050000 blok (~4 yıl) |
-| Toplam arz | ~21 milyon BTC |
+| Toplam arz | ~21 milyon BTCX |
 | Atama aktivasyonu | 30 blok |
 | Atama iptali | 720 blok |
 | Yuvarlanan pencere | 24 blok |
@@ -425,8 +425,8 @@ Aşağıdaki tablolar, PoCX'in Bitcoin'in çekirdek parametrelerini depolama ba�
 
 | Parametre | Değer |
 |-----------|-------|
-| Sihirli baytlar | `0x6d 0xf2 0x48 0xb3` |
-| Varsayılan port | 18888 |
+| Sihirli baytlar | `0x6d 0xf2 0x48 0xb4` |
+| Varsayılan port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Blok süresi hedefi | 120 saniye |
 | Diğer parametreler | Mainnet ile aynı |

@@ -32,16 +32,16 @@ El consenso PoCX requiere sincronización temporal precisa en toda la red. Este 
 
 **Configuración de Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 segundos
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 segundos
 ```
 
 ### Verificaciones de validación
 
-**Validación de marca de tiempo de bloque** (`src/validation.cpp:4547-4561`):
+**Validación de marca de tiempo de bloque** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Verificación monótona: marca de tiempo >= marca de tiempo del bloque anterior
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Verificación de plazo: tiempo transcurrido >= plazo
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Su altura de minería 100, competidor publica bloque 99
 - La validación se completa en milisegundos
 
 **Uso de recursos:** Mínimo
-- ~20 líneas de lógica central
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Reutiliza infraestructura de validación existente
 - Adquisición de bloqueo única
 
@@ -372,9 +372,9 @@ Un nodo **>15s atrasado** es catastrófico:
 ## Referencias de implementación
 
 **Archivos centrales**:
-- Validación temporal: `src/validation.cpp:4547-4561`
-- Constante de tolerancia futura: `src/chain.h:31`
-- Umbral de advertencia: `src/node/timeoffsets.h:27`
+- Validación temporal: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Constante de tolerancia futura: `src/chain.h`
+- Umbral de advertencia: `src/node/timeoffsets.h`
 - Monitoreo de desfase temporal: `src/node/timeoffsets.cpp`
 - Forjado defensivo: `src/pocx/mining/scheduler.cpp`
 

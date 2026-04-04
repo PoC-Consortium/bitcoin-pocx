@@ -23,7 +23,7 @@ Täydellinen viite Bitcoin-PoCX:n RPC-komennoille, mukaan lukien louhinnan RPC:t
 
 ### Louhintapalvelintila
 
-**Lippu**: `-miningserver`
+**Lippu**: ``
 
 **Tarkoitus**: Mahdollistaa RPC-pääsyn ulkoisille louhijoille kutsua louhintakohtaisia RPC:itä
 
@@ -34,10 +34,9 @@ Täydellinen viite Bitcoin-PoCX:n RPC-komennoille, mukaan lukien louhinnan RPC:t
 **Käyttö**:
 ```bash
 # Komentorivi
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Turvallisuusnäkökohdat**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 merkkiä
-  "base_target": 36650387593,                // numeerinen
+  "base_target": 36650387592,                // numeerinen
   "height": 12345,                           // numeerinen, seuraavan lohkon korkeus
   "block_hash": "def456...",                 // hex, edellinen lohko
   "target_quality": 18446744073709551615,    // uint64_max (kaikki ratkaisut hyväksytään)
@@ -103,20 +102,22 @@ bitcoin-cli get_mining_info
 
 **Tarkoitus**: Lähetä PoCX-louhintaratkaisu. Validoi todisteen, jonottaa aikataivutettua forgingia varten ja luo automaattisesti lohkon ajoitettuna aikana.
 
-**Parametrit**:
-1. `height` (numeerinen, vaadittu) - Lohkon korkeus
-2. `generation_signature` (merkkijono hex, vaadittu) - Generoinnin allekirjoitus (64 merkkiä)
-3. `account_id` (merkkijono, vaadittu) - Plotin tilitunniste (40 heksamerkkiä = 20 tavua)
-4. `seed` (merkkijono, vaadittu) - Plotin seed (64 heksamerkkiä = 32 tavua)
-5. `nonce` (numeerinen, vaadittu) - Louhinnan nonce
-6. `compression` (numeerinen, vaadittu) - Käytetty skaalaus/pakkaustaso (1-255)
-7. `quality` (numeerinen, valinnainen) - Laatuarvo (lasketaan uudelleen jos jätetään pois)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Palautusarvot** (onnistuminen):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // vaikeussäädetty deadline sekunteina
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // aikataivutettu forging-aika sekunteina
 }
 ```
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Esimerkki**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_heksamerkkiä..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Huomautukset**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX-muutokset**:
 - **Laskenta**: `viite_base_target / nykyinen_base_target`
-- **Viite**: 1 TiB verkon kapasiteetti (base_target = 36650387593)
+- **Viite**: 1 TiB verkon kapasiteetti (base_target = 36650387592)
 - **Tulkinta**: Arvioitu verkon tallennuskapasiteetti TiB:nä
   - Esimerkki: `1.0` = ~1 TiB
   - Esimerkki: `1024.0` = ~1 PiB
@@ -464,7 +469,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numeerinen) - Poolilouhintaa varten
 
 **PoCX:n poistamat kentät**:
-- `target` - Poistettu (PoW-spesifinen)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Poistettu (PoW-spesifinen)
 - `bits` - Poistettu (PoW-spesifinen)
 
@@ -530,7 +535,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skannaa plottitiedostot (ulkoinen toteutus)
@@ -538,11 +543,15 @@ while True:
 
     # 3. Lähetä paras ratkaisu
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +671,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Louhinnan RPC:t**: `src/pocx/rpc/mining.cpp`
 **Delegointi-RPC:t**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Lohkoketju-RPC:t**: `src/rpc/blockchain.cpp`
-**Todisteen validointi**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Todisteen validointi**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Delegointitila**: `src/pocx/assignments/assignment_state.cpp`
 **Transaktion luonti**: `src/pocx/assignments/transactions.cpp`
 

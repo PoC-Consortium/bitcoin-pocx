@@ -39,7 +39,7 @@ Výstupy:
   [1]: Vrácení zbytku uživateli (volitelné, standardní P2WPKH)
 ```
 
-**Implementace:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementace:** `src/pocx/assignments/opcodes.cpp`
 
 ### Formát transakce revokace
 
@@ -58,14 +58,14 @@ Výstupy:
   [1]: Vrácení zbytku uživateli (volitelné, standardní P2WPKH)
 ```
 
-**Implementace:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementace:** `src/pocx/assignments/opcodes.cpp`
 
 ### Markery
 
 - **Marker přiřazení:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Marker revokace:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Implementace:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementace:** `src/pocx/assignments/opcodes.cpp`
 
 ### Klíčové charakteristiky transakcí
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Kompletní historie: všechna přiřazení na plot v čase
 ```
 
-**Implementace:** `src/txdb.cpp:237-348`
+**Implementace:** `src/txdb.cpp`
 
 ### Struktura ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementace:** `src/coins.h:111-178`
+**Implementace:** `src/coins.h`
 
 ### Stavy přiřazení
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementace:** `src/coins.h:98-104`
+**Implementace:** `src/coins.h`
 
 ### Klíče databáze
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementace:** `src/txdb.cpp:245-262`
+**Implementace:** `src/txdb.cpp`
 
 ### Sledování historie
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Zkontrolovat stav plotu (musí být UNASSIGNED nebo REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Vytvořit nové přiřazení
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins pokračuje normálně (automaticky přeskakuje výstupy OP_RETURN)
 ```
 
-**Implementace:** `src/validation.cpp:2775-2878`
+**Implementace:** `src/validation.cpp:ConnectBlock()`
 
 ### Ověření vlastnictví
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Zkontrolovat, že alespoň jeden vstup je podepsán vlastníkem plotu
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Extrahovat cíl
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Zkontrolovat, zda P2WPKH na adresu plotu
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core již validoval podpis
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementace:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementace:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Aktivační zpoždění
 
@@ -282,7 +280,7 @@ Prováděno v `src/consensus/tx_check.cpp` bez přístupu ke stavu řetězce:
 
 1. **Maximálně jeden POCX OP_RETURN:** Transakce nesmí obsahovat více markerů POCX/XCOP
 
-**Implementace:** `src/consensus/tx_check.cpp:63-77`
+**Implementace:** `src/consensus/tx_check.cpp`
 
 ### Kontroly přijetí do mempoolu (PreChecks)
 
@@ -300,7 +298,7 @@ Prováděno v `src/validation.cpp` s plným přístupem ke stavu řetězce a mem
 2. **Aktivní přiřazení:** Plot musí být pouze ve stavu ASSIGNED (2)
 3. **Konflikty v mempoolu:** Žádná jiná revokace pro tento plot v mempoolu
 
-**Implementace:** `src/validation.cpp:898-993`
+**Implementace:** `src/validation.cpp:PreChecks()`
 
 ### Tok validace
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Shromáždit dirty přiřazení
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Prázdné - nepoužívá se
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Zapsat do databáze
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Vyčistit sledování
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Uvolnit paměť
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementace:** `src/coins.cpp:278-315`
+**Implementace:** `src/coins.cpp:Flush()`
 
 ### Dávkový zápis do databáze
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Přiřazení zapsána odděleně, ale ve stejném kontextu databázové transakce
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Nepoužívaný parametr (zachován pro kompatibilitu API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Nová dávka, ale stejná databáze
+    CDBBatch batch(*m_db);
 
-    // Zapsat historii přiřazení
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Smazat odstraněná přiřazení z historie
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ATOMICKÝ COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementace:** `src/txdb.cpp:332-348`
+**Implementace:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Garance atomicity
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementace:** `src/undo.h:63-105`
+**Implementace:** `src/undo.h`
 
 ### Proces DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementace:** `src/validation.cpp:2381-2415`
+**Implementace:** `src/validation.cpp:DisconnectBlock()`
 
 ### Správa cache během reorgu
 
@@ -556,7 +562,7 @@ private:
     // Cache přiřazení
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Sledovat modifikované ploty
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Sledovat mazání
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Sledovat mazání
     mutable size_t cachedAssignmentsUsage{0};  // Sledování paměti
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementace:** `src/coins.cpp:494-565`
+**Implementace:** `src/coins.cpp`
 
 ## RPC rozhraní
 
@@ -613,7 +617,7 @@ Vrací aktuální stav přiřazení pro adresu plotu:
 }
 ```
 
-**Implementace:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementace:** `src/pocx/rpc/assignments.cpp`
 
 ### Příkazy peněženky (vyžadují peněženku)
 
@@ -628,7 +632,7 @@ Vytvoří transakci přiřazení:
 - Podepíše klíčem vlastníka plotu
 - Vyšle do sítě
 
-**Implementace:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementace:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Vytvoří transakci revokace:
 - Podepíše klíčem vlastníka plotu
 - Vyšle do sítě
 
-**Implementace:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementace:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Vytváření transakcí v peněžence
 
@@ -660,7 +664,7 @@ Proces vytváření transakcí v peněžence:
 
 **Klíčový poznatek:** Peněženka musí utratit z adresy plotu pro prokázání vlastnictví, takže automaticky vynucuje výběr coinů z této adresy.
 
-**Implementace:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementace:** `src/pocx/assignments/transactions.cpp`
 
 ## Struktura souborů
 

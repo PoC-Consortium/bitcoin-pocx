@@ -28,7 +28,7 @@ Bitcoin-PoCX Qtウォレットとフォージング割り当て管理の完全�
 Bitcoin-PoCX Qtウォレット（`bitcoin-qt`）は以下を提供します:
 - 標準Bitcoin Coreウォレット機能（送金、受取、トランザクション管理）
 - **フォージング割り当てマネージャー**: プロット割り当ての作成/取り消し用GUI
-- **マイニングサーバーモード**: `-miningserver`フラグでマイニング関連機能を有効化
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **トランザクション履歴**: 割り当ておよび取り消しトランザクションの表示
 
 ### ウォレットの起動
@@ -38,20 +38,20 @@ Bitcoin-PoCX Qtウォレット（`bitcoin-qt`）は以下を提供します:
 ./build/bin/bitcoin-qt
 ```
 
-**マイニング付き**（割り当てダイアログを有効化）:
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **コマンドライン代替**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### マイニング要件
 
 **マイニング操作用**:
-- `-miningserver`フラグ必須
+- ``フラグ必須
 - P2WPKHアドレスと秘密鍵を持つウォレット
 - プロット生成用の外部プロッター（`pocx_plotter`）
 - マイニング用の外部マイナー（`pocx_miner`）
@@ -83,8 +83,7 @@ Bitcoin-PoCXは**BTCX**通貨単位を使用（BTCではなく）:
 
 ### ダイアログへのアクセス
 
-**メニュー**: `ウォレット → フォージング割り当て`
-**ツールバー**: マイニングアイコン（`-miningserver`フラグでのみ表示）
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **ウィンドウサイズ**: 600×450ピクセル
 
 ### ダイアログモード
@@ -313,7 +312,6 @@ REVOKED - 割り当て取り消し済み
 **ノード設定**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -335,9 +333,9 @@ server=1
    pocx_plotter --account <plot_address_hash160> --seed <32_bytes> --nonces <count>
    ```
 
-2. **マイニングサーバー付きでノードを起動**:
+2. **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **マイナーの設定**:
@@ -450,8 +448,8 @@ server=1
 
 #### 「フォージング割り当てタブが表示されない」
 
-**原因**: ノードが`-miningserver`フラグなしで起動
-**解決策**: `bitcoin-qt -server -miningserver`で再起動
+**原因**: ノードが``フラグなしで起動
+**解決策**: `bitcoin-qt -server`で再起動
 
 ### デバッグ手順
 

@@ -77,12 +77,12 @@ Metadata yote ya plot imesimbwa katika jina la faili kwa kutumia muundo huu hali
 1. **ACCOUNT_PAYLOAD** (herufi 40 za hex)
    - Payload ya byte 20 ya akaunti kama hex ya herufi kubwa
    - Haitegemei mtandao (hakuna kitambulisho cha mtandao au checksum)
-   - Mfano: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Mfano: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (herufi 64 za hex)
    - Thamani ya mbegu ya byte 32 kama hex ya herufi ndogo
    - **Mpya katika PoCX**: Mbegu ya nasibu ya byte 32 katika jina la faili inabadilisha uhesabuaji wa nonce za mfuatano — kuzuia kuingiliana kwa plot
-   - Mfano: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Mfano: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (nambari ya desimali)
    - **Kitengo kipya cha ukubwa katika PoCX**: Kinabadilisha ukubwa unaotegemea nonce kutoka POC1/POC2
@@ -97,8 +97,8 @@ Metadata yote ya plot imesimbwa katika jina la faili kwa kutumia muundo huu hali
 
 ### Mifano ya Majina ya Faili
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

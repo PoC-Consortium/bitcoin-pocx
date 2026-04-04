@@ -39,12 +39,7 @@ Bitcoin-PoCX 所有网络类型的网络配置完整参考。
 
 ### 创世消息
 
-所有网络共享 Bitcoin 创世消息：
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**实现**：`src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Bitcoin-PoCX 所有网络类型的网络配置完整参考。
 
 **网络标识**：
 - **魔术字节**：`0xa7 0x3c 0x91 0x5e`
-- **默认端口**：`8888`
+- **默认端口**：`8338`
 - **Bech32 HRP**：`pocx`
 
 **地址前缀**（Base58）：
@@ -84,8 +79,8 @@ Bitcoin-PoCX 所有网络类型的网络配置完整参考。
 ### 测试网参数
 
 **网络标识**：
-- **魔术字节**：`0x6d 0xf2 0x48 0xb3`
-- **默认端口**：`18888`
+- **魔术字节**：`0x6d 0xf2 0x48 0xb4`
+- **默认端口**：`18338`
 - **Bech32 HRP**：`tpocx`
 
 **地址前缀**（Base58）：
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**实现**：`src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**实现**：`src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **结构**：
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 接受的最低级别
-    uint8_t nPoCXTargetCompression;  // 推荐级别
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // 接受的最低级别
+    uint32_t nPoCXTargetCompression;  // 推荐级别
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**实现**：`src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`、`src/pocx/consensus/params.cpp`
+**实现**：`src/pocx/consensus/params.h:GetPoCXCompressionBounds()`、`src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### 协议版本
 
-**基础**：Bitcoin Core v30.0 协议
+**基础**：Bitcoin Core v30.2 协议
 - **协议版本**：继承自 Bitcoin Core
 - **服务位**：标准 Bitcoin 服务
 - **消息类型**：标准 Bitcoin P2P 消息
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX 挖矿服务器（外部矿工需要）
-miningserver=1
 
 # RPC 设置
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # 连接设置
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # 区块时间目标（信息性，共识强制执行）
@@ -435,9 +429,9 @@ maxconnections=125
 
 **链参数**：`src/kernel/chainparams.cpp`
 **共识参数**：`src/consensus/params.h`
-**压缩边界**：`src/pocx/algorithms/algorithms.h`、`src/pocx/consensus/params.cpp`
+**压缩边界**：`src/pocx/consensus/params.h`、`src/pocx/consensus/params.cpp`
 **创世基础目标值计算**：`src/pocx/consensus/params.cpp`
-**Coinbase 支付逻辑**：`src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase 支付逻辑**：`src/pocx/mining/block_builder.cpp:BuildBlock()`
 **委派状态存储**：`src/coins.h`、`src/coins.cpp`（CCoinsViewCache 扩展）
 
 ---

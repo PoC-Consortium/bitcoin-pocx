@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Technische Documentatie
 
 **Versie**: 1.0
-**Bitcoin Core Basis**: v30.0
+**Bitcoin Core Basis**: v30.2
 **Status**: Testnetfase
 **Laatst bijgewerkt**: 25-12-2025
 
@@ -114,8 +114,8 @@ Bouw releases met [GUIX](../bitcoin/contrib/guix/README.md)
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Configureer met PoCX ingeschakeld
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Bouw
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Buildvarianten**:
 ```bash
 # Met Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debugbuild
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Afhankelijkheden**: Standaard Bitcoin Core build-afhankelijkheden. Zie de [Bitcoin Core build-documentatie](https://github.com/bitcoin/bitcoin/tree/master/doc#building) voor platformspecifieke vereisten.
@@ -184,7 +184,7 @@ Bijdragen aan de documentatie zijn welkom. Houd rekening met:
 
 ## Licentie
 
-Bitcoin-PoCX erft de MIT-licentie van Bitcoin Core. Zie `COPYING` in de repository-root.
+Bitcoin-PoCX erft de MIT-licentie van Bitcoin Core. Zie `bitcoin/COPYING` in de repository-root.
 
 PoCX core framework-attributie is gedocumenteerd in [Hoofdstuk 2: Plotformaat](2-plot-format.md).
 

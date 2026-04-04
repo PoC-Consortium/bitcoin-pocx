@@ -28,7 +28,7 @@ Bitcoin-PoCX Qt 지갑과 포징 할당 관리를 위한 완전한 가이드입�
 Bitcoin-PoCX Qt 지갑(`bitcoin-qt`)은 다음을 제공합니다:
 - 표준 Bitcoin Core 지갑 기능 (송금, 수신, 트랜잭션 관리)
 - **포징 할당 관리자**: 플롯 할당 생성/취소를 위한 GUI
-- **채굴 서버 모드**: `-miningserver` 플래그로 채굴 관련 기능 활성화
+- **채굴 서버 모드**: `` 플래그로 채굴 관련 기능 활성화
 - **트랜잭션 내역**: 할당 및 취소 트랜잭션 표시
 
 ### 지갑 시작하기
@@ -40,18 +40,18 @@ Bitcoin-PoCX Qt 지갑(`bitcoin-qt`)은 다음을 제공합니다:
 
 **채굴 포함** (할당 대화상자 활성화):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **명령줄 대안**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### 채굴 요구사항
 
 **채굴 작업용**:
-- `-miningserver` 플래그 필요
+- `` 플래그 필요
 - P2WPKH 주소와 개인키가 있는 지갑
 - 플롯 생성을 위한 외부 플로터 (`pocx_plotter`)
 - 채굴을 위한 외부 마이너 (`pocx_miner`)
@@ -84,7 +84,7 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 ### 대화상자 접근
 
 **메뉴**: `지갑 -> 포징 할당`
-**도구 모음**: 채굴 아이콘 (`-miningserver` 플래그 사용 시에만 표시)
+**도구 모음**: 채굴 아이콘 (`` 플래그 사용 시에만 표시)
 **창 크기**: 600×450 픽셀
 
 ### 대화상자 모드
@@ -118,7 +118,7 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- OP_RETURN 출력: `POCX` 마커 + plot_address + forging_address (46 바이트)
+- OP_RETURN 출력: `POCX` 마커 + plot_address + forging_address (44 바이트)
 - 잔돈 출력: 지갑에 반환
 
 #### 모드 2: 할당 취소
@@ -146,7 +146,7 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- OP_RETURN 출력: `XCOP` 마커 + plot_address (26 바이트)
+- OP_RETURN 출력: `XCOP` 마커 + plot_address (24 바이트)
 - 잔돈 출력: 지갑에 반환
 
 #### 모드 3: 할당 상태 확인
@@ -296,8 +296,8 @@ REVOKED - 할당 취소됨
 ### 검증 오류 메시지
 
 **대화상자 오류**:
-- "플롯 주소는 P2WPKH (bech32)여야 합니다"
-- "포징 주소는 P2WPKH (bech32)여야 합니다"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "잘못된 주소 형식"
 - "플롯 주소에 코인이 없습니다. 소유권을 증명할 수 없습니다."
 - "감시 전용 지갑으로는 트랜잭션을 생성할 수 없습니다"
@@ -313,7 +313,6 @@ REVOKED - 할당 취소됨
 **노드 구성**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **채굴 서버로 노드 시작**:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **마이너 구성**:
@@ -447,11 +446,6 @@ server=1
 
 **원인**: 지갑이 개인키 없이 주소만 가져옴
 **해결책**: 주소만이 아닌 전체 개인키 가져오기
-
-#### "포징 할당 탭이 보이지 않습니다"
-
-**원인**: 노드가 `-miningserver` 플래그 없이 시작됨
-**해결책**: `bitcoin-qt -server -miningserver`로 재시작
 
 ### 디버그 단계
 

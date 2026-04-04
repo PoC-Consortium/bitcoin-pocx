@@ -77,12 +77,12 @@ Lahat ng plot metadata ay naka-encode sa filename gamit ang eksaktong format na 
 1. **ACCOUNT_PAYLOAD** (40 hex character)
    - Raw 20-byte account payload bilang uppercase hex
    - Hindi nakadepende sa network (walang network ID o checksum)
-   - Halimbawa: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Halimbawa: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 hex character)
-   - 32-byte seed value bilang lowercase hex
+   - 32-byte seed value bilang uppercase hex
    - **Bago sa PoCX**: Random 32-byte seed sa filename na pumapalit sa consecutive nonce numbering — pumipigil sa mga overlap ng plot
-   - Halimbawa: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Halimbawa: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (decimal number)
    - **BAGONG unit ng laki sa PoCX**: Pumapalit sa nonce-based sizing mula sa POC1/POC2
@@ -97,8 +97,8 @@ Lahat ng plot metadata ay naka-encode sa filename gamit ang eksaktong format na 
 
 ### Mga Halimbawa ng Filename
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

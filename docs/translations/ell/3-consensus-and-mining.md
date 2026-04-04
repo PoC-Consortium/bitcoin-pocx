@@ -49,7 +49,7 @@
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed plot (32 bytes)
     std::array<uint8_t, 20> account_id;       // Διεύθυνση plot (20-byte hash160)
-    uint32_t compression;                     // Επίπεδο κλιμάκωσης (1-255)
+    uint32_t compression;                     // Επίπεδο κλιμάκωσης (1-6)
     uint64_t nonce;                           // Nonce εξόρυξης (64-bit)
     uint64_t quality;                         // Δηλωμένη ποιότητα (έξοδος PoC hash)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **Υπολογισμός:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Genesis Block:** Χρησιμοποιεί μια σκληροκωδικοποιημένη αρχική generation signature
 
-**Υλοποίηση:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Υλοποίηση:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (Δυσκολία)
 
@@ -113,8 +113,8 @@ generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
 **Δυναμικά Όρια:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Ελάχιστο αποδεκτό επίπεδο
-    uint8_t nPoCXTargetCompression;  // Συνιστώμενο επίπεδο
+    uint32_t nPoCXMinCompression;     // Ελάχιστο αποδεκτό επίπεδο
+    uint32_t nPoCXTargetCompression;  // Συνιστώμενο επίπεδο
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Διατηρεί περιθώριο ασφαλείας μεταξύ κόστους δημιουργίας plot και κόστους αναζήτησης
 - Μέγιστο επίπεδο κλιμάκωσης: 255
 
-**Υλοποίηση:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Υλοποίηση:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Υποστήριξη Αναθέσεων:** Ο ιδιοκτήτης plot μπορεί να αναθέσει δικαιώματα σφυρηλάτησης σε άλλη διεύθυνση. Το πορτοφόλι πρέπει να έχει κλειδί για τον effective signer, όχι απαραίτητα τον ιδιοκτήτη plot.
 
-#### Βήμα 5: Επικύρωση Απόδειξης
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -232,9 +239,8 @@ bool success = pocx_validate_block(
     block_height,
     nonce,
     seed,                // 32 bytes
-    min_compression,
-    max_compression,
-    &result             // Έξοδος: quality, deadline
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Επικύρωση ότι η ποιότητα πληροί τις απαιτήσεις δυσκολίας
 4. Επιστροφή ακατέργαστης τιμής ποιότητας
 
-**Υλοποίηση:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Υλοποίηση:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Βήμα 6: Υπολογισμός Time Bending
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **Υλοποίηση:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Βήμα 7: Υποβολή στον Σχεδιαστή
+#### Step 8: Forger Submission: Υποβολή στον Σχεδιαστή
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // ΟΧΙ deadline - επανυπολογίζεται στον forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Αρχική διεύθυνση plot
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Επανυπολογισμός merkle root:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Υλοποίηση:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Υλοποίηση:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Βασικές Αποφάσεις Σχεδιασμού:**
 - Το coinbase πληρώνει τον effective signer (σεβασμός αναθέσεων)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Επαλήθευση ότι το ανακτημένο pubkey ταιριάζει με το αποθηκευμένο pubkey
 
 **Υλοποίηση:** `src/validation.cpp:CheckBlockHeader()`
-**Λογική Υπογραφής:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Λογική Υπογραφής:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Στάδιο 2: Επικύρωση Block (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Βήμα 1: Επικύρωση generation signature
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Βήμα 2: Επικύρωση base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Βήμα 3: Επικύρωση proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Βήμα 4: Επαλήθευση χρονισμού deadline
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Βήματα Επικύρωσης:**
-1. **Generation Signature:** Πρέπει να ταιριάζει με την υπολογισμένη τιμή από το προηγούμενο block
-2. **Base Target:** Πρέπει να ταιριάζει με τον υπολογισμό προσαρμογής δυσκολίας
-3. **Επίπεδο Κλιμάκωσης:** Πρέπει να πληροί το ελάχιστο δικτύου (`compression >= min_compression`)
-4. **Δήλωση Ποιότητας:** Η υποβληθείσα ποιότητα πρέπει να ταιριάζει με την υπολογισμένη ποιότητα από την απόδειξη
-5. **Proof of Capacity:** Κρυπτογραφική επικύρωση απόδειξης (βελτιστοποιημένη με SIMD)
-6. **Χρονισμός Deadline:** Το time-bended deadline (`poc_time`) πρέπει να είναι ≤ elapsed time
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Υλοποίηση:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Υλοποίηση:**
 - Σύνδεση: `src/validation.cpp:ConnectBlock()`
-- Εκτεταμένη επικύρωση: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Λογική ανάθεσης: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Εκτεταμένη επικύρωση: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Λογική ανάθεσης: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Στάδιο 5: Ενεργοποίηση Αλυσίδας
 
@@ -603,7 +597,7 @@ CheckBlockHeader (βασική υπογραφή)
     ↓
 CheckBlock (συναλλαγές, merkle)
     ↓
-ContextualCheckBlockHeader (gen sig, base target, PoC proof, deadline)
+ContextualCheckBlockHeader (height, gen sig, base target, deadline)
     ↓
 ConnectBlock (εκτεταμένη υπογραφή με αναθέσεις, μεταβάσεις κατάστασης)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Γίνεται ASSIGNED μετά την περίοδο καθυστέρησης (4 blocks regtest, 30 blocks mainnet)
 - Η καθυστέρηση αποτρέπει γρήγορες επανααναθέσεις κατά τη διάρκεια block races
 
-**Υλοποίηση:** `src/script/forging_assignment.h`, επικύρωση στο ConnectBlock
+**Υλοποίηση:** `src/pocx/assignments/opcodes.h`, επικύρωση στο ConnectBlock
 
 ### Ανάκληση Αναθέσεων
 
@@ -826,12 +820,15 @@ Thread B: cs_wallet → cs_main
 
 **Generation Signature:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Block Signature Hash:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Μορφή Compact Signature:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Βασικές Υλοποιήσεις:**
 - Διεπαφή RPC: `src/pocx/rpc/mining.cpp`
 - Ουρά Σφυρηλάτησης: `src/pocx/mining/scheduler.cpp`
-- Επικύρωση Συναίνεσης: `src/pocx/consensus/validation.cpp`
-- Επικύρωση Απόδειξης: `src/pocx/consensus/pocx.cpp`
+- Επικύρωση Συναίνεσης: `src/pocx/consensus/proof.cpp`
+- Επικύρωση Απόδειξης: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Επικύρωση Block: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Λογική Ανάθεσης: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Διαχείριση Context: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Λογική Ανάθεσης: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Διαχείριση Context: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Δομές Δεδομένων:**
 - Μορφή Block: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **Διαδικασία:**
 1. Δημιουργία scoop από generation signature και ύψος
 2. Ανάγνωση δεδομένων plot για υπολογισμένο scoop
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Δοκιμή επιπέδων κλιμάκωσης από min σε max
 5. Επιστροφή καλύτερης ποιότητας που βρέθηκε
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(πρόσφατα base targets)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

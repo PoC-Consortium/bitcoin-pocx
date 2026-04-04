@@ -23,7 +23,7 @@
 
 ### Режим сервера майнинга
 
-**Флаг**: `-miningserver`
+**Флаг**: ``
 
 **Цель**: Включает RPC-доступ для внешних майнеров к вызову специфичных для майнинга RPC
 
@@ -34,10 +34,9 @@
 **Использование**:
 ```bash
 # Командная строка
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Соображения безопасности**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Категория**: mining
-**Требует сервер майнинга**: Нет
 **Требует кошелёк**: Нет
 
 **Цель**: Возвращает текущие параметры майнинга, необходимые внешним майнерам для сканирования файлов графиков и вычисления дедлайнов.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 символа
-  "base_target": 36650387593,                // числовое
+  "base_target": 36650387592,                // числовое
   "height": 12345,                           // числовое, высота следующего блока
   "block_hash": "def456...",                 // hex, предыдущий блок
   "target_quality": 18446744073709551615,    // uint64_max (все решения приняты)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Категория**: mining
-**Требует сервер майнинга**: Да
 **Требует кошелёк**: Да (для приватных ключей)
 
 **Цель**: Отправить решение майнинга PoCX. Валидирует доказательство, ставит в очередь для искривлённого по времени форджинга и автоматически создаёт блок в запланированное время.
 
-**Параметры**:
-1. `height` (числовое, обязательно) — Высота блока
-2. `generation_signature` (строка hex, обязательно) — Сигнатура генерации (64 символа)
-3. `account_id` (строка, обязательно) — ID аккаунта графика (40 hex символов = 20 байт)
-4. `seed` (строка, обязательно) — Seed графика (64 hex символа = 32 байта)
-5. `nonce` (числовое, обязательно) — Нонс майнинга
-6. `compression` (числовое, обязательно) — Используемый уровень масштабирования/сжатия (1-255)
-7. `quality` (числовое, опционально) — Значение качества (пересчитывается если опущено)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Возвращаемые значения** (успех):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // дедлайн с корректировкой сложности в секундах
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // искривлённое время форджинга в секундах
 }
 ```
@@ -163,12 +162,16 @@ bitcoin-cli get_mining_info
 
 **Пример**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Примечания**:
@@ -186,7 +189,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Категория**: mining
-**Требует сервер майнинга**: Нет
 **Требует кошелёк**: Нет
 
 **Цель**: Запрос статуса делегирования форджинга для адреса графика. Только чтение, кошелёк не требуется.
@@ -260,7 +262,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Категория**: wallet
-**Требует сервер майнинга**: Нет
 **Требует кошелёк**: Да (должен быть загружен и разблокирован)
 
 **Цель**: Создание транзакции делегирования форджинга для передачи прав форджинга другому адресу (например, пулу майнинга).
@@ -294,7 +295,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Активация**:
 - Делегирование становится ASSIGNING при подтверждении
-- Становится ACTIVE после `nForgingAssignmentDelay` блоков
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Задержка предотвращает быстрое переназначение при форках цепочки
 
 **Коды ошибок**:
@@ -316,7 +317,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Категория**: wallet
-**Требует сервер майнинга**: Нет
 **Требует кошелёк**: Да (должен быть загружен и разблокирован)
 
 **Цель**: Отзыв существующего делегирования форджинга, возврат прав форджинга владельцу графика.
@@ -377,7 +377,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Модификации PoCX**:
 - **Вычисление**: `reference_base_target / current_base_target`
-- **Эталон**: Ёмкость сети 1 ТиБ (base_target = 36650387593)
+- **Эталон**: Ёмкость сети 1 ТиБ (base_target = 36650387592)
 - **Интерпретация**: Оценочная ёмкость хранилища сети в ТиБ
   - Пример: `1.0` = ~1 ТиБ
   - Пример: `1024.0` = ~1 ПиБ
@@ -494,10 +494,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Альтернатива**: Используйте `get_mining_info` (специфично для PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Причина**: Майнинг на CPU неприменим к PoCX (требуются предварительно сгенерированные графики)
-- **Альтернатива**: Используйте внешний плоттер + майнер + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Реализация**: `src/rpc/mining.cpp` (RPC возвращают ошибку когда определён ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +531,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Сканировать файлы графиков (внешняя реализация)
@@ -538,11 +539,15 @@ while True:
 
     # 3. Отправить лучшее решение
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +667,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC майнинга**: `src/pocx/rpc/mining.cpp`
 **RPC делегирования**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC блокчейна**: `src/rpc/blockchain.cpp`
-**Валидация доказательства**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Валидация доказательства**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Состояние делегирования**: `src/pocx/assignments/assignment_state.cpp`
 **Создание транзакций**: `src/pocx/assignments/transactions.cpp`
 

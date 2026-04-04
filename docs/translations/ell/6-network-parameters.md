@@ -39,12 +39,7 @@
 
 ### Μήνυμα Genesis
 
-Όλα τα δίκτυα μοιράζονται το μήνυμα genesis του Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Υλοποίηση**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **Ταυτότητα Δικτύου**:
 - **Magic Bytes**: `0xa7 0x3c 0x91 0x5e`
-- **Προεπιλεγμένη Θύρα**: `8888`
+- **Προεπιλεγμένη Θύρα**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Προθέματα Διευθύνσεων** (Base58):
@@ -84,14 +79,14 @@
 ### Παράμετροι Testnet
 
 **Ταυτότητα Δικτύου**:
-- **Magic Bytes**: `0x6d 0xf2 0x48 0xb3`
-- **Προεπιλεγμένη Θύρα**: `18888`
+- **Magic Bytes**: `0x6d 0xf2 0x48 0xb4`
+- **Προεπιλεγμένη Θύρα**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Προθέματα Διευθύνσεων** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Χρονισμός Block**:
 - **Στόχος Χρόνου Block**: `120` δευτερόλεπτα
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Υλοποίηση**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Υλοποίηση**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Δομή**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Ελάχιστο αποδεκτό επίπεδο
-    uint8_t nPoCXTargetCompression;  // Συνιστώμενο επίπεδο
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Ελάχιστο αποδεκτό επίπεδο
+    uint32_t nPoCXTargetCompression;  // Συνιστώμενο επίπεδο
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Υλοποίηση**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Υλοποίηση**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Έκδοση Πρωτοκόλλου
 
-**Βάση**: Πρωτόκολλο Bitcoin Core v30.0
+**Βάση**: Πρωτόκολλο Bitcoin Core v30.2
 - **Έκδοση Πρωτοκόλλου**: Κληρονομημένη από Bitcoin Core
 - **Service Bits**: Τυπικές υπηρεσίες Bitcoin
 - **Τύποι Μηνυμάτων**: Τυπικά μηνύματα P2P Bitcoin
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Διακομιστής εξόρυξης PoCX (απαιτείται για εξωτερικούς εξορύκτες)
-miningserver=1
 
 # Ρυθμίσεις RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Ρυθμίσεις σύνδεσης
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Στόχος χρόνου block (ενημερωτικό, επιβάλλεται από συναίνεση)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Παράμετροι Συναίνεσης**: `src/consensus/params.h`
-**Όρια Συμπίεσης**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Όρια Συμπίεσης**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Υπολογισμός Genesis Base Target**: `src/pocx/consensus/params.cpp`
-**Λογική Πληρωμής Coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Λογική Πληρωμής Coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Αποθήκευση Κατάστασης Ανάθεσης**: `src/coins.h`, `src/coins.cpp` (επεκτάσεις CCoinsViewCache)
 
 ---

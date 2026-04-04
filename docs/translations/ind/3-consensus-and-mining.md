@@ -49,7 +49,7 @@ Blok PoCX memperluas struktur blok Bitcoin dengan field konsensus tambahan:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed plot (32 byte)
     std::array<uint8_t, 20> account_id;       // Alamat plot (hash160 20-byte)
-    uint32_t compression;                     // Tingkat penskalaan (1-255)
+    uint32_t compression;                     // Tingkat penskalaan (1-6)
     uint64_t nonce;                           // Nonce penambangan (64-bit)
     uint64_t quality;                         // Kualitas yang diklaim (output hash PoC)
 };
@@ -87,12 +87,12 @@ Tanda tangan generasi menciptakan entropi penambangan dan mencegah serangan prak
 
 **Kalkulasi:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Blok Genesis:** Menggunakan tanda tangan generasi awal yang di-hardcode
 
-**Implementasi:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementasi:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (Kesulitan)
 
@@ -113,8 +113,8 @@ PoCX mendukung proof-of-work yang dapat diskalakan dalam file plot melalui tingk
 **Batas Dinamis:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Tingkat minimum yang diterima
-    uint8_t nPoCXTargetCompression;  // Tingkat yang direkomendasikan
+    uint32_t nPoCXMinCompression;     // Tingkat minimum yang diterima
+    uint32_t nPoCXTargetCompression;  // Tingkat yang direkomendasikan
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Mempertahankan margin keamanan antara pembuatan plot dan biaya pencarian
 - Tingkat penskalaan maksimum: 255
 
-**Implementasi:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementasi:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Dukungan Penugasan:** Pemilik plot dapat menugaskan hak forging ke alamat lain. Dompet harus memiliki kunci untuk penanda tangan efektif, tidak harus pemilik plot.
 
-#### Langkah 5: Validasi Bukti
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,20 +238,19 @@ bool success = pocx_validate_block(
     account_payload,     // 20 byte
     block_height,
     nonce,
-    seed,                // 32 byte
-    min_compression,
-    max_compression,
-    &result             // Output: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
 **Algoritma:**
 1. Dekode tanda tangan generasi dari hex
-2. Hitung kualitas terbaik dalam rentang kompresi menggunakan algoritma yang dioptimalkan SIMD
+2. Calculate quality at specified compression level
 3. Validasi kualitas memenuhi persyaratan kesulitan
 4. Kembalikan nilai kualitas mentah
 
-**Implementasi:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementasi:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Langkah 6: Kalkulasi Time Bending
 ```cpp
@@ -270,20 +276,20 @@ di mana:
 
 **Implementasi:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Langkah 7: Pengiriman Forger
+#### Step 8: Forger Submission: Pengiriman Forger
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // BUKAN deadline - dihitung ulang di forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **Desain Berbasis Antrian:**
-- Pengiriman selalu berhasil (ditambahkan ke antrian)
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPC segera kembali
 - Thread pekerja memproses secara asinkron
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Ketidakcocokan tanda tangan generasi -> buang
    - Hash blok tip berubah (reorg) -> reset status forging
 
-3. Perbandingan kualitas:
+3. Quality comparison (lower = better):
    - Jika quality >= current_best -> buang
 
 4. Hitung deadline Time Bended:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Alamat plot asli
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Hitung ulang merkle root:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementasi:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementasi:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Keputusan Desain Utama:**
 - Coinbase membayar penanda tangan efektif (menghormati penugasan)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Verifikasi pubkey yang dipulihkan cocok dengan pubkey yang disimpan
 
 **Implementasi:** `src/validation.cpp:CheckBlockHeader()`
-**Logika Tanda Tangan:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Logika Tanda Tangan:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Tahap 2: Validasi Blok (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Langkah 1: Validasi tanda tangan generasi
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Langkah 2: Validasi base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Langkah 3: Validasi proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Langkah 4: Verifikasi waktu deadline
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Langkah Validasi:**
-1. **Tanda Tangan Generasi:** Harus cocok dengan nilai yang dihitung dari blok sebelumnya
-2. **Base Target:** Harus cocok dengan kalkulasi penyesuaian kesulitan
-3. **Tingkat Penskalaan:** Harus memenuhi minimum jaringan (`compression >= min_compression`)
-4. **Klaim Kualitas:** Kualitas yang dikirim harus cocok dengan kualitas yang dihitung dari bukti
-5. **Proof of Capacity:** Validasi bukti kriptografis (dioptimalkan SIMD)
-6. **Waktu Deadline:** Deadline time-bended (`poc_time`) harus <= waktu berlalu
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementasi:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementasi:**
 - Koneksi: `src/validation.cpp:ConnectBlock()`
-- Validasi yang diperluas: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Logika penugasan: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Validasi yang diperluas: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Logika penugasan: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Tahap 5: Aktivasi Rantai
 
@@ -599,7 +593,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Terima Blok
     |
-CheckBlockHeader (tanda tangan dasar)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     |
 CheckBlock (transaksi, merkle)
     |
@@ -668,7 +662,7 @@ Transaction {
 - Menjadi ASSIGNED setelah periode penundaan (4 blok regtest, 30 blok mainnet)
 - Penundaan mencegah penugasan ulang cepat selama perlombaan blok
 
-**Implementasi:** `src/script/forging_assignment.h`, validasi di ConnectBlock
+**Implementasi:** `src/pocx/assignments/opcodes.h`, validasi di ConnectBlock
 
 ### Mencabut Penugasan
 
@@ -826,12 +820,15 @@ Thread B: cs_wallet -> cs_main
 
 **Tanda Tangan Generasi:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Hash Tanda Tangan Blok:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Format Tanda Tangan Kompak:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Implementasi Inti:**
 - Antarmuka RPC: `src/pocx/rpc/mining.cpp`
 - Antrian Forger: `src/pocx/mining/scheduler.cpp`
-- Validasi Konsensus: `src/pocx/consensus/validation.cpp`
-- Validasi Bukti: `src/pocx/consensus/pocx.cpp`
+- Validasi Konsensus: `src/pocx/consensus/proof.cpp`
+- Validasi Bukti: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Validasi Blok: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Logika Penugasan: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Manajemen Konteks: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Logika Penugasan: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Manajemen Konteks: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Struktur Data:**
 - Format Blok: `src/primitives/block.h`
@@ -902,7 +899,7 @@ di mana:
 **Proses:**
 1. Hasilkan scoop dari tanda tangan generasi dan tinggi
 2. Baca data plot untuk scoop yang dihitung
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Uji tingkat penskalaan dari min ke max
 5. Kembalikan kualitas terbaik yang ditemukan
 
@@ -925,7 +922,7 @@ di mana:
 avg_base_target = moving_average(base target terbaru)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

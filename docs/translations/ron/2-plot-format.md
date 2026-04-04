@@ -77,12 +77,12 @@ Toate metadatele plot-ului sunt codificate în numele fișierului folosind acest
 1. **ACCOUNT_PAYLOAD** (40 caractere hexazecimale)
    - Payload-ul brut de 20 octeți al contului ca hex majuscule
    - Independent de rețea (fără ID de rețea sau sumă de control)
-   - Exemplu: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Exemplu: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 caractere hexazecimale)
    - Valoare seed de 32 de octeți ca hex minuscule
    - **Nou în PoCX**: Seed aleatoriu de 32 de octeți în numele fișierului înlocuiește numerotarea consecutivă a nonce-urilor - previne suprapunerile de plot-uri
-   - Exemplu: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Exemplu: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (număr zecimal)
    - **Unitate de dimensiune NOUĂ în PoCX**: Înlocuiește dimensionarea bazată pe nonce din POC1/POC2
@@ -97,8 +97,8 @@ Toate metadatele plot-ului sunt codificate în numele fișierului folosind acest
 
 ### Exemple de nume de fișiere
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

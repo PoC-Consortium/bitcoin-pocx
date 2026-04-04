@@ -1,7 +1,7 @@
 # Nyaraka za Kiufundi za Bitcoin-PoCX
 
 **Toleo**: 1.0
-**Msingi wa Bitcoin Core**: v30.0
+**Msingi wa Bitcoin Core**: v30.2
 **Hali**: Awamu ya Testnet
 **Imesasishwa Mwisho**: 2025-12-25
 
@@ -118,8 +118,8 @@ Mwongozo wa mtumiaji wa pochi ya Bitcoin-PoCX Qt: kisanduku cha mazungumzo cha u
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Sanidi na PoCX imewezeshwa
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Jenga
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Aina za Ujenzi**:
 ```bash
 # Na Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Ujenzi wa utatuzi
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Vitegemezi**: Vitegemezi vya kawaida vya ujenzi wa Bitcoin Core. Tazama [nyaraka za ujenzi wa Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) kwa mahitaji mahususi ya jukwaa.
@@ -188,7 +188,7 @@ Michango kwa nyaraka inakaribishwa. Tafadhali dumisha:
 
 ## Leseni
 
-Bitcoin-PoCX inarithi leseni ya MIT ya Bitcoin Core. Tazama `COPYING` katika mzizi wa hifadhi.
+Bitcoin-PoCX inarithi leseni ya MIT ya Bitcoin Core. Tazama `bitcoin/COPYING` katika mzizi wa hifadhi.
 
 Utambuzi wa mfumo wa msingi wa PoCX umeandikwa katika [Sura ya 2: Muundo wa Plot](2-plot-format.md).
 

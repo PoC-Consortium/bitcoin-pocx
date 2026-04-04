@@ -28,30 +28,25 @@ Bitcoin-PoCX Qt cüzdanı ve dövme atama yönetimi için eksiksiz kılavuz.
 Bitcoin-PoCX Qt cüzdanı (`bitcoin-qt`) şunları sağlar:
 - Standart Bitcoin Core cüzdan işlevselliği (gönderme, alma, işlem yönetimi)
 - **Dövme Atama Yöneticisi**: Plot atamalarını oluşturma/iptal etme için GUI
-- **Madencilik Sunucu Modu**: `-miningserver` bayrağı madencilikle ilgili özellikleri etkinleştirir
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **İşlem Geçmişi**: Atama ve iptal işlemi görüntüleme
 
 ### Cüzdanı Başlatma
 
-**Yalnızca Düğüm** (madencilik yok):
+**Yalnızca Düğüm**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt
-```
-
-**Madencilik İle** (atama penceresini etkinleştirir):
-```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Komut Satırı Alternatifi**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Madencilik Gereksinimleri
 
 **Madencilik İşlemleri İçin**:
-- `-miningserver` bayrağı gerekli
+- `` bayrağı gerekli
 - P2WPKH adresleri ve özel anahtarlara sahip cüzdan
 - Plot üretimi için harici plotter (`pocx_plotter`)
 - Madencilik için harici madenci (`pocx_miner`)
@@ -83,8 +78,7 @@ Bitcoin-PoCX **BTCX** para birimi birimini kullanır (BTC değil):
 
 ### Pencereye Erişim
 
-**Menü**: `Cüzdan → Dövme Atamaları`
-**Araç Çubuğu**: Madencilik simgesi (yalnızca `-miningserver` bayrağı ile görünür)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Pencere Boyutu**: 600×450 piksel
 
 ### Pencere Modları
@@ -296,8 +290,8 @@ Atama oluşturma yüksekliği: 12000
 ### Doğrulama Hata Mesajları
 
 **Pencere Hataları**:
-- "Plot adresi P2WPKH (bech32) olmalıdır"
-- "Dövme adresi P2WPKH (bech32) olmalıdır"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Geçersiz adres formatı"
 - "Plot adresinde coin yok. Sahiplik kanıtlanamıyor."
 - "Salt izleme cüzdanıyla işlem oluşturulamaz"
@@ -313,7 +307,6 @@ Atama oluşturma yüksekliği: 12000
 **Düğüm Yapılandırması**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +330,7 @@ server=1
 
 2. **Düğümü Başlat** madencilik sunucusu ile:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Madenciyi Yapılandır**:
@@ -450,8 +443,8 @@ server=1
 
 #### "Dövme Atama sekmesi görünmüyor"
 
-**Neden**: Düğüm `-miningserver` bayrağı olmadan başlatılmış
-**Çözüm**: `bitcoin-qt -server -miningserver` ile yeniden başlat
+**Neden**: Düğüm `` bayrağı olmadan başlatılmış
+**Çözüm**: `bitcoin-qt -server` ile yeniden başlat
 
 ### Hata Ayıklama Adımları
 

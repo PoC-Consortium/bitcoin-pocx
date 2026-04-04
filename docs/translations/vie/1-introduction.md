@@ -42,7 +42,7 @@ Proof of Capacity (PoC) là một cơ chế đồng thuận trong đó năng l�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + Tích hợp PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + Tích hợp PoCX
 │   └── src/pocx/        # Triển khai PoCX
 ├── pocx/                # PoCX core framework (submodule, chỉ đọc)
 └── docs/                # Tài liệu này
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Vấn đề**: Thời gian khối PoC truyền thống tuân theo phân phối mũ, dẫn đến các khối dài khi không có thợ đào tìm được lời giải tốt.
 
-**Giải pháp**: Biến đổi phân phối từ mũ sang chi bình phương sử dụng căn bậc ba: `Y = scale × (X^(1/3))`.
+**Giải pháp**: Biến đổi phân phối từ mũ sang chi bình phương sử dụng căn bậc ba: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Hiệu quả**: Các lời giải rất tốt được forge muộn hơn (mạng có thời gian quét tất cả ổ đĩa, giảm khối nhanh), các lời giải kém được cải thiện. Thời gian khối trung bình duy trì ở 120 giây, khối dài được giảm.
+**Hiệu quả**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Chi tiết**: [Chương 3: Đồng thuận và Đào](3-consensus-and-mining.md)
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Build với PoCX được bật
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Chi tiết**: Xem `CLAUDE.md` trong thư mục gốc repository
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Chạy Node
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Để Đào** (bật truy cập RPC cho thợ đào bên ngoài):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # hoặc
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Chi tiết**: [Chương 6: Tham số Mạng](6-network-parameters.md)

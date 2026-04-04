@@ -16,7 +16,7 @@ Implementációnk számos kulcsfontosságú innovációt vezet be:
 (3) OP_RETURN-alapú kovácsolási megbízási mechanizmust, amely lehetővé teszi a nem-letéteményes pool bányászatot; és
 (4) Dinamikus tömörítési skálázást, amely a plotfájl generálási nehézséget a felezési ütemtervekkel összehangolva növeli, a hosszú távú biztonsági határok fenntartása érdekében a hardver fejlődésével.
 
-A Bitcoin-PoCX megőrzi a Bitcoin Core architektúráját minimális, funkciójelzéssel ellátott módosításokkal, elkülönítve a PoC logikát a meglévő konszenzus kódtól. A rendszer megőrzi a Bitcoin monetáris politikáját 120 másodperces blokk intervallumot célozva és a blokk jutalmat 10 BTC-re állítva. A csökkentett jutalom ellensúlyozza az ötszörös blokk gyakoriság növekedést, a hosszú távú kibocsátási rátát a Bitcoin eredeti ütemtervéhez igazítva és fenntartva a ~21 millió maximális kínálatot.
+A Bitcoin-PoCX megőrzi a Bitcoin Core architektúráját minimális, funkciójelzéssel ellátott módosításokkal, elkülönítve a PoC logikát a meglévő konszenzus kódtól. A rendszer megőrzi a Bitcoin monetáris politikáját 120 másodperces blokk intervallumot célozva és a blokk jutalmat 10 BTCX-re állítva. A csökkentett jutalom ellensúlyozza az ötszörös blokk gyakoriság növekedést, a hosszú távú kibocsátási rátát a Bitcoin eredeti ütemtervéhez igazítva és fenntartva a ~21 millió maximális kínálatot.
 
 ---
 
@@ -243,7 +243,7 @@ A Time Bending megőrzi az alapul szolgáló bizonyíték információtartalmát
 
 A PoCX az alap célérték használatával szabályozza a blokkgyártást, amely inverz nehézségi mérték. A várt blokkidő arányos a `minőség / alap_célérték` aránnyal, így az alap célérték növelése felgyorsítja a blokkgyártást, csökkentése pedig lassítja a láncot.
 
-A nehézség minden blokknál beállításra kerül a legutóbbi blokkok közötti mért idő és a cél intervallum összehasonlításával. Ez a gyakori beállítás szükséges, mert a tárolókapacitás gyorsan hozzáadható vagy eltávolítható — a Bitcoin hash-teljesítményétől eltérően, amely lassabban változik.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 A beállítás két irányadó korlátozást követ: **Fokozatosság** — a blokkonkénti változások korlátozottak (maximum ±20%), az oszcillációk vagy manipuláció elkerülésére; **Megerősítés** — az alap célérték nem haladhatja meg a genezis értékét, megakadályozva, hogy a hálózat valaha is az eredeti biztonsági feltételezések alá csökkentse a nehézséget.
 
@@ -411,12 +411,12 @@ Az alábbi táblázatok összefoglalják az eredményül kapott mainnet, testnet
 | Paraméter | Érték |
 |-----------|-------|
 | Magic bájtok | `0xa7 0x3c 0x91 0x5e` |
-| Alapértelmezett port | 8888 |
+| Alapértelmezett port | 8338 |
 | Bech32 HRP | `pocx` |
 | Blokkidő cél | 120 másodperc |
-| Kezdeti jutalom | 10 BTC |
+| Kezdeti jutalom | 10 BTCX |
 | Felezési intervallum | 1050000 blokk (~4 év) |
-| Teljes kínálat | ~21 millió BTC |
+| Teljes kínálat | ~21 millió BTCX |
 | Megbízás aktiválás | 30 blokk |
 | Megbízás visszavonás | 720 blokk |
 | Gördülő ablak | 24 blokk |
@@ -425,8 +425,8 @@ Az alábbi táblázatok összefoglalják az eredményül kapott mainnet, testnet
 
 | Paraméter | Érték |
 |-----------|-------|
-| Magic bájtok | `0x6d 0xf2 0x48 0xb3` |
-| Alapértelmezett port | 18888 |
+| Magic bájtok | `0x6d 0xf2 0x48 0xb4` |
+| Alapértelmezett port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Blokkidő cél | 120 másodperc |
 | Egyéb paraméterek | Megegyezik a mainnet-tel |

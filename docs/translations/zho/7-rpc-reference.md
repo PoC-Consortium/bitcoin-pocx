@@ -21,35 +21,11 @@ Bitcoin-PoCX RPC 命令的完整参考，包括挖矿 RPC、委派管理和修�
 
 ## 配置
 
-### 挖矿服务器模式
+### Mining RPCs
 
-**标志**：`-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**目的**：为外部矿工启用 RPC 访问以调用挖矿相关的 RPC
-
-**要求**：
-- `submit_nonce` 需要此标志才能工作
-- Qt 钱包中的锻造委派对话框需要此标志才可见
-
-**用法**：
-```bash
-# 命令行
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**安全考量**：
-- 除标准 RPC 凭据外无额外认证
-- 挖矿 RPC 受队列容量限制
-- 仍需要标准 RPC 认证
-
-**实现**：`src/pocx/rpc/mining.cpp`
-
----
-
-## PoCX 挖矿 RPC
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
@@ -65,7 +41,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // 十六进制，64 个字符
-  "base_target": 36650387593,                // 数值
+  "base_target": 36650387592,                // 数值
   "height": 12345,                           // 数值，下一个区块高度
   "block_hash": "def456...",                 // 十六进制，上一个区块
   "target_quality": 18446744073709551615,    // uint64_max（接受所有解决方案）
@@ -116,7 +92,7 @@ bitcoin-cli get_mining_info
 ```json
 {
   "accepted": true,
-  "quality": 120,           // 难度调整后的截止时间（秒）
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // 时间弯曲的锻造时间（秒）
 }
 ```
@@ -163,12 +139,16 @@ bitcoin-cli get_mining_info
 
 **示例**：
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **注意**：
@@ -377,7 +357,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX 修改**：
 - **计算**：`reference_base_target / current_base_target`
-- **参考**：1 TiB 网络容量（base_target = 36650387593）
+- **参考**：1 TiB 网络容量（base_target = 36650387592）
 - **解释**：估计的网络存储容量（TiB）
   - 示例：`1.0` = 约 1 TiB
   - 示例：`1024.0` = 约 1 PiB
@@ -530,7 +510,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. 扫描绘图文件（外部实现）
@@ -538,11 +518,15 @@ while True:
 
     # 3. 提交最佳解决方案
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +646,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **挖矿 RPC**：`src/pocx/rpc/mining.cpp`
 **委派 RPC**：`src/pocx/rpc/assignments.cpp`、`src/pocx/rpc/assignments_wallet.cpp`
 **区块链 RPC**：`src/rpc/blockchain.cpp`
-**证明验证**：`src/pocx/consensus/validation.cpp`、`src/pocx/consensus/pocx.cpp`
+**证明验证**：`src/pocx/consensus/proof.cpp`、`src/pocx/consensus/signature.cpp`
 **委派状态**：`src/pocx/assignments/assignment_state.cpp`
 **交易创建**：`src/pocx/assignments/transactions.cpp`
 

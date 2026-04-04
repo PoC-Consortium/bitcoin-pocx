@@ -77,12 +77,12 @@ XOR-전치는 각 스쿱을 기본 X0 데이터의 전체 행과 전체 열과 �
 1. **ACCOUNT_PAYLOAD** (40 16진수 문자)
    - 원시 20바이트 계정 페이로드를 대문자 16진수로 표시
    - 네트워크 독립적 (네트워크 ID나 체크섬 없음)
-   - 예시: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - 예시: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 16진수 문자)
-   - 32바이트 시드 값을 소문자 16진수로 표시
+   - 32바이트 시드 값을 대문자 16진수로 표시
    - **PoCX의 새 기능**: 파일명의 랜덤 32바이트 시드가 연속 논스 번호 매기기를 대체 - 플롯 중복 방지
-   - 예시: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - 예시: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (10진수)
    - **PoCX의 새 크기 단위**: POC1/POC2의 논스 기반 크기 조정을 대체
@@ -97,8 +97,8 @@ XOR-전치는 각 스쿱을 기본 X0 데이터의 전체 행과 전체 열과 �
 
 ### 예시 파일명
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

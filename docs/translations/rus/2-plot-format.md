@@ -77,12 +77,12 @@ XOR-транспонирование связывает каждый скуп с
 1. **ACCOUNT_PAYLOAD** (40 шестнадцатеричных символов)
    - Сырая 20-байтная полезная нагрузка аккаунта в виде шестнадцатеричного числа в верхнем регистре
    - Независимо от сети (без идентификатора сети или контрольной суммы)
-   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 шестнадцатеричных символа)
-   - 32-байтное значение seed в виде шестнадцатеричного числа в нижнем регистре
+   - 32-байтное значение seed в виде шестнадцатеричного числа в верхнем регистре
    - **Новое в PoCX**: Случайный 32-байтный seed в имени файла заменяет последовательную нумерацию нонсов — предотвращает перекрытие графиков
-   - Пример: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Пример: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (десятичное число)
    - **НОВАЯ единица размера в PoCX**: Заменяет размерность на основе нонсов из POC1/POC2
@@ -97,8 +97,8 @@ XOR-транспонирование связывает каждый скуп с
 
 ### Примеры имён файлов
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

@@ -39,7 +39,7 @@
   [1]: ユーザーへのお釣り（オプション、標準P2WPKH）
 ```
 
-**実装:** `src/pocx/assignments/opcodes.cpp:25-52`
+**実装:** `src/pocx/assignments/opcodes.cpp`
 
 ### 取り消しトランザクション形式
 
@@ -58,14 +58,14 @@
   [1]: ユーザーへのお釣り（オプション、標準P2WPKH）
 ```
 
-**実装:** `src/pocx/assignments/opcodes.cpp:54-77`
+**実装:** `src/pocx/assignments/opcodes.cpp`
 
 ### マーカー
 
 - **割り当てマーカー:** `POCX`（0x50, 0x4F, 0x43, 0x58）= "Proof of Capacity neXt"
 - **取り消しマーカー:** `XCOP`（0x58, 0x43, 0x4F, 0x50）= "eXit Capacity OPeration"
 
-**実装:** `src/pocx/assignments/opcodes.cpp:15-19`
+**実装:** `src/pocx/assignments/opcodes.cpp`
 
 ### 主要なトランザクション特性
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ 完全な履歴: プロットごとのすべての割り当て
 ```
 
-**実装:** `src/txdb.cpp:237-348`
+**実装:** `src/txdb.cpp`
 
 ### ForgingAssignment構造
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**実装:** `src/coins.h:111-178`
+**実装:** `src/coins.h`
 
 ### 割り当て状態
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**実装:** `src/coins.h:98-104`
+**実装:** `src/coins.h`
 
 ### データベースキー
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**実装:** `src/txdb.cpp:245-262`
+**実装:** `src/txdb.cpp`
 
 ### 履歴追跡
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // プロット状態をチェック（UNASSIGNEDまたはREVOKED必須）
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // 新しい割り当てを作成
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoinsは通常通り進行（OP_RETURN出力は自動的にスキップ）
 ```
 
-**実装:** `src/validation.cpp:2775-2878`
+**実装:** `src/validation.cpp:ConnectBlock()`
 
 ### 所有権検証
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // 少なくとも1つの入力がプロット所有者によって署名されていることを確認
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // 宛先を抽出
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // プロットアドレスへのP2WPKHかチェック
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Coreが既に署名を検証済み
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**実装:** `src/pocx/assignments/opcodes.cpp:217-256`
+**実装:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### アクティベーション遅延
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // 取り消しアクティベーション�
 
 1. **最大1つのPoCX OP_RETURN:** トランザクションに複数のPOCX/XCOPマーカーを含めることはできない
 
-**実装:** `src/consensus/tx_check.cpp:63-77`
+**実装:** `src/consensus/tx_check.cpp`
 
 ### Mempool受け入れチェック（PreChecks）
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // 取り消しアクティベーション�
 2. **アクティブな割り当て:** プロットはASSIGNED（2）状態のみ必須
 3. **Mempool競合:** このプロットの他の取り消しがmempoolにないこと
 
-**実装:** `src/validation.cpp:898-993`
+**実装:** `src/validation.cpp:PreChecks()`
 
 ### 検証フロー
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // ダーティな割り当てを収集
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // 空 - 未使用
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // データベースに書き込み
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // 追跡をクリア
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // メモリを解放
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**実装:** `src/coins.cpp:278-315`
+**実装:** `src/coins.cpp:Flush()`
 
 ### データベースバッチ書き込み
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // 割り当ては別途書き込まれるが同じデータベーストランザクションコンテキスト
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // 未使用パラメータ（API互換性のため保持）
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // 新しいバッチ、同じデータベース
+    CDBBatch batch(*m_db);
 
-    // 割り当て履歴を書き込み
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // 削除された割り当てを履歴から消去
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // アトミックコミット
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**実装:** `src/txdb.cpp:332-348`
+**実装:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### アトミック性保証
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**実装:** `src/undo.h:63-105`
+**実装:** `src/undo.h`
 
 ### DisconnectBlockプロセス
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**実装:** `src/validation.cpp:2381-2415`
+**実装:** `src/validation.cpp:DisconnectBlock()`
 
 ### 再編成中のキャッシュ管理
 
@@ -556,7 +562,7 @@ private:
     // 割り当てキャッシュ
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // 変更されたプロットを追跡
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // 削除を追跡
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // 削除を追跡
     mutable size_t cachedAssignmentsUsage{0};  // メモリ追跡
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**実装:** `src/coins.cpp:494-565`
+**実装:** `src/coins.cpp`
 
 ## RPCインターフェース
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**実装:** `src/pocx/rpc/assignments.cpp:31-126`
+**実装:** `src/pocx/rpc/assignments.cpp`
 
 ### ウォレットコマンド（ウォレット必須）
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - プロット所有者の鍵で署名
 - ネットワークにブロードキャスト
 
-**実装:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**実装:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - プロット所有者の鍵で署名
 - ネットワークにブロードキャスト
 
-**実装:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**実装:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### ウォレットトランザクション作成
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **重要な洞察:** ウォレットは所有権を証明するためにプロットアドレスから支出する必要があるため、自動的にそのアドレスからのコイン選択を強制します。
 
-**実装:** `src/pocx/assignments/transactions.cpp:38-263`
+**実装:** `src/pocx/assignments/transactions.cpp`
 
 ## ファイル構造
 

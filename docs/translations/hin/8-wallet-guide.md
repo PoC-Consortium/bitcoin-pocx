@@ -28,7 +28,7 @@ Bitcoin-PoCX Qt वॉलेट और forging assignment प्रबंधन 
 Bitcoin-PoCX Qt वॉलेट (`bitcoin-qt`) प्रदान करता है:
 - मानक Bitcoin Core वॉलेट कार्यक्षमता (भेजना, प्राप्त करना, लेनदेन प्रबंधन)
 - **Forging Assignment प्रबंधक**: Plot assignments बनाने/रद्द करने के लिए GUI
-- **माइनिंग सर्वर मोड**: `-miningserver` फ्लैग माइनिंग-संबंधित सुविधाएँ सक्षम करता है
+- **माइनिंग सर्वर मोड**: `` फ्लैग माइनिंग-संबंधित सुविधाएँ सक्षम करता है
 - **लेनदेन इतिहास**: Assignment और revocation लेनदेन प्रदर्शन
 
 ### वॉलेट शुरू करना
@@ -40,18 +40,18 @@ Bitcoin-PoCX Qt वॉलेट (`bitcoin-qt`) प्रदान करता �
 
 **माइनिंग के साथ** (assignment संवाद सक्षम करता है):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **कमांड लाइन विकल्प**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### माइनिंग आवश्यकताएँ
 
 **माइनिंग संचालन के लिए**:
-- `-miningserver` फ्लैग आवश्यक
+- `` फ्लैग आवश्यक
 - P2WPKH पतों और निजी कुंजियों वाला वॉलेट
 - Plot जनरेशन के लिए बाहरी plotter (`pocx_plotter`)
 - माइनिंग के लिए बाहरी miner (`pocx_miner`)
@@ -84,7 +84,7 @@ Bitcoin-PoCX **BTCX** मुद्रा इकाई का उपयोग क
 ### संवाद तक पहुँच
 
 **मेनू**: `Wallet → Forging Assignments`
-**टूलबार**: माइनिंग आइकन (केवल `-miningserver` फ्लैग के साथ दिखाई देता है)
+**टूलबार**: माइनिंग आइकन (केवल `` फ्लैग के साथ दिखाई देता है)
 **विंडो आकार**: 600×450 पिक्सेल
 
 ### संवाद मोड
@@ -296,8 +296,8 @@ Revocation effective at height: 13020
 ### सत्यापन त्रुटि संदेश
 
 **संवाद त्रुटियाँ**:
-- "Plot address must be P2WPKH (bech32)"
-- "Forging address must be P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Invalid address format"
 - "No coins available at the plot address. Cannot prove ownership."
 - "Cannot create transactions with watch-only wallet"
@@ -313,7 +313,6 @@ Revocation effective at height: 13020
 **नोड कॉन्फ़िगरेशन**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **माइनिंग सर्वर के साथ नोड शुरू करें**:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Miner कॉन्फ़िगर करें**:
@@ -406,13 +405,13 @@ server=1
 - `importprivkey` RPC के माध्यम से निजी कुंजी आयात करें
 - या वॉलेट के स्वामित्व वाला अन्य plot पता उपयोग करें
 
-#### "Assignment already exists for this plot"
+#### "Cannot create assignment: plot is in ... state"
 
-**कारण**: Plot पहले से किसी अन्य पते को सौंपा गया है
-**समाधान**:
-1. मौजूदा assignment रद्द करें
-2. Revocation विलंब की प्रतीक्षा करें (testnet पर 720 ब्लॉक)
-3. नया assignment बनाएँ
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Address format not supported"
 
@@ -447,11 +446,6 @@ server=1
 
 **कारण**: वॉलेट ने निजी कुंजी के बिना पता आयात किया
 **समाधान**: पूर्ण निजी कुंजी आयात करें, केवल पता नहीं
-
-#### "Forging Assignment tab not visible"
-
-**कारण**: नोड `-miningserver` फ्लैग के बिना शुरू किया गया
-**समाधान**: `bitcoin-qt -server -miningserver` के साथ पुनः शुरू करें
 
 ### डीबग चरण
 

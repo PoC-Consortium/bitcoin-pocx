@@ -1,7 +1,7 @@
 # Bitcoin-PoCX तकनीकी दस्तावेज़ीकरण
 
 **संस्करण**: 1.0
-**Bitcoin Core आधार**: v30.0
+**Bitcoin Core आधार**: v30.2
 **स्थिति**: Testnet चरण
 **अंतिम अपडेट**: 2025-12-25
 
@@ -114,8 +114,8 @@ Bitcoin-PoCX Qt वॉलेट के लिए उपयोगकर्ता 
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX सक्षम करके कॉन्फ़िगर करें
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # बिल्ड करें
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **बिल्ड वेरिएंट**:
 ```bash
 # Qt GUI के साथ
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # डीबग बिल्ड
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **निर्भरताएं**: मानक Bitcoin Core बिल्ड निर्भरताएं। प्लेटफ़ॉर्म-विशिष्ट आवश्यकताओं के लिए [Bitcoin Core बिल्ड दस्तावेज़ीकरण](https://github.com/bitcoin/bitcoin/tree/master/doc#building) देखें।
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## लाइसेंस
 
-Bitcoin-PoCX Bitcoin Core के MIT लाइसेंस को विरासत में लेता है। रिपॉजिटरी रूट में `COPYING` देखें।
+Bitcoin-PoCX Bitcoin Core के MIT लाइसेंस को विरासत में लेता है। रिपॉजिटरी रूट में `bitcoin/COPYING` देखें।
 
 PoCX core framework एट्रिब्यूशन [अध्याय 2: Plot प्रारूप](2-plot-format.md) में दस्तावेज़ित।
 

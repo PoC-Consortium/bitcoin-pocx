@@ -23,7 +23,7 @@
 
 ### Λειτουργία Διακομιστή Εξόρυξης
 
-**Σημαία**: `-miningserver`
+**Σημαία**: ``
 
 **Σκοπός**: Ενεργοποιεί πρόσβαση RPC για εξωτερικούς εξορύκτες να καλούν RPCs ειδικά για εξόρυξη
 
@@ -34,10 +34,9 @@
 **Χρήση**:
 ```bash
 # Γραμμή εντολών
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Θεωρήσεις Ασφάλειας**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 χαρακτήρες
-  "base_target": 36650387593,                // αριθμητικό
+  "base_target": 36650387592,                // αριθμητικό
   "height": 12345,                           // αριθμητικό, ύψος επόμενου block
   "block_hash": "def456...",                 // hex, προηγούμενο block
   "target_quality": 18446744073709551615,    // uint64_max (όλες οι λύσεις γίνονται αποδεκτές)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **Σκοπός**: Υποβάλλει λύση εξόρυξης PoCX. Επικυρώνει την απόδειξη, προσθέτει σε ουρά για time-bended σφυρηλάτηση και δημιουργεί αυτόματα block την προγραμματισμένη ώρα.
 
-**Παράμετροι**:
-1. `height` (αριθμητικό, υποχρεωτικό) - Ύψος block
-2. `generation_signature` (string hex, υποχρεωτικό) - Generation signature (64 χαρακτήρες)
-3. `account_id` (string, υποχρεωτικό) - ID λογαριασμού plot (40 χαρακτήρες hex = 20 bytes)
-4. `seed` (string, υποχρεωτικό) - Seed plot (64 χαρακτήρες hex = 32 bytes)
-5. `nonce` (αριθμητικό, υποχρεωτικό) - Nonce εξόρυξης
-6. `compression` (αριθμητικό, υποχρεωτικό) - Επίπεδο κλιμάκωσης/συμπίεσης που χρησιμοποιήθηκε (1-255)
-7. `quality` (αριθμητικό, προαιρετικό) - Τιμή ποιότητας (επανυπολογίζεται αν παραλειφθεί)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Τιμές Επιστροφής** (επιτυχία):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Παράδειγμα**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Σημειώσεις**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Τροποποιήσεις PoCX**:
 - **Υπολογισμός**: `reference_base_target / current_base_target`
-- **Αναφορά**: Χωρητικότητα δικτύου 1 TiB (base_target = 36650387593)
+- **Αναφορά**: Χωρητικότητα δικτύου 1 TiB (base_target = 36650387592)
 - **Ερμηνεία**: Εκτιμώμενη χωρητικότητα αποθήκευσης δικτύου σε TiB
   - Παράδειγμα: `1.0` = ~1 TiB
   - Παράδειγμα: `1024.0` = ~1 PiB
@@ -494,10 +499,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Εναλλακτική**: Χρησιμοποιήστε `get_mining_info` (ειδικό για PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Λόγος**: Η εξόρυξη CPU δεν εφαρμόζεται στο PoCX (απαιτεί προ-δημιουργημένα plots)
-- **Εναλλακτική**: Χρησιμοποιήστε εξωτερικό plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Υλοποίηση**: `src/rpc/mining.cpp` (τα RPCs επιστρέφουν σφάλμα όταν ορίζεται ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +536,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Σάρωση αρχείων plot (εξωτερική υλοποίηση)
@@ -538,11 +544,15 @@ while True:
 
     # 3. Υποβολή καλύτερης λύσης
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +672,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPCs Εξόρυξης**: `src/pocx/rpc/mining.cpp`
 **RPCs Αναθέσεων**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPCs Blockchain**: `src/rpc/blockchain.cpp`
-**Επικύρωση Απόδειξης**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Επικύρωση Απόδειξης**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Κατάσταση Ανάθεσης**: `src/pocx/assignments/assignment_state.cpp`
 **Δημιουργία Συναλλαγής**: `src/pocx/assignments/transactions.cpp`
 

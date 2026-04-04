@@ -32,16 +32,16 @@
 
 **Cấu hình Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 giây
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 giây
 ```
 
 ### Kiểm tra Xác thực
 
-**Xác thực Timestamp Khối** (`src/validation.cpp:4547-4561`):
+**Xác thực Timestamp Khối** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Kiểm tra đơn điệu: timestamp >= timestamp khối trước
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Kiểm tra deadline: thời gian đã trôi >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Thời gian 152s: Mạng xác thực cả hai khối
 - Xác thực hoàn thành trong mili giây
 
 **Sử dụng Tài nguyên:** Tối thiểu
-- ~20 dòng logic lõi
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Tái sử dụng cơ sở hạ tầng xác thực hiện có
 - Một lần lấy khóa
 
@@ -372,9 +372,9 @@ Một node **>15 giây sau** là thảm họa:
 ## Tham chiếu Triển khai
 
 **Tệp Lõi**:
-- Xác thực thời gian: `src/validation.cpp:4547-4561`
-- Hằng số dung sai tương lai: `src/chain.h:31`
-- Ngưỡng cảnh báo: `src/node/timeoffsets.h:27`
+- Xác thực thời gian: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Hằng số dung sai tương lai: `src/chain.h`
+- Ngưỡng cảnh báo: `src/node/timeoffsets.h`
 - Giám sát độ lệch thời gian: `src/node/timeoffsets.cpp`
 - Forging phòng thủ: `src/pocx/mining/scheduler.cpp`
 

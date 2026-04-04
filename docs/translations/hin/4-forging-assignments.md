@@ -39,7 +39,7 @@ Outputs:
   [1]: उपयोगकर्ता को Change वापस (वैकल्पिक, मानक P2WPKH)
 ```
 
-**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp:25-52`
+**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp`
 
 ### निरस्तीकरण लेनदेन प्रारूप
 
@@ -58,14 +58,14 @@ Outputs:
   [1]: उपयोगकर्ता को Change वापस (वैकल्पिक, मानक P2WPKH)
 ```
 
-**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp:54-77`
+**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp`
 
 ### मार्कर
 
 - **असाइनमेंट मार्कर:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **निरस्तीकरण मार्कर:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp:15-19`
+**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp`
 
 ### मुख्य लेनदेन विशेषताएं
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ पूर्ण इतिहास: समय के साथ प्रति plot सभी असाइनमेंट
 ```
 
-**कार्यान्वयन:** `src/txdb.cpp:237-348`
+**कार्यान्वयन:** `src/txdb.cpp`
 
 ### ForgingAssignment संरचना
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**कार्यान्वयन:** `src/coins.h:111-178`
+**कार्यान्वयन:** `src/coins.h`
 
 ### असाइनमेंट स्थितियां
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**कार्यान्वयन:** `src/coins.h:98-104`
+**कार्यान्वयन:** `src/coins.h`
 
 ### डेटाबेस कुंजियां
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**कार्यान्वयन:** `src/txdb.cpp:245-262`
+**कार्यान्वयन:** `src/txdb.cpp`
 
 ### इतिहास ट्रैकिंग
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Plot स्थिति जांचें (UNASSIGNED या REVOKED होना चाहिए)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // नया असाइनमेंट बनाएं
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins सामान्य रूप से आगे बढ़ता है (OP_RETURN आउटपुट स्वचालित रूप से छोड़े जाते हैं)
 ```
 
-**कार्यान्वयन:** `src/validation.cpp:2775-2878`
+**कार्यान्वयन:** `src/validation.cpp:ConnectBlock()`
 
 ### स्वामित्व सत्यापन
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // जांचें कि कम से कम एक input plot मालिक द्वारा हस्ताक्षरित है
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // गंतव्य निकालें
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // जांचें कि क्या plot पते को P2WPKH
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core ने पहले ही हस्ताक्षर सत्यापित कर दिया
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp:217-256`
+**कार्यान्वयन:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### सक्रियण विलंब
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // निरस्तीकरण सक्
 
 1. **अधिकतम एक POCX OP_RETURN:** लेनदेन में कई POCX/XCOP मार्कर नहीं हो सकते
 
-**कार्यान्वयन:** `src/consensus/tx_check.cpp:63-77`
+**कार्यान्वयन:** `src/consensus/tx_check.cpp`
 
 ### Mempool स्वीकृति जांच (PreChecks)
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // निरस्तीकरण सक्
 2. **सक्रिय असाइनमेंट:** Plot केवल ASSIGNED (2) स्थिति में होना चाहिए
 3. **Mempool विरोध:** Mempool में इस plot के लिए कोई अन्य निरस्तीकरण नहीं
 
-**कार्यान्वयन:** `src/validation.cpp:898-993`
+**कार्यान्वयन:** `src/validation.cpp:PreChecks()`
 
 ### सत्यापन प्रवाह
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Dirty असाइनमेंट एकत्र करें
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // खाली - अप्रयुक्त
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // डेटाबेस में लिखें
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // ट्रैकिंग साफ़ करें
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // मेमोरी रिलीज़ करें
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**कार्यान्वयन:** `src/coins.cpp:278-315`
+**कार्यान्वयन:** `src/coins.cpp:Flush()`
 
 ### डेटाबेस बैच लेखन
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // असाइनमेंट अलग से लेकिन समान डेटाबेस लेनदेन संदर्भ में लिखे जाते हैं
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // अप्रयुक्त पैरामीटर (API संगतता के लिए रखा गया)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // नया बैच, लेकिन समान डेटाबेस
+    CDBBatch batch(*m_db);
 
-    // असाइनमेंट इतिहास लिखें
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // इतिहास से हटाए गए असाइनमेंट मिटाएं
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // परमाणु COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**कार्यान्वयन:** `src/txdb.cpp:332-348`
+**कार्यान्वयन:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### परमाणुता गारंटी
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**कार्यान्वयन:** `src/undo.h:63-105`
+**कार्यान्वयन:** `src/undo.h`
 
 ### DisconnectBlock प्रक्रिया
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**कार्यान्वयन:** `src/validation.cpp:2381-2415`
+**कार्यान्वयन:** `src/validation.cpp:DisconnectBlock()`
 
 ### Reorg के दौरान कैश प्रबंधन
 
@@ -556,7 +562,7 @@ private:
     // असाइनमेंट कैश
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // संशोधित plots ट्रैक करें
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // हटाने ट्रैक करें
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // हटाने ट्रैक करें
     mutable size_t cachedAssignmentsUsage{0};  // मेमोरी ट्रैकिंग
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**कार्यान्वयन:** `src/coins.cpp:494-565`
+**कार्यान्वयन:** `src/coins.cpp`
 
 ## RPC इंटरफ़ेस
 
@@ -613,7 +617,7 @@ Plot पते के लिए वर्तमान असाइनमें�
 }
 ```
 
-**कार्यान्वयन:** `src/pocx/rpc/assignments.cpp:31-126`
+**कार्यान्वयन:** `src/pocx/rpc/assignments.cpp`
 
 ### वॉलेट कमांड (वॉलेट आवश्यक)
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - Plot मालिक की कुंजी से हस्ताक्षर करता है
 - नेटवर्क पर प्रसारित करता है
 
-**कार्यान्वयन:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**कार्यान्वयन:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - Plot मालिक की कुंजी से हस्ताक्षर करता है
 - नेटवर्क पर प्रसारित करता है
 
-**कार्यान्वयन:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**कार्यान्वयन:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### वॉलेट लेनदेन निर्माण
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **मुख्य अंतर्दृष्टि:** वॉलेट को स्वामित्व सिद्ध करने के लिए plot पते से खर्च करना होगा, इसलिए यह स्वचालित रूप से उस पते से coin चयन को मजबूर करता है।
 
-**कार्यान्वयन:** `src/pocx/assignments/transactions.cpp:38-263`
+**कार्यान्वयन:** `src/pocx/assignments/transactions.cpp`
 
 ## फ़ाइल संरचना
 
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # नोड RPC कमांड (कोई वॉलेट नहीं)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPCs
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # वॉलेट RPC कमांड
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPCs
     │

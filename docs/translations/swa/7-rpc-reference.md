@@ -21,40 +21,15 @@ Marejeleo kamili ya amri za RPC za Bitcoin-PoCX, ikiwa ni pamoja na RPC za uchim
 
 ## Usanidi
 
-### Hali ya Seva ya Uchimbaji
+### Mining RPCs
 
-**Bendera**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Madhumuni**: Inawezesha ufikiaji wa RPC kwa wachimbaji wa nje kuita RPC mahususi za uchimbaji
-
-**Mahitaji**:
-- Inahitajika kwa `submit_nonce` kufanya kazi
-- Inahitajika kwa uonekano wa kisanduku cha mazungumzo cha ugawaji wa kuunda katika pochi ya Qt
-
-**Matumizi**:
-```bash
-# Mstari wa amri
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Mazingatio ya Usalama**:
-- Hakuna uthibitisho wa ziada zaidi ya vitambulisho vya kawaida vya RPC
-- RPC za uchimbaji zimezuiwa kiwango na uwezo wa foleni
-- Uthibitisho wa kawaida wa RPC bado unahitajika
-
-**Utekelezaji**: `src/pocx/rpc/mining.cpp`
-
----
-
-## RPC za Uchimbaji za PoCX
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **Kategoria**: uchimbaji
-**Inahitaji Seva ya Uchimbaji**: Hapana
 **Inahitaji Pochi**: Hapana
 
 **Madhumuni**: Inarudisha vigezo vya sasa vya uchimbaji vinavyohitajika na wachimbaji wa nje kuchanganua faili za plot na kuhesabu tarehe za mwisho.
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, herufi 64
-  "base_target": 36650387593,                // nambari
+  "base_target": 36650387592,                // nambari
   "height": 12345,                           // nambari, urefu wa bloku inayofuata
   "block_hash": "def456...",                 // hex, bloku iliyotangulia
   "target_quality": 18446744073709551615,    // uint64_max (suluhisho zote zinakubaliwa)
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategoria**: uchimbaji
-**Inahitaji Seva ya Uchimbaji**: Ndiyo
 **Inahitaji Pochi**: Ndiyo (kwa funguo za kibinafsi)
 
 **Madhumuni**: Wasilisha suluhisho la uchimbaji la PoCX. Inathiditisha uthibitisho, inaweka foleni kwa kuunda iliyopindwa muda, na inaunda moja kwa moja bloku wakati uliopangwa.
 
-**Vigezo**:
-1. `height` (nambari, inahitajika) - Urefu wa bloku
-2. `generation_signature` (string hex, inahitajika) - Sahihi ya uzalishaji (herufi 64)
-3. `account_id` (string, inahitajika) - Kitambulisho cha akaunti ya plot (herufi 40 za hex = byte 20)
-4. `seed` (string, inahitajika) - Mbegu ya plot (herufi 64 za hex = byte 32)
-5. `nonce` (nambari, inahitajika) - Nonce ya uchimbaji
-6. `compression` (nambari, inahitajika) - Kiwango cha upanuzi/ukandamizaji kilichotumika (1-255)
-7. `quality` (nambari, hiari) - Thamani ya ubora (inahesabiwa tena ikiwa imeachwa)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Thamani za Kurudishwa** (mafanikio):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // tarehe ya mwisho iliyorekebishwa na ugumu katika sekunde
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // muda wa kuunda uliopindwa katika sekunde
 }
 ```
@@ -163,12 +139,16 @@ bitcoin-cli get_mining_info
 
 **Mfano**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Madokezo**:
@@ -186,7 +166,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategoria**: uchimbaji
-**Inahitaji Seva ya Uchimbaji**: Hapana
 **Inahitaji Pochi**: Hapana
 
 **Madhumuni**: Hoja hali ya ugawaji wa kuunda kwa anwani ya plot. Kusoma pekee, hakuna pochi inayohitajika.
@@ -260,7 +239,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategoria**: pochi
-**Inahitaji Seva ya Uchimbaji**: Hapana
 **Inahitaji Pochi**: Ndiyo (lazima iwe imepakiwa na kufunguliwa)
 
 **Madhumuni**: Unda muamala wa ugawaji wa kuunda kukabidhi haki za kuunda kwa anwani nyingine (k.m., dimbwi la uchimbaji).
@@ -316,7 +294,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategoria**: pochi
-**Inahitaji Seva ya Uchimbaji**: Hapana
 **Inahitaji Pochi**: Ndiyo (lazima iwe imepakiwa na kufunguliwa)
 
 **Madhumuni**: Batilisha ugawaji uliopo wa kuunda, kurudisha haki za kuunda kwa mmiliki wa plot.
@@ -377,7 +354,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Marekebisho ya PoCX**:
 - **Hesabu**: `reference_base_target / current_base_target`
-- **Marejeleo**: Uwezo wa mtandao wa 1 TiB (base_target = 36650387593)
+- **Marejeleo**: Uwezo wa mtandao wa 1 TiB (base_target = 36650387592)
 - **Tafsiri**: Uwezo wa hifadhi wa mtandao uliokadiriwa katika TiB
   - Mfano: `1.0` = ~1 TiB
   - Mfano: `1024.0` = ~1 PiB
@@ -494,10 +471,11 @@ RPC zifuatazo mahususi za PoW **zimezimwa** katika hali ya PoCX:
 - **Mbadala**: Tumia `get_mining_info` (mahususi kwa PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Sababu**: Uchimbaji wa CPU hauhusu PoCX (unahitaji plot zilizozalishwa mapema)
-- **Mbadala**: Tumia plotter wa nje + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Utekelezaji**: `src/rpc/mining.cpp` (RPC zinarudisha kosa wakati ENABLE_POCX imefafanuliwa)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +508,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Changanua faili za plot (utekelezaji wa nje)
@@ -538,11 +516,15 @@ while True:
 
     # 3. Wasilisha suluhisho bora zaidi
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +644,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC za Uchimbaji**: `src/pocx/rpc/mining.cpp`
 **RPC za Ugawaji**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC za Blockchain**: `src/rpc/blockchain.cpp`
-**Uthibitishaji wa Uthibitisho**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Uthibitishaji wa Uthibitisho**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Hali ya Ugawaji**: `src/pocx/assignments/assignment_state.cpp`
 **Uundaji wa Muamala**: `src/pocx/assignments/transactions.cpp`
 

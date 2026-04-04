@@ -16,7 +16,7 @@ Mūsu implementācija ievieš vairākas būtiskas inovācijas:
 (3) OP_RETURN balstītu kalšanas piešķiršanas mehānismu, kas nodrošina nekustodālu pūla rakšanu; un
 (4) Dinamisku kompresijas mērogošanu, kas palielina plota ģenerēšanas sarežģītību saskaņā ar dalīšanas grafikiem, lai uzturētu ilgtermiņa drošības rezerves, aparatūrai attīstoties.
 
-Bitcoin-PoCX saglabā Bitcoin Core arhitektūru ar minimālām, funkciju karodziņiem kontrolētām modifikācijām, izolējot PoC loģiku no esošā konsensusa koda. Sistēma saglabā Bitcoin monetāro politiku, mērķējot uz 120 sekunžu bloku intervālu un pielāgojot bloka subsīdiju līdz 10 BTC. Samazinātā subsīdija kompensē piecu reižu palielināto bloku biežumu, saglabājot ilgtermiņa emisijas likmi saskaņā ar Bitcoin sākotnējo grafiku un uzturot ~21 miljona maksimālo piedāvājumu.
+Bitcoin-PoCX saglabā Bitcoin Core arhitektūru ar minimālām, funkciju karodziņiem kontrolētām modifikācijām, izolējot PoC loģiku no esošā konsensusa koda. Sistēma saglabā Bitcoin monetāro politiku, mērķējot uz 120 sekunžu bloku intervālu un pielāgojot bloka subsīdiju līdz 10 BTCX. Samazinātā subsīdija kompensē piecu reižu palielināto bloku biežumu, saglabājot ilgtermiņa emisijas likmi saskaņā ar Bitcoin sākotnējo grafiku un uzturot ~21 miljona maksimālo piedāvājumu.
 
 ---
 
@@ -211,9 +211,9 @@ Apliecinājums iegulst visu konsensusa ziņā būtisko informāciju, kas nepieci
 
 Ģenerēšanas paraksts nodrošina neprognozējamību, kas nepieciešama drošai Proof of Capacity rakšanai. Katrs bloks iegūst savu ģenerēšanas parakstu no iepriekšējā bloka paraksta un parakstītāja, nodrošinot, ka raktuvnieki nevar paredzēt nākotnes izaicinājumus vai iepriekš aprēķināt izdevīgus plota reģionus:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Tas rada secību kriptogrāfiski stipru, no raktuvnieka atkarīgu entropijas vērtību. Tā kā raktuvnieka publiskā atslēga nav zināma, līdz iepriekšējais bloks ir publicēts, neviens dalībnieks nevar paredzēt nākotnes scoop izvēles. Tas novērš selektīvu iepriekšaprēķināšanu vai stratēģisku plotēšanu un nodrošina, ka katrs bloks ievieš patiesi svaigu rakšanas darbu.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Tas rada secību kriptogrāfiski stipru, no raktuvnieka atkarīgu entropijas vērtību. Tā kā raktuvnieka account ID nav zināma, līdz iepriekšējais bloks ir publicēts, neviens dalībnieks nevar paredzēt nākotnes scoop izvēles. Tas novērš selektīvu iepriekšaprēķināšanu vai stratēģisku plotēšanu un nodrošina, ka katrs bloks ievieš patiesi svaigu rakšanas darbu.
 
 ### 4.3 Kalšanas process
 
@@ -231,7 +231,7 @@ Proof of Capacity rada eksponenciāli sadalītus termiņus. Pēc īsa perioda �
 
 Time Bending pārveido sadalījumu, pielietojot kubsaknes transformāciju:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Mēroga faktors saglabā paredzamo bloka laiku (120 sekundes), vienlaikus dramatiski samazinot dispersiju. Īsie termiņi tiek paplašināti, uzlabojot bloku izplatīšanos un tīkla drošību. Garie termiņi tiek saspiesti, novēršot izņēmumus no ķēdes aizkavēšanas.
 
@@ -411,12 +411,12 @@ Zemāk esošās tabulas apkopo rezultējošos mainnet, testnet un regtest iestat
 | Parametrs | Vērtība |
 |-----------|---------|
 | Maģiskie baiti | `0xa7 0x3c 0x91 0x5e` |
-| Noklusējuma ports | 8888 |
+| Noklusējuma ports | 8338 |
 | Bech32 HRP | `pocx` |
 | Bloka laika mērķis | 120 sekundes |
-| Sākotnējā subsīdija | 10 BTC |
+| Sākotnējā subsīdija | 10 BTCX |
 | Dalīšanas intervāls | 1050000 bloki (~4 gadi) |
-| Kopējais piedāvājums | ~21 miljons BTC |
+| Kopējais piedāvājums | ~21 miljons BTCX |
 | Piešķiršanas aktivizācija | 30 bloki |
 | Piešķiršanas atsaukšana | 720 bloki |
 | Slīdošais logs | 24 bloki |
@@ -425,8 +425,8 @@ Zemāk esošās tabulas apkopo rezultējošos mainnet, testnet un regtest iestat
 
 | Parametrs | Vērtība |
 |-----------|---------|
-| Maģiskie baiti | `0x6d 0xf2 0x48 0xb3` |
-| Noklusējuma ports | 18888 |
+| Maģiskie baiti | `0x6d 0xf2 0x48 0xb4` |
+| Noklusējuma ports | 18338 |
 | Bech32 HRP | `tpocx` |
 | Bloka laika mērķis | 120 sekundes |
 | Pārējie parametri | Tādi paši kā mainnet |

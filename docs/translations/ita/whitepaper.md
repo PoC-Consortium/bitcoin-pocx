@@ -16,7 +16,7 @@ La nostra implementazione introduce diverse innovazioni chiave:
 (3) Un meccanismo di assegnazione del forging basato su OP_RETURN che abilita il mining in pool non custodiale; e
 (4) Lo scaling dinamico della compressione, che aumenta la difficoltà di generazione dei plot in allineamento con i programmi di halving per mantenere i margini di sicurezza a lungo termine man mano che l'hardware migliora.
 
-Bitcoin-PoCX mantiene l'architettura di Bitcoin Core attraverso modifiche minime e contrassegnate con feature flag, isolando la logica PoC dal codice di consenso esistente. Il sistema preserva la politica monetaria di Bitcoin puntando a un intervallo di blocco di 120 secondi e regolando il sussidio di blocco a 10 BTC. Il sussidio ridotto compensa l'aumento di cinque volte della frequenza dei blocchi, mantenendo il tasso di emissione a lungo termine allineato con il programma originale di Bitcoin e conservando l'offerta massima di ~21 milioni.
+Bitcoin-PoCX mantiene l'architettura di Bitcoin Core attraverso modifiche minime e contrassegnate con feature flag, isolando la logica PoC dal codice di consenso esistente. Il sistema preserva la politica monetaria di Bitcoin puntando a un intervallo di blocco di 120 secondi e regolando il sussidio di blocco a 10 BTCX. Il sussidio ridotto compensa l'aumento di cinque volte della frequenza dei blocchi, mantenendo il tasso di emissione a lungo termine allineato con il programma originale di Bitcoin e conservando l'offerta massima di ~21 milioni.
 
 ---
 
@@ -211,9 +211,9 @@ La prova incorpora tutte le informazioni rilevanti per il consenso necessarie ai
 
 La generation signature fornisce l'imprevedibilità richiesta per il mining Proof of Capacity sicuro. Ogni blocco deriva la sua generation signature dalla firma e dal firmatario del blocco precedente, assicurando che i miner non possano anticipare le sfide future o pre-calcolare regioni vantaggiose del plot:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Questo produce una sequenza di valori di entropia crittograficamente forti e dipendenti dal miner. Poiché la chiave pubblica di un miner è sconosciuta fino alla pubblicazione del blocco precedente, nessun partecipante può prevedere le future selezioni di scoop. Questo previene la pre-computazione selettiva o il plotting strategico e assicura che ogni blocco introduca lavoro di mining genuinamente fresco.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Questo produce una sequenza di valori di entropia crittograficamente forti e dipendenti dal miner. Poiché la account ID di un miner è sconosciuta fino alla pubblicazione del blocco precedente, nessun partecipante può prevedere le future selezioni di scoop. Questo previene la pre-computazione selettiva o il plotting strategico e assicura che ogni blocco introduca lavoro di mining genuinamente fresco.
 
 ### 4.3 Processo di forging
 
@@ -243,7 +243,7 @@ Il Time Bending mantiene il contenuto informativo della prova sottostante. Non m
 
 PoCX regola la produzione dei blocchi usando il base target, una misura inversa della difficoltà. Il tempo di blocco atteso è proporzionale al rapporto `quality / base_target`, quindi aumentare il base target accelera la creazione dei blocchi mentre diminuirlo rallenta la catena.
 
-La difficoltà si regola ad ogni blocco usando il tempo misurato tra i blocchi recenti rispetto all'intervallo target. Questa regolazione frequente è necessaria perché la capacità di storage può essere aggiunta o rimossa rapidamente, a differenza dell'hashpower di Bitcoin, che cambia più lentamente.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 La regolazione segue due vincoli guida: **Gradualità**, le modifiche per blocco sono limitate (±20% massimo) per evitare oscillazioni o manipolazioni; **Rafforzamento**, il base target non può superare il suo valore genesis, impedendo alla rete di abbassare mai la difficoltà sotto le assunzioni di sicurezza originali.
 
@@ -411,12 +411,12 @@ Le tabelle seguenti riassumono le impostazioni risultanti per mainnet, testnet e
 | Parametro | Valore |
 |-----------|--------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Porta predefinita | 8888 |
+| Porta predefinita | 8338 |
 | HRP Bech32 | `pocx` |
 | Tempo di blocco target | 120 secondi |
-| Sussidio iniziale | 10 BTC |
+| Sussidio iniziale | 10 BTCX |
 | Intervallo di halving | 1050000 blocchi (~4 anni) |
-| Offerta totale | ~21 milioni BTC |
+| Offerta totale | ~21 milioni BTCX |
 | Attivazione assegnazione | 30 blocchi |
 | Revoca assegnazione | 720 blocchi |
 | Finestra mobile | 24 blocchi |
@@ -425,8 +425,8 @@ Le tabelle seguenti riassumono le impostazioni risultanti per mainnet, testnet e
 
 | Parametro | Valore |
 |-----------|--------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Porta predefinita | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Porta predefinita | 18338 |
 | HRP Bech32 | `tpocx` |
 | Tempo di blocco target | 120 secondi |
 | Altri parametri | Come mainnet |

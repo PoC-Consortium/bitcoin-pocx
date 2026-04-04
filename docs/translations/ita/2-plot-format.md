@@ -77,12 +77,12 @@ Tutti i metadati del plot sono codificati nel nome del file usando questo format
 1. **ACCOUNT_PAYLOAD** (40 caratteri esadecimali)
    - Payload account raw da 20 byte come hex maiuscolo
    - Indipendente dalla rete (nessun ID di rete o checksum)
-   - Esempio: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Esempio: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 caratteri esadecimali)
    - Valore seed da 32 byte come hex minuscolo
    - **Novità in PoCX**: Seed random da 32 byte nel nome del file sostituisce la numerazione consecutiva dei nonce - previene le sovrapposizioni dei plot
-   - Esempio: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Esempio: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (numero decimale)
    - **Nuova unità di dimensione in PoCX**: Sostituisce la dimensione basata sui nonce da POC1/POC2
@@ -97,8 +97,8 @@ Tutti i metadati del plot sono codificati nel nome del file usando questo format
 
 ### Esempi di nomi file
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

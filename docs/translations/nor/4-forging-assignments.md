@@ -39,7 +39,7 @@ Outputs:
   [1]: Vekslepenger tilbake til bruker (valgfritt, standard P2WPKH)
 ```
 
-**Implementasjon:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementasjon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Opphevingstransaksjonsformat
 
@@ -58,14 +58,14 @@ Outputs:
   [1]: Vekslepenger tilbake til bruker (valgfritt, standard P2WPKH)
 ```
 
-**Implementasjon:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementasjon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Markører
 
 - **Tildelingsmarkør:** `POCX` (0x50, 0x4F, 0x43, 0x58) = «Proof of Capacity neXt»
 - **Opphevingsmarkør:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = «eXit Capacity OPeration»
 
-**Implementasjon:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementasjon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Viktige transaksjonsegenskaper
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Full historikk: alle tildelinger per plot over tid
 ```
 
-**Implementasjon:** `src/txdb.cpp:237-348`
+**Implementasjon:** `src/txdb.cpp`
 
 ### ForgingAssignment-struktur
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementasjon:** `src/coins.h:111-178`
+**Implementasjon:** `src/coins.h`
 
 ### Tildelingstilstander
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementasjon:** `src/coins.h:98-104`
+**Implementasjon:** `src/coins.h`
 
 ### Databasenøkler
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementasjon:** `src/txdb.cpp:245-262`
+**Implementasjon:** `src/txdb.cpp`
 
 ### Historikksporing
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Sjekk plottilstand (må være UNASSIGNED eller REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Opprett ny tildeling
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins fortsetter normalt (hopper automatisk over OP_RETURN-utdata)
 ```
 
-**Implementasjon:** `src/validation.cpp:2775-2878`
+**Implementasjon:** `src/validation.cpp:ConnectBlock()`
 
 ### Eierskapsverifisering
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Sjekk at minst én input er signert av ploteier
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Trekk ut destinasjon
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Sjekk om P2WPKH til plotadresse
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core har allerede validert signatur
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementasjon:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementasjon:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Aktiveringsforsinkelser
 
@@ -282,7 +280,7 @@ Utført i `src/consensus/tx_check.cpp` uten kjedetilstandstilgang:
 
 1. **Maksimalt én POCX OP_RETURN:** Transaksjon kan ikke inneholde flere POCX/XCOP-markører
 
-**Implementasjon:** `src/consensus/tx_check.cpp:63-77`
+**Implementasjon:** `src/consensus/tx_check.cpp`
 
 ### Mempool-akseptsjekker (PreChecks)
 
@@ -300,7 +298,7 @@ Utført i `src/validation.cpp` med full kjedetilstands- og mempooltilgang:
 2. **Aktiv tildeling:** Plot må være i ASSIGNED (2)-tilstand kun
 3. **Mempool-konflikter:** Ingen annen oppheving for dette plottet i mempool
 
-**Implementasjon:** `src/validation.cpp:898-993`
+**Implementasjon:** `src/validation.cpp:PreChecks()`
 
 ### Valideringsflyt
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Samle dirty-tildelinger
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Tom - ubrukt
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Skriv til database
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Tøm sporing
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Frigjør minne
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementasjon:** `src/coins.cpp:278-315`
+**Implementasjon:** `src/coins.cpp:Flush()`
 
 ### Database-batchskriv
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Tildelinger skrives separat men i samme databasetransaksjonskontekst
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Ubrukt parameter (beholdt for API-kompatibilitet)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Nytt batch, men samme database
+    CDBBatch batch(*m_db);
 
-    // Skriv tildelingshistorikk
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Slett slettede tildelinger fra historikk
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ATOMISK COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementasjon:** `src/txdb.cpp:332-348`
+**Implementasjon:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Atomisitetsgarantier
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementasjon:** `src/undo.h:63-105`
+**Implementasjon:** `src/undo.h`
 
 ### DisconnectBlock-prosess
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementasjon:** `src/validation.cpp:2381-2415`
+**Implementasjon:** `src/validation.cpp:DisconnectBlock()`
 
 ### Cachehåndtering under reorg
 
@@ -556,7 +562,7 @@ private:
     // Tildelingscacher
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Spor modifiserte plotter
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Spor slettinger
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Spor slettinger
     mutable size_t cachedAssignmentsUsage{0};  // Minnesporing
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementasjon:** `src/coins.cpp:494-565`
+**Implementasjon:** `src/coins.cpp`
 
 ## RPC-grensesnitt
 
@@ -613,7 +617,7 @@ Returnerer gjeldende tildelingsstatus for en plotadresse:
 }
 ```
 
-**Implementasjon:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementasjon:** `src/pocx/rpc/assignments.cpp`
 
 ### Lommebokkommandoer (lommebok påkrevd)
 
@@ -628,7 +632,7 @@ Oppretter en tildelingstransaksjon:
 - Signerer med ploteiers nøkkel
 - Kringkaster til nettverk
 
-**Implementasjon:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementasjon:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Oppretter en opphevingstransaksjon:
 - Signerer med ploteiers nøkkel
 - Kringkaster til nettverk
 
-**Implementasjon:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementasjon:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Lommeboktransaksjonsoppretting
 
@@ -660,7 +664,7 @@ Lommeboktransaksjonsopprettingsprosessen:
 
 **Viktig innsikt:** Lommeboken må bruke fra plotadressen for å bevise eierskap, så den tvinger automatisk myntvalg fra den adressen.
 
-**Implementasjon:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementasjon:** `src/pocx/assignments/transactions.cpp`
 
 ## Filstruktur
 
@@ -668,11 +672,11 @@ Lommeboktransaksjonsopprettingsprosessen:
 
 ```
 src/
-├── coins.h                        # ForgingAssignment-struct, CCoinsViewCache-metoder [710 linjer]
-├── coins.cpp                      # Cachehåndtering, batchskrivinger [603 linjer]
+├── coins.h                        # ForgingAssignment-struct, CCoinsViewCache-metoder
+├── coins.cpp                      # Cachehåndtering, batchskrivinger
 │
-├── txdb.h                         # CCoinsViewDB tildelingsmetoder [90 linjer]
-├── txdb.cpp                       # Databaselese/skriv [349 linjer]
+├── txdb.h                         # CCoinsViewDB tildelingsmetoder
+├── txdb.cpp                       # Databaselese/skriv
 │
 ├── undo.h                         # ForgingUndo-struktur for reorgs
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # OP_RETURN-format, parsing, verifisering
-    │   ├── opcodes.cpp            # [259 linjer] Markørdefinisjoner, OP_RETURN-ops, eierskapssjekk
+    │   ├── opcodes.cpp            # Markørdefinisjoner, OP_RETURN-ops, eierskapssjekk
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState-hjelpere
     │   ├── assignment_state.cpp   # Tilstandsforespørslsfunksjoner
     │   ├── transactions.h         # Lommeboktransaksjonsopprettings-API
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # Node RPC-kommandoer (ingen lommebok)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC-er
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # Lommebok RPC-kommandoer
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC-er
     │

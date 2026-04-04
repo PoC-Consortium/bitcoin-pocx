@@ -16,7 +16,7 @@ Triển khai của chúng tôi giới thiệu một số đổi mới quan trọ
 (3) Cơ chế ủy quyền forging dựa trên OP_RETURN cho phép đào pool không giám sát; và
 (4) Mở rộng nén động, tăng độ khó tạo plot phù hợp với lịch trình halving để duy trì biên độ bảo mật dài hạn khi phần cứng cải thiện.
 
-Bitcoin-PoCX duy trì kiến trúc Bitcoin Core thông qua các sửa đổi tối thiểu, được đánh dấu tính năng, cô lập logic PoC khỏi mã đồng thuận hiện có. Hệ thống bảo toàn chính sách tiền tệ của Bitcoin bằng cách nhắm mục tiêu khoảng khối 120 giây và điều chỉnh trợ cấp khối xuống 10 BTC. Trợ cấp giảm bù đắp cho việc tăng tần suất khối gấp năm lần, giữ tỷ lệ phát hành dài hạn phù hợp với lịch trình ban đầu của Bitcoin và duy trì nguồn cung tối đa ~21 triệu.
+Bitcoin-PoCX duy trì kiến trúc Bitcoin Core thông qua các sửa đổi tối thiểu, được đánh dấu tính năng, cô lập logic PoC khỏi mã đồng thuận hiện có. Hệ thống bảo toàn chính sách tiền tệ của Bitcoin bằng cách nhắm mục tiêu khoảng khối 120 giây và điều chỉnh trợ cấp khối xuống 10 BTCX. Trợ cấp giảm bù đắp cho việc tăng tần suất khối gấp năm lần, giữ tỷ lệ phát hành dài hạn phù hợp với lịch trình ban đầu của Bitcoin và duy trì nguồn cung tối đa ~21 triệu.
 
 ---
 
@@ -211,9 +211,9 @@ Bằng chứng nhúng tất cả thông tin liên quan đồng thuận cần thi
 
 Chữ ký sinh cung cấp tính không thể dự đoán cần thiết cho đào Proof of Capacity an toàn. Mỗi khối suy ra chữ ký sinh từ chữ ký và người ký của khối trước, đảm bảo thợ đào không thể dự đoán các thách thức tương lai hoặc tính toán trước các vùng plot thuận lợi:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Điều này tạo ra chuỗi các giá trị entropy mạnh về mật mã, phụ thuộc vào thợ đào. Vì khóa công khai của thợ đào không được biết cho đến khi khối trước được publish, không có người tham gia nào có thể dự đoán việc chọn scoop tương lai. Điều này ngăn chặn tính toán trước chọn lọc hoặc tạo plot chiến lược và đảm bảo rằng mỗi khối giới thiệu công việc đào mới thực sự.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Điều này tạo ra chuỗi các giá trị entropy mạnh về mật mã, phụ thuộc vào thợ đào. Vì account ID của thợ đào không được biết cho đến khi khối trước được publish, không có người tham gia nào có thể dự đoán việc chọn scoop tương lai. Điều này ngăn chặn tính toán trước chọn lọc hoặc tạo plot chiến lược và đảm bảo rằng mỗi khối giới thiệu công việc đào mới thực sự.
 
 ### 4.3 Quy trình Forging
 
@@ -231,9 +231,9 @@ Proof of Capacity tạo ra các deadline phân phối mũ. Sau một khoảng th
 
 Time Bending định hình lại phân phối bằng cách áp dụng biến đổi căn bậc ba:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
-Hệ số scale bảo toàn thời gian khối kỳ vọng (120 giây) đồng thời giảm đáng kể variance. Các deadline ngắn được mở rộng, cải thiện lan truyền khối và an toàn mạng. Các deadline dài được nén, ngăn outlier làm chậm chuỗi.
+Where `scale = block_time / (block_time^(1/3) × Γ(4/3))` and `Γ(4/3) ≈ 0.893`. The Gamma normalization ensures the expected block time (120 seconds) is preserved while dramatically reducing variance.
 
 ![Phân phối Thời gian Khối](blocktime_distributions.svg)
 
@@ -243,7 +243,7 @@ Time Bending duy trì nội dung thông tin của bằng chứng cơ sở. Nó k
 
 PoCX điều tiết sản xuất khối sử dụng base target, thước đo độ khó nghịch đảo. Thời gian khối kỳ vọng tỷ lệ với tỷ lệ `quality / base_target`, vì vậy tăng base target tăng tốc tạo khối trong khi giảm nó làm chậm chuỗi.
 
-Độ khó điều chỉnh mỗi khối sử dụng thời gian đo được giữa các khối gần đây so với khoảng mục tiêu. Điều chỉnh thường xuyên này là cần thiết vì dung lượng lưu trữ có thể được thêm hoặc loại bỏ nhanh chóng - không giống hashpower của Bitcoin, thay đổi chậm hơn.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 Việc điều chỉnh tuân theo hai ràng buộc hướng dẫn: **Dần dần** - thay đổi mỗi khối bị giới hạn (tối đa ±20%) để tránh dao động hoặc thao túng; **Gia cố** - base target không thể vượt quá giá trị genesis, ngăn mạng giảm độ khó dưới các giả định bảo mật ban đầu.
 
@@ -411,12 +411,12 @@ Các bảng dưới đây tóm tắt các cài đặt mainnet, testnet và regte
 | Tham số | Giá trị |
 |---------|--------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Cổng mặc định | 8888 |
+| Cổng mặc định | 8338 |
 | Bech32 HRP | `pocx` |
 | Mục tiêu thời gian khối | 120 giây |
-| Trợ cấp ban đầu | 10 BTC |
+| Trợ cấp ban đầu | 10 BTCX |
 | Khoảng halving | 1050000 khối (~4 năm) |
-| Tổng cung | ~21 triệu BTC |
+| Tổng cung | ~21 triệu BTCX |
 | Kích hoạt ủy quyền | 30 khối |
 | Thu hồi ủy quyền | 720 khối |
 | Cửa sổ cuộn | 24 khối |
@@ -425,8 +425,8 @@ Các bảng dưới đây tóm tắt các cài đặt mainnet, testnet và regte
 
 | Tham số | Giá trị |
 |---------|--------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Cổng mặc định | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Cổng mặc định | 18338 |
 | Bech32 HRP | `tpocx` |
 | Mục tiêu thời gian khối | 120 giây |
 | Tham số khác | Giống mainnet |

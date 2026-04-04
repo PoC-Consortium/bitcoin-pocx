@@ -1,7 +1,7 @@
 # Bitcoin-PoCX 기술 문서
 
 **버전**: 1.0
-**Bitcoin Core 기반**: v30.0
+**Bitcoin Core 기반**: v30.2
 **상태**: 테스트넷 단계
 **최종 업데이트**: 2025-12-25
 
@@ -114,8 +114,8 @@ Bitcoin-PoCX Qt 지갑 사용자 가이드: 포징 할당 대화상자, 트랜�
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX 활성화하여 구성
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # 빌드
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **빌드 변형**:
 ```bash
 # Qt GUI 포함
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # 디버그 빌드
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **의존성**: 표준 Bitcoin Core 빌드 의존성이 필요합니다. 플랫폼별 요구사항은 [Bitcoin Core 빌드 문서](https://github.com/bitcoin/bitcoin/tree/master/doc#building)를 참조하세요.
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## 라이선스
 
-Bitcoin-PoCX는 Bitcoin Core의 MIT 라이선스를 상속합니다. 저장소 루트의 `COPYING`을 참조하세요.
+Bitcoin-PoCX는 Bitcoin Core의 MIT 라이선스를 상속합니다. 저장소 루트의 `bitcoin/COPYING`을 참조하세요.
 
 PoCX 코어 프레임워크 저작자 표시는 [2장: 플롯 형식](2-plot-format.md)에 문서화되어 있습니다.
 

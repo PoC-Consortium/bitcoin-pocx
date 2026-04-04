@@ -23,7 +23,7 @@ Išsami Bitcoin-PoCX RPC komandų informacija, įskaitant kasimo RPC, priskyrimo
 
 ### Kasimo serverio režimas
 
-**Vėliavė**: `-miningserver`
+**Vėliavė**: ``
 
 **Paskirtis**: Įjungia RPC prieigą išoriniams kasėjams iškviesti kasimui specifines RPC
 
@@ -34,10 +34,9 @@ Išsami Bitcoin-PoCX RPC komandų informacija, įskaitant kasimo RPC, priskyrimo
 **Naudojimas**:
 ```bash
 # Komandų eilutė
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Saugumo svarstybos**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Kategorija**: kasimas
-**Reikalauja kasimo serverio**: Ne
 **Reikalauja piniginės**: Ne
 
 **Paskirtis**: Grąžina dabartinius kasimo parametrus, reikalingus išoriniams kasėjams nuskaityti grafiko failus ir skaičiuoti terminus.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 simboliai
-  "base_target": 36650387593,                // skaitinis
+  "base_target": 36650387592,                // skaitinis
   "height": 12345,                           // skaitinis, kito bloko aukštis
   "block_hash": "def456...",                 // hex, ankstesnis blokas
   "target_quality": 18446744073709551615,    // uint64_max (visi sprendimai priimami)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategorija**: kasimas
-**Reikalauja kasimo serverio**: Taip
 **Reikalauja piniginės**: Taip (privatiems raktams)
 
 **Paskirtis**: Pateikti PoCX kasimo sprendimą. Validuoja įrodymą, įdeda į eilę laiko lenktam kalimui ir automatiškai sukuria bloką numatytu laiku.
 
-**Parametrai**:
-1. `height` (skaitinis, privalomas) - Bloko aukštis
-2. `generation_signature` (eilutė hex, privalomas) - Generavimo parašas (64 simboliai)
-3. `account_id` (eilutė, privalomas) - Grafiko paskyros ID (40 hex simbolių = 20 baitų)
-4. `seed` (eilutė, privalomas) - Grafiko sėkla (64 hex simboliai = 32 baitai)
-5. `nonce` (skaitinis, privalomas) - Kasimo nonce
-6. `compression` (skaitinis, privalomas) - Naudojamas mastelio/suspaudimo lygis (1-255)
-7. `quality` (skaitinis, neprivalomas) - Kokybės reikšmė (perskaičiuojama jei praleista)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Grąžinamos reikšmės** (sėkmė):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // sudėtingumo koreguotas terminas sekundėmis
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // laiko lenktas kalimo laikas sekundėmis
 }
 ```
@@ -134,8 +133,10 @@ bitcoin-cli get_mining_info
    - Paskyros ID: tiksliai 40 hex simbolių
    - Sėkla: tiksliai 64 hex simboliai
 2. **Konteksto validacija**:
+   - Block hash must match current tip
    - Aukštis turi atitikti dabartinę viršūnę + 1
    - Generavimo parašas turi atitikti dabartinį
+   - Base target must match current
 3. **Piniginės verifikacija**:
    - Nustatyti efektyvųjį pasirašytoją (patikrinti aktyvius priskyrimus)
    - Patikrinti, kad piniginė turi privatų raktą efektyviajam pasirašytojui
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Pavyzdys**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "grafiko_sėkla_64_hex_simboliai..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Pastabos**:
@@ -186,7 +191,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategorija**: kasimas
-**Reikalauja kasimo serverio**: Ne
 **Reikalauja piniginės**: Ne
 
 **Paskirtis**: Užklausti kalimo priskyrimo būseną grafiko adresui. Tik skaitymas, piniginė nereikalinga.
@@ -260,7 +264,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategorija**: piniginė
-**Reikalauja kasimo serverio**: Ne
 **Reikalauja piniginės**: Taip (turi būti įkelta ir atrakinta)
 
 **Paskirtis**: Sukurti kalimo priskyrimo transakciją deleguoti kalimo teises kitam adresui (pvz., kasimo baseinui).
@@ -294,7 +297,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktyvacija**:
 - Priskyrimas tampa ASSIGNING patvirtinimo metu
-- Tampa ACTIVE po `nForgingAssignmentDelay` blokų
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Atidėjimas apsaugo nuo greito perpriskyrimo grandinės šakų metu
 
 **Klaidų kodai**:
@@ -316,7 +319,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategorija**: piniginė
-**Reikalauja kasimo serverio**: Ne
 **Reikalauja piniginės**: Taip (turi būti įkelta ir atrakinta)
 
 **Paskirtis**: Atšaukti esamą kalimo priskyrimą, grąžinant kalimo teises grafiko savininkui.
@@ -377,7 +379,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX modifikacijos**:
 - **Skaičiavimas**: `referencinis_bazinis_tikslas / dabartinis_bazinis_tikslas`
-- **Referencija**: 1 TiB tinklo talpa (base_target = 36650387593)
+- **Referencija**: 1 TiB tinklo talpa (base_target = 36650387592)
 - **Interpretacija**: Įvertinta tinklo saugyklos talpa TiB
   - Pavyzdys: `1.0` = ~1 TiB
   - Pavyzdys: `1024.0` = ~1 PiB
@@ -464,7 +466,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (skaitinis) - Baseino kasimui
 
 **PoCX pašalinti laukai**:
-- `target` - Pašalinta (PoW specifinis)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Pašalinta (PoW specifinis)
 - `bits` - Pašalinta (PoW specifinis)
 
@@ -494,10 +496,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Alternatyva**: Naudokite `get_mining_info` (PoCX specifinis)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Priežastis**: CPU kasimas netaikomas PoCX (reikalauja iš anksto sugeneruotų grafikų)
-- **Alternatyva**: Naudokite išorinį grafikų kūrėją + kasėją + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Įgyvendinimas**: `src/rpc/mining.cpp` (RPC grąžina klaidą kai ENABLE_POCX apibrėžta)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +533,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Nuskaityti grafiko failus (išorinis įgyvendinimas)
@@ -538,11 +541,15 @@ while True:
 
     # 3. Pateikti geriausią sprendimą
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +669,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Kasimo RPC**: `src/pocx/rpc/mining.cpp`
 **Priskyrimo RPC**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain RPC**: `src/rpc/blockchain.cpp`
-**Įrodymo validacija**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Įrodymo validacija**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Priskyrimo būsena**: `src/pocx/assignments/assignment_state.cpp`
 **Transakcijos kūrimas**: `src/pocx/assignments/transactions.cpp`
 

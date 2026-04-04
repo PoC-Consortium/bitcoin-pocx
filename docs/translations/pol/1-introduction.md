@@ -42,7 +42,7 @@ Proof of Capacity (PoC) to mechanizm konsensusu, w którym moc wydobywcza jest p
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + integracja PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + integracja PoCX
 │   └── src/pocx/        # Implementacja PoCX
 ├── pocx/                # Framework core PoCX (submoduł, tylko do odczytu)
 └── docs/                # Ta dokumentacja
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Rozwiązanie**: Transformacja rozkładu z wykładniczego do chi-kwadrat przy użyciu pierwiastka sześciennego: `Y = skala × (X^(1/3))`.
 
-**Efekt**: Bardzo dobre rozwiązania są kute później (sieć ma czas na przeskanowanie wszystkich dysków, redukuje szybkie bloki), słabe rozwiązania są poprawiane. Średni czas bloku utrzymany na 120 sekundach, długie bloki zredukowane.
+**Efekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Szczegóły**: [Rozdział 3: Konsensus i wydobycie](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Takie same jak Bitcoin Core**:
 - **CPU**: Nowoczesny procesor x86_64
 - **Pamięć**: 4-8 GB RAM
-- **Dysk**: Nowy łańcuch, obecnie pusty (może rosnąć ~4× szybciej niż Bitcoin z powodu 2-minutowych bloków i bazy danych przydziałów)
+- **Dysk**: Nowy łańcuch, obecnie pusty (może rosnąć ~5× szybciej niż Bitcoin z powodu 2-minutowych bloków i bazy danych przydziałów)
 - **Sieć**: Stabilne połączenie internetowe
 - **Zegar**: Synchronizacja NTP zalecana dla optymalnego działania
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Zbuduj z włączonym PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Szczegóły**: Zobacz `CLAUDE.md` w katalogu głównym repozytorium
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Uruchom węzeł
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Do wydobycia** (włącza dostęp RPC dla zewnętrznych górników):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # lub
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Szczegóły**: [Rozdział 6: Parametry sieci](6-network-parameters.md)

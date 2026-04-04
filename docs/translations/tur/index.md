@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Teknik Dokümantasyonu
 
 **Sürüm**: 1.0
-**Bitcoin Core Temeli**: v30.0
+**Bitcoin Core Temeli**: v30.2
 **Durum**: Testnet Aşaması
 **Son Güncelleme**: 2025-12-25
 
@@ -114,8 +114,8 @@ Bitcoin-PoCX Qt cüzdanı kullanım kılavuzu: dövme atama penceresi, işlem ge
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX etkin olarak yapılandırın
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Derleyin
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Derleme Varyantları**:
 ```bash
 # Qt GUI ile
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Hata ayıklama derlemesi
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Bağımlılıklar**: Standart Bitcoin Core derleme bağımlılıkları. Platforma özel gereksinimler için [Bitcoin Core derleme dokümantasyonu](https://github.com/bitcoin/bitcoin/tree/master/doc#building)'na bakın.
@@ -184,7 +184,7 @@ Dokümantasyona katkılar kabul edilmektedir. Lütfen aşağıdakileri koruyun:
 
 ## Lisans
 
-Bitcoin-PoCX, Bitcoin Core'un MIT lisansını devralır. Depo kök dizinindeki `COPYING` dosyasına bakın.
+Bitcoin-PoCX, Bitcoin Core'un MIT lisansını devralır. Depo kök dizinindeki `bitcoin/COPYING` dosyasına bakın.
 
 PoCX çekirdek çatısı atfı [Bölüm 2: Plot Formatı](2-plot-format.md)'nda belgelenmiştir.
 

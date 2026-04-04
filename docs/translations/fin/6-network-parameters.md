@@ -39,12 +39,7 @@ Täydellinen viite Bitcoin-PoCX-verkon konfiguraatiolle kaikille verkkotyypeille
 
 ### Genesis-viesti
 
-Kaikki verkot jakavat Bitcoinin genesis-viestin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Toteutus**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Kaikki verkot jakavat Bitcoinin genesis-viestin:
 
 **Verkon identiteetti**:
 - **Magiikkatavut**: `0xa7 0x3c 0x91 0x5e`
-- **Oletusportti**: `8888`
+- **Oletusportti**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Osoite-etuliitteet** (Base58):
@@ -84,14 +79,14 @@ Kaikki verkot jakavat Bitcoinin genesis-viestin:
 ### Testnet-parametrit
 
 **Verkon identiteetti**:
-- **Magiikkatavut**: `0x6d 0xf2 0x48 0xb3`
-- **Oletusportti**: `18888`
+- **Magiikkatavut**: `0x6d 0xf2 0x48 0xb4`
+- **Oletusportti**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Osoite-etuliitteet** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Lohkoajoitus**:
 - **Lohkoajan tavoite**: `120` sekuntia
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Toteutus**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Toteutus**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Rakenne**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Vähimmäishyväksytty taso
-    uint8_t nPoCXTargetCompression;  // Suositeltu taso
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Vähimmäishyväksytty taso
+    uint32_t nPoCXTargetCompression;  // Suositeltu taso
 };
 ```
 
@@ -313,7 +308,7 @@ Skaalaustasot kasvavat **eksponentiaalisella aikataululla** puolittumisvälejen 
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Toteutus**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Toteutus**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Protokollaversio
 
-**Pohja**: Bitcoin Core v30.0 -protokolla
+**Pohja**: Bitcoin Core v30.2 -protokolla
 - **Protokollaversio**: Peritty Bitcoin Coresta
 - **Palvelubitit**: Vakio Bitcoin-palvelut
 - **Viestitypit**: Vakio Bitcoin P2P -viestit
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX-louhintapalvelin (vaaditaan ulkoisille louhijoille)
-miningserver=1
 
 # RPC-asetukset
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Yhteysasetukset
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Lohkoajan tavoite (tiedoksi, konsensus pakottaa)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konsensusparametrit**: `src/consensus/params.h`
-**Pakkausrajat**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Pakkausrajat**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesis-perustavoitteen laskenta**: `src/pocx/consensus/params.cpp`
-**Coinbase-maksulogiikka**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase-maksulogiikka**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Delegointitilan tallennus**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache-laajennukset)
 
 ---

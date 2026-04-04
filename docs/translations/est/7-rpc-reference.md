@@ -23,7 +23,7 @@ Täielik viide Bitcoin-PoCX RPC käskudele, sealhulgas kaevandamise RPC-d, üles
 
 ### Kaevandamisserveri režiim
 
-**Lipp**: `-miningserver`
+**Lipp**: ``
 
 **Eesmärk**: Lubab RPC juurdepääsu välistele kaevandajatele kaevandamisspetsiifiliste RPC-de kutsumiseks
 
@@ -34,10 +34,9 @@ Täielik viide Bitcoin-PoCX RPC käskudele, sealhulgas kaevandamise RPC-d, üles
 **Kasutamine**:
 ```bash
 # Käsurida
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Turvaküsimused**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Kategooria**: mining
-**Nõuab kaevandamisserverit**: Ei
 **Nõuab rahakotti**: Ei
 
 **Eesmärk**: Tagastab praegused kaevandamisparameetrid, mida välised kaevandajad vajavad graafikufailide skaneerimiseks ja tähtaegade arvutamiseks.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 tähemärki
-  "base_target": 36650387593,                // numbriline
+  "base_target": 36650387592,                // numbriline
   "height": 12345,                           // numbriline, järgmise ploki kõrgus
   "block_hash": "def456...",                 // hex, eelmine plokk
   "target_quality": 18446744073709551615,    // uint64_max (kõik lahendused aktsepteeritakse)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategooria**: mining
-**Nõuab kaevandamisserverit**: Jah
 **Nõuab rahakotti**: Jah (privaatvõtmete jaoks)
 
 **Eesmärk**: Esita PoCX kaevandamise lahendus. Valideerib tõestuse, seab järjekorda ajapaindega sepistamiseks ja loob automaatselt ploki planeeritud ajal.
 
-**Parameetrid**:
-1. `height` (numbriline, nõutud) - Ploki kõrgus
-2. `generation_signature` (string hex, nõutud) - Genereerimisallkiri (64 tähemärki)
-3. `account_id` (string, nõutud) - Graafiku konto ID (40 hex tähemärki = 20 baiti)
-4. `seed` (string, nõutud) - Graafiku seeme (64 hex tähemärki = 32 baiti)
-5. `nonce` (numbriline, nõutud) - Kaevandamise nonce
-6. `compression` (numbriline, nõutud) - Kasutatud skaleerimis/kompressiooni tase (1-255)
-7. `quality` (numbriline, valikuline) - Kvaliteediväärtus (arvutatakse ümber, kui puudub)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Tagastatavad väärtused** (õnnestumine):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // raskusega kohandatud tähtaeg sekundites
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // ajapaindega sepistamisaeg sekundites
 }
 ```
@@ -134,8 +133,10 @@ bitcoin-cli get_mining_info
    - Account ID: täpselt 40 hex tähemärki
    - Seed: täpselt 64 hex tähemärki
 2. **Konteksti valideerimine**:
+   - Block hash must match current tip
    - Kõrgus peab vastama praegusele tipule + 1
    - Genereerimisallkiri peab vastama praegusele
+   - Base target must match current
 3. **Rahakoti verifitseerimine**:
    - Määra efektiivne allkirjastaja (kontrolli aktiivseid ülesandeid)
    - Verifitseeri, et rahakotis on privaatvõti efektiivse allkirjastaja jaoks
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Näide**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "graafiku_seeme_64_hex_tähemärki..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Märkused**:
@@ -186,7 +191,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategooria**: mining
-**Nõuab kaevandamisserverit**: Ei
 **Nõuab rahakotti**: Ei
 
 **Eesmärk**: Päri sepistamisülesande staatust graafiku aadressi jaoks. Ainult lugemiseks, rahakotti pole vaja.
@@ -260,7 +264,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategooria**: wallet
-**Nõuab kaevandamisserverit**: Ei
 **Nõuab rahakotti**: Jah (peab olema laetud ja lukustamata)
 
 **Eesmärk**: Loo sepistamisülesande tehing, et delegeerida sepistamisõigused teisele aadressile (nt kaevandamisbasseinile).
@@ -294,7 +297,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktiveerimine**:
 - Ülesanne saab ASSIGNING oleku kinnitamisel
-- Saab ACTIVE oleku pärast `nForgingAssignmentDelay` plokki
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Viivitus takistab kiiret ümberseadistamist ahela hargnemisel
 
 **Veakoodid**:
@@ -316,7 +319,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategooria**: wallet
-**Nõuab kaevandamisserverit**: Ei
 **Nõuab rahakotti**: Jah (peab olema laetud ja lukustamata)
 
 **Eesmärk**: Tühista olemasolev sepistamisülesanne, tagastades sepistamisõigused graafikuomanikule.
@@ -377,7 +379,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX modifikatsioonid**:
 - **Arvutamine**: `viite_baassihtmärk / praegune_baassihtmärk`
-- **Viide**: 1 TiB võrgu maht (base_target = 36650387593)
+- **Viide**: 1 TiB võrgu maht (base_target = 36650387592)
 - **Tõlgendus**: Hinnanguline võrgu hoiustusmaht TiB-s
   - Näide: `1.0` = ~1 TiB
   - Näide: `1024.0` = ~1 PiB
@@ -464,7 +466,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numbriline) - Basseinikaevandamiseks
 
 **PoCX eemaldatud väljad**:
-- `target` - Eemaldatud (PoW-spetsiifiline)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Eemaldatud (PoW-spetsiifiline)
 - `bits` - Eemaldatud (PoW-spetsiifiline)
 
@@ -494,10 +496,11 @@ Järgmised PoW-spetsiifilised RPC-d on PoCX režiimis **keelatud**:
 - **Alternatiiv**: Kasuta `get_mining_info` (PoCX-spetsiifiline)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Põhjus**: CPU kaevandamine pole PoCX-le kohaldatav (nõuab eelgenereeritud graafikuid)
-- **Alternatiiv**: Kasuta välist graafikukoostajat + kaevandajat + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementatsioon**: `src/rpc/mining.cpp` (RPC-d tagastavad vea, kui ENABLE_POCX on defineeritud)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +533,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skaneeri graafikufaile (väline implementatsioon)
@@ -538,11 +541,15 @@ while True:
 
     # 3. Esita parim lahendus
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +669,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Kaevandamise RPC-d**: `src/pocx/rpc/mining.cpp`
 **Ülesannete RPC-d**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Plokiahela RPC-d**: `src/rpc/blockchain.cpp`
-**Tõestuse valideerimine**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Tõestuse valideerimine**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Ülesande olek**: `src/pocx/assignments/assignment_state.cpp`
 **Tehingu loomine**: `src/pocx/assignments/transactions.cpp`
 

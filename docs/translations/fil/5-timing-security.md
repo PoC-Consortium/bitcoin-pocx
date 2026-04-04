@@ -32,16 +32,16 @@ Ang consensus ng PoCX ay nangangailangan ng tumpak na sinkronisasyon ng oras sa 
 
 **Pagsasaayos ng Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 segundo
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 segundo
 ```
 
 ### Mga Validation Check
 
-**Validation ng Block Timestamp** (`src/validation.cpp:4547-4561`):
+**Validation ng Block Timestamp** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotonic check: timestamp >= nakaraang block timestamp
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Deadline check: lumipas na oras >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Ang isang node na **>15s huli** ay katastropiko:
 ## Mga Sanggunian ng Implementasyon
 
 **Mga Core File**:
-- Time validation: `src/validation.cpp:4547-4561`
-- Future tolerance constant: `src/chain.h:31`
-- Warning threshold: `src/node/timeoffsets.h:27`
+- Time validation: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Future tolerance constant: `src/chain.h`
+- Warning threshold: `src/node/timeoffsets.h`
 - Time offset monitoring: `src/node/timeoffsets.cpp`
 - Defensive forging: `src/pocx/mining/scheduler.cpp`
 

@@ -16,7 +16,7 @@ Meie implementatsioon tutvustab mitmeid põhilisi uuendusi:
 (3) OP_RETURN-põhine sepistamisülesannete mehhanism, mis võimaldab mitte-hoiustavat basseinikaevandamist; ja
 (4) Dünaamiline kompressiooni skaleerimine, mis suurendab graafikugenereerimise raskust vastavalt poolnemise graafikutele, et säilitada pikaajalisi ohutuspiire riistvara paranedes.
 
-Bitcoin-PoCX säilitab Bitcoin Core'i arhitektuuri minimaalsete, funktsiooni lipuga modifikatsioonide kaudu, isoleerides PoC loogika olemasolevast konsensuse koodist. Süsteem säilitab Bitcoin'i rahapoliitika, sihtides 120-sekundilist plokiintervalli ja kohandades ploki subsiidiumi 10 BTC-le. Vähendatud subsiidium kompenseerib viiekordset plokkide sageduse kasvu, hoides pikaajalise emissiooni määra joondatuna Bitcoin'i algse graafikuga ja säilitades ~21 miljoni maksimaalse pakkumise.
+Bitcoin-PoCX säilitab Bitcoin Core'i arhitektuuri minimaalsete, funktsiooni lipuga modifikatsioonide kaudu, isoleerides PoC loogika olemasolevast konsensuse koodist. Süsteem säilitab Bitcoin'i rahapoliitika, sihtides 120-sekundilist plokiintervalli ja kohandades ploki subsiidiumi 10 BTCX-le. Vähendatud subsiidium kompenseerib viiekordset plokkide sageduse kasvu, hoides pikaajalise emissiooni määra joondatuna Bitcoin'i algse graafikuga ja säilitades ~21 miljoni maksimaalse pakkumise.
 
 ---
 
@@ -211,9 +211,9 @@ Tõestus manustab kogu konsensuse jaoks vajaliku informatsiooni, mida valideerij
 
 Genereerimisallkiri pakub turvaliseks mahtutõestuse kaevandamiseks vajalikku ettearvamatust. Iga plokk tuletab oma genereerimisallkirja eelmise ploki allkirjast ja allkirjastajast, tagades, et kaevandajad ei saa ennustada tulevasi väljakutseid ega eelarvutada soodsaid graafikupiirkondi:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-See toodab krüptograafiliselt tugevate, kaevandajast sõltuvate entroopia väärtuste jada. Kuna kaevandaja avalik võti on teadmata kuni eelmise ploki avaldamiseni, ei saa ükski osaleja ennustada tulevasi scoop'i valikuid. See takistab selektiivset eelarvutust või strateegilist graafikukoostamist ja tagab, et iga plokk tutvustab genuiinselt värsket kaevandamistööd.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. See toodab krüptograafiliselt tugevate, kaevandajast sõltuvate entroopia väärtuste jada. Kuna kaevandaja account ID on teadmata kuni eelmise ploki avaldamiseni, ei saa ükski osaleja ennustada tulevasi scoop'i valikuid. See takistab selektiivset eelarvutust või strateegilist graafikukoostamist ja tagab, et iga plokk tutvustab genuiinselt värsket kaevandamistööd.
 
 ### 4.3 Sepistamisprotsess
 
@@ -231,7 +231,7 @@ Mahtutõestus toodab eksponentsiaalselt jaotunud tähtaegu. Pärast lühikest pe
 
 Ajapainde kujundab jaotuse ümber, rakendades kuupjuure teisendust:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Skaala tegur säilitab oodatava plokkide aja (120 sekundit), vähendades samal ajal dramaatiliselt varieeruvust. Lühikesi tähtaegu pikendatakse, parandades ploki levikut ja võrgu turvalisust. Pikki tähtaegu kompresseeritakse, takistades äärmusi ahelat viivitamast.
 
@@ -411,12 +411,12 @@ Allolevad tabelid võtavad kokku tuleneva mainnet'i, testivõrgu ja regtest'i se
 | Parameeter | Väärtus |
 |------------|---------|
 | Maagilised baidid | `0xa7 0x3c 0x91 0x5e` |
-| Vaikeport | 8888 |
+| Vaikeport | 8338 |
 | Bech32 HRP | `pocx` |
 | Plokkide aja sihtmärk | 120 sekundit |
-| Algne subsiidium | 10 BTC |
+| Algne subsiidium | 10 BTCX |
 | Poolnemise intervall | 1050000 plokki (~4 aastat) |
-| Kogumaht | ~21 miljonit BTC |
+| Kogumaht | ~21 miljonit BTCX |
 | Ülesande aktiveerimine | 30 plokki |
 | Ülesande tühistamine | 720 plokki |
 | Libisev aken | 24 plokki |
@@ -425,8 +425,8 @@ Allolevad tabelid võtavad kokku tuleneva mainnet'i, testivõrgu ja regtest'i se
 
 | Parameeter | Väärtus |
 |------------|---------|
-| Maagilised baidid | `0x6d 0xf2 0x48 0xb3` |
-| Vaikeport | 18888 |
+| Maagilised baidid | `0x6d 0xf2 0x48 0xb4` |
+| Vaikeport | 18338 |
 | Bech32 HRP | `tpocx` |
 | Plokkide aja sihtmärk | 120 sekundit |
 | Muud parameetrid | Samad mis mainnet'il |

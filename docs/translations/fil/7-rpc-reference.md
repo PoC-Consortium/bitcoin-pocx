@@ -21,35 +21,11 @@ Kumpletong sanggunian para sa mga RPC command ng Bitcoin-PoCX, kabilang ang mga 
 
 ## Configuration
 
-### Mining Server Mode
+### Mining RPCs
 
-**Flag**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Layunin**: Pinapagana ang RPC access para sa mga external miner na tawagan ang mga mining-specific RPC
-
-**Mga Kinakailangan**:
-- Kinakailangan para gumana ang `submit_nonce`
-- Kinakailangan para makita ang forging assignment dialog sa Qt wallet
-
-**Paggamit**:
-```bash
-# Command line
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Mga Konsiderasyon sa Seguridad**:
-- Walang karagdagang authentication bukod sa standard RPC credential
-- Ang mga mining RPC ay nililimitahan ng queue capacity
-- Kinakailangan pa rin ang standard RPC authentication
-
-**Implementasyon**: `src/pocx/rpc/mining.cpp`
-
----
-
-## Mga PoCX Mining RPC
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
@@ -65,7 +41,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 na karakter
-  "base_target": 36650387593,                // numeric
+  "base_target": 36650387592,                // numeric
   "height": 12345,                           // numeric, susunod na block height
   "block_hash": "def456...",                 // hex, nakaraang block
   "target_quality": 18446744073709551615,    // uint64_max (tinatanggap lahat ng solusyon)
@@ -103,20 +79,22 @@ bitcoin-cli get_mining_info
 
 **Layunin**: Magsumite ng solusyon sa PoCX mining. Vine-validate ang proof, kinuqueue para sa time-bended forging, at awtomatikong gumagawa ng block sa naka-iskedyul na oras.
 
-**Mga Parameter**:
-1. `height` (numeric, kinakailangan) - Block height
-2. `generation_signature` (string hex, kinakailangan) - Generation signature (64 na karakter)
-3. `account_id` (string, kinakailangan) - Plot account ID (40 hex na karakter = 20 byte)
-4. `seed` (string, kinakailangan) - Plot seed (64 hex na karakter = 32 byte)
-5. `nonce` (numeric, kinakailangan) - Mining nonce
-6. `compression` (numeric, kinakailangan) - Scaling/compression level na ginamit (1-255)
-7. `quality` (numeric, opsyonal) - Quality value (kinakalkula ulit kung wala)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Mga Return Value** (tagumpay):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // difficulty-adjusted deadline sa segundo
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended forge time sa segundo
 }
 ```
@@ -134,8 +112,10 @@ bitcoin-cli get_mining_info
    - Account ID: eksaktong 40 hex na karakter
    - Seed: eksaktong 64 hex na karakter
 2. **Context Validation**:
+   - Block hash must match current tip
    - Ang height ay dapat tumugma sa kasalukuyang tip + 1
    - Ang generation signature ay dapat tumugma sa kasalukuyan
+   - Base target must match current
 3. **Wallet Verification**:
    - Tukuyin ang effective signer (suriin kung may mga aktibong assignment)
    - I-verify na ang wallet ay may private key para sa effective signer
@@ -163,12 +143,16 @@ bitcoin-cli get_mining_info
 
 **Halimbawa**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Mga Tala**:
@@ -377,7 +361,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Mga Modipikasyon ng PoCX**:
 - **Kalkulasyon**: `reference_base_target / current_base_target`
-- **Reference**: 1 TiB network capacity (base_target = 36650387593)
+- **Reference**: 1 TiB network capacity (base_target = 36650387592)
 - **Interpretasyon**: Tinatayang kapasidad ng network storage sa TiB
   - Halimbawa: `1.0` = ~1 TiB
   - Halimbawa: `1024.0` = ~1 PiB
@@ -401,7 +385,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numeric) - PoCX difficulty base target
 - `generation_signature` (string hex) - Generation signature
 - `pocx_proof` (object):
-  - `account_id` (string hex) - Plot account ID (20 byte)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (string hex) - Plot seed (32 byte)
   - `nonce` (numeric) - Mining nonce
   - `compression` (numeric) - Scaling level na ginamit
@@ -494,10 +478,11 @@ Ang mga sumusunod na RPC na tiyak sa PoW ay **naka-disable** sa PoCX mode:
 - **Alternatibo**: Gamitin ang `get_mining_info` (tiyak sa PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Dahilan**: Hindi applicable ang CPU mining sa PoCX (nangangailangan ng mga pre-generated plot)
-- **Alternatibo**: Gamitin ang external plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementasyon**: `src/rpc/mining.cpp` (Ang mga RPC ay nagbabalik ng error kapag naka-define ang ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +515,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. I-scan ang mga plot file (external implementation)
@@ -538,15 +523,19 @@ while True:
 
     # 3. Isumite ang pinakamahusay na solusyon
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
-        print(f"Tinanggap ang solusyon! Quality: {result['quality']}s, "
+        print(f"Solution accepted! Quality: {result['raw_quality']}, "
               f"Forge time: {result['poc_time']}s")
 
     # 4. Maghintay ng susunod na block
@@ -662,7 +651,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mga Mining RPC**: `src/pocx/rpc/mining.cpp`
 **Mga Assignment RPC**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Mga Blockchain RPC**: `src/rpc/blockchain.cpp`
-**Proof Validation**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Proof Validation**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Assignment State**: `src/pocx/assignments/assignment_state.cpp`
 **Paggawa ng Transaksyon**: `src/pocx/assignments/transactions.cpp`
 

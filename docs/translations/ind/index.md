@@ -1,7 +1,7 @@
 # Dokumentasi Teknis Bitcoin-PoCX
 
 **Versi**: 1.0
-**Basis Bitcoin Core**: v30.0
+**Basis Bitcoin Core**: v30.2
 **Status**: Fase Testnet
 **Terakhir Diperbarui**: 2025-12-25
 
@@ -114,8 +114,8 @@ Panduan pengguna untuk dompet Qt Bitcoin-PoCX: dialog penugasan forging, riwayat
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfigurasi dengan PoCX diaktifkan
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Build
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Varian Build**:
 ```bash
 # Dengan GUI Qt
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Build debug
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Dependensi**: Dependensi build Bitcoin Core standar. Lihat [dokumentasi build Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) untuk persyaratan spesifik platform.
@@ -184,7 +184,7 @@ Kontribusi pada dokumentasi sangat diterima. Harap pertahankan:
 
 ## Lisensi
 
-Bitcoin-PoCX mewarisi lisensi MIT dari Bitcoin Core. Lihat `COPYING` di root repositori.
+Bitcoin-PoCX mewarisi lisensi MIT dari Bitcoin Core. Lihat `bitcoin/COPYING` di root repositori.
 
 Atribusi framework inti PoCX didokumentasikan di [Bab 2: Format Plot](2-plot-format.md).
 

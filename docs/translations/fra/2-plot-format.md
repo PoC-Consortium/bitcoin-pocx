@@ -77,12 +77,12 @@ Toutes les métadonnées de plot sont encodées dans le nom de fichier en utilis
 1. **ACCOUNT_PAYLOAD** (40 caractères hexadécimaux)
    - Payload de compte brut de 20 octets en hexadécimal majuscule
    - Indépendant du réseau (pas d'ID de réseau ni de checksum)
-   - Exemple : `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Exemple : `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 caractères hexadécimaux)
    - Valeur seed de 32 octets en hexadécimal minuscule
    - **Nouveau dans PoCX** : Seed aléatoire de 32 octets dans le nom de fichier remplace la numérotation consécutive des nonces — empêchant les chevauchements de plots
-   - Exemple : `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Exemple : `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (nombre décimal)
    - **Nouvelle unité de taille dans PoCX** : Remplace le dimensionnement basé sur les nonces de POC1/POC2
@@ -97,8 +97,8 @@ Toutes les métadonnées de plot sont encodées dans le nom de fichier en utilis
 
 ### Exemples de noms de fichiers
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

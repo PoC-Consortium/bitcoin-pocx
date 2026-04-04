@@ -23,7 +23,7 @@ Volledige referentie voor Bitcoin-PoCX RPC-opdrachten, inclusief mining-RPC's, t
 
 ### Miningservermodus
 
-**Vlag**: `-miningserver`
+**Vlag**: ``
 
 **Doel**: Schakelt RPC-toegang in voor externe miners om miningspecifieke RPC's aan te roepen
 
@@ -34,10 +34,9 @@ Volledige referentie voor Bitcoin-PoCX RPC-opdrachten, inclusief mining-RPC's, t
 **Gebruik**:
 ```bash
 # Opdrachtregel
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Beveiligingsoverwegingen**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Categorie**: mining
-**Vereist miningserver**: Nee
 **Vereist wallet**: Nee
 
 **Doel**: Retourneert huidige miningparameters die nodig zijn voor externe miners om plotbestanden te scannen en deadlines te berekenen.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 tekens
-  "base_target": 36650387593,                // numeriek
+  "base_target": 36650387592,                // numeriek
   "height": 12345,                           // numeriek, volgende blokhoogte
   "block_hash": "def456...",                 // hex, vorig blok
   "target_quality": 18446744073709551615,    // uint64_max (alle oplossingen geaccepteerd)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Categorie**: mining
-**Vereist miningserver**: Ja
 **Vereist wallet**: Ja (voor privesleutels)
 
 **Doel**: Dien een PoCX-miningoplossing in. Valideert bewijs, plaatst in wachtrij voor time-bended forging, en creert automatisch blok op geplande tijd.
 
 **Parameters**:
-1. `height` (numeriek, vereist) - Blokhoogte
-2. `generation_signature` (string hex, vereist) - Generatiehandtekening (64 tekens)
-3. `account_id` (string, vereist) - Plot account-ID (40 hex-tekens = 20 bytes)
-4. `seed` (string, vereist) - Plotseed (64 hex-tekens = 32 bytes)
-5. `nonce` (numeriek, vereist) - Mining-nonce
-6. `compression` (numeriek, vereist) - Gebruikte schaal/compressieniveau (1-255)
-7. `quality` (numeriek, optioneel) - Kwaliteitswaarde (opnieuw berekend indien weggelaten)
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Retourwaarden** (succes):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // moeilijkheidsaangepaste deadline in seconden
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended forgetijd in seconden
 }
 ```
@@ -134,8 +133,10 @@ bitcoin-cli get_mining_info
    - Account-ID: exact 40 hex-tekens
    - Seed: exact 64 hex-tekens
 2. **Contextvalidatie**:
+   - Block hash must match current tip
    - Hoogte moet overeenkomen met huidige tip + 1
    - Generatiehandtekening moet overeenkomen met huidige
+   - Base target must match current
 3. **Walletverificatie**:
    - Bepaal effectieve ondertekenaar (controleer op actieve toewijzingen)
    - Verifieer dat wallet privesleutel heeft voor effectieve ondertekenaar
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Voorbeeld**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Opmerkingen**:
@@ -186,7 +191,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Categorie**: mining
-**Vereist miningserver**: Nee
 **Vereist wallet**: Nee
 
 **Doel**: Vraag forging-toewijzingsstatus op voor een plotadres. Alleen-lezen, geen wallet vereist.
@@ -260,7 +264,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Categorie**: wallet
-**Vereist miningserver**: Nee
 **Vereist wallet**: Ja (moet geladen en ontgrendeld zijn)
 
 **Doel**: Creeer forging-toewijzingstransactie om forgingrechten te delegeren aan een ander adres (bijv. miningpool).
@@ -294,7 +297,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Activering**:
 - Toewijzing wordt ASSIGNING bij bevestiging
-- Wordt ACTIVE na `nForgingAssignmentDelay` blokken
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Vertraging voorkomt snelle hertoewijzing tijdens ketenvorken
 
 **Foutcodes**:
@@ -316,7 +319,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Categorie**: wallet
-**Vereist miningserver**: Nee
 **Vereist wallet**: Ja (moet geladen en ontgrendeld zijn)
 
 **Doel**: Trek bestaande forging-toewijzing in, waardoor forgingrechten terugkeren naar ploteigenaar.
@@ -377,7 +379,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX-wijzigingen**:
 - **Berekening**: `referentie_base_target / huidige_base_target`
-- **Referentie**: 1 TiB netwerkcapaciteit (base_target = 36650387593)
+- **Referentie**: 1 TiB netwerkcapaciteit (base_target = 36650387592)
 - **Interpretatie**: Geschatte netwerkopslagcapaciteit in TiB
   - Voorbeeld: `1.0` = ~1 TiB
   - Voorbeeld: `1024.0` = ~1 PiB
@@ -401,7 +403,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numeriek) - PoCX-moeilijkheid base target
 - `generation_signature` (string hex) - Generatiehandtekening
 - `pocx_proof` (object):
-  - `account_id` (string hex) - Plot account-ID (20 bytes)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (string hex) - Plotseed (32 bytes)
   - `nonce` (numeriek) - Mining-nonce
   - `compression` (numeriek) - Gebruikt schaalniveau
@@ -464,7 +466,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numeriek) - Voor pool-mining
 
 **PoCX verwijderde velden**:
-- `target` - Verwijderd (PoW-specifiek)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Verwijderd (PoW-specifiek)
 - `bits` - Verwijderd (PoW-specifiek)
 
@@ -494,10 +496,11 @@ De volgende PoW-specifieke RPC's zijn **uitgeschakeld** in PoCX-modus:
 - **Alternatief**: Gebruik `get_mining_info` (PoCX-specifiek)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Reden**: CPU-mining niet van toepassing op PoCX (vereist vooraf gegenereerde plots)
-- **Alternatief**: Gebruik externe plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementatie**: `src/rpc/mining.cpp` (RPC's retourneren fout wanneer ENABLE_POCX gedefinieerd)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +533,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Scan plotbestanden (externe implementatie)
@@ -538,11 +541,15 @@ while True:
 
     # 3. Dien beste oplossing in
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +669,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mining-RPC's**: `src/pocx/rpc/mining.cpp`
 **Toewijzings-RPC's**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain-RPC's**: `src/rpc/blockchain.cpp`
-**Bewijsvalidatie**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Bewijsvalidatie**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Toewijzingsstatus**: `src/pocx/assignments/assignment_state.cpp`
 **Transactiecreatie**: `src/pocx/assignments/transactions.cpp`
 

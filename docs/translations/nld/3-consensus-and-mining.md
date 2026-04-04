@@ -49,7 +49,7 @@ PoCX-blokken breiden de blokstructuur van Bitcoin uit met aanvullende consensusv
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plotseed (32 bytes)
     std::array<uint8_t, 20> account_id;       // Plotadres (20-byte hash160)
-    uint32_t compression;                     // Schaalniveau (1-255)
+    uint32_t compression;                     // Schaalniveau (1-6)
     uint64_t nonce;                           // Mining-nonce (64-bit)
     uint64_t quality;                         // Geclaimde kwaliteit (PoC-hash-uitvoer)
 };
@@ -92,7 +92,7 @@ generationSignature = SHA256(vorige_generationSignature || vorige_miner_pubkey)
 
 **Genesisblok:** Gebruikt een hardcoded initiele generatiehandtekening
 
-**Implementatie:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementatie:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (moeilijkheid)
 
@@ -113,8 +113,8 @@ PoCX ondersteunt schaalbare proof-of-work in plotbestanden via schaalniveaus (Xn
 **Dynamische grenzen:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum geaccepteerd niveau
-    uint8_t nPoCXTargetCompression;  // Aanbevolen niveau
+    uint32_t nPoCXMinCompression;     // Minimum geaccepteerd niveau
+    uint32_t nPoCXTargetCompression;  // Aanbevolen niveau
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Behoudt veiligheidsmarge tussen plotcreatie- en opzoekkosten
 - Maximaal schaalniveau: 255
 
-**Implementatie:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementatie:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,30 +223,36 @@ if (!HaveAccountKey(effective_signer, wallet)) weiger;
 
 **Toewijzingsondersteuning:** Ploteigenaar kan forgingrechten toewijzen aan een ander adres. Wallet moet sleutel hebben voor de effectieve ondertekenaar, niet noodzakelijk de ploteigenaar.
 
-#### Stap 5: Bewijsvalidatie
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20 bytes
     block_height,
     nonce,
     seed,                // 32 bytes
-    min_compression,
-    max_compression,
-    &result             // Uitvoer: quality, deadline
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**Algoritme:**
-1. Decodeer generatiehandtekening van hex
-2. Bereken beste kwaliteit in compressiebereik met SIMD-geoptimaliseerde algoritmen
-3. Valideer dat kwaliteit voldoet aan moeilijkheidsvereisten
-4. Retourneer ruwe kwaliteitswaarde
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**Implementatie:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
-#### Stap 6: Time Bending-berekening
+#### Step 7: Time Bending Bending-berekening
 ```cpp
 // Ruwe moeilijkheidsaangepaste deadline (seconden)
 uint64_t deadline_seconds = quality / base_target;
@@ -270,15 +276,15 @@ waarbij:
 
 **Implementatie:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Stap 7: Forger-indiening
+#### Step 8: Forger Submission-indiening
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // GEEN deadline - herberekend in forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Originele plotadres
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Herbereken merkle-root:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementatie:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementatie:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Belangrijke ontwerpbeslissingen:**
 - Coinbase betaalt effectieve ondertekenaar (respecteert toewijzingen)
@@ -450,25 +457,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX-validatie (wanneer ENABLE_POCX gedefinieerd):**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // Basishandtekeningvalidatie (nog geen toewijzingsondersteuning)
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**Basishandtekeningvalidatie:**
-1. Controleer aanwezigheid van pubkey- en handtekeningvelden
-2. Valideer pubkey-grootte (33 bytes gecomprimeerd)
-3. Valideer handtekeninggrootte (65 bytes compact)
-4. Herstel pubkey uit handtekening: `pubkey.RecoverCompact(hash, signature)`
-5. Verifieer dat herstelde pubkey overeenkomt met opgeslagen pubkey
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**Implementatie:** `src/validation.cpp:CheckBlockHeader()`
-**Handtekeninglogica:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### Fase 2: Blokvalidatie (CheckBlock)
 
@@ -487,49 +483,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Stap 1: Valideer generatiehandtekening
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Stap 2: Valideer base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Stap 3: Valideer proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Stap 4: Verifieer deadline-timing
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Validatiestappen:**
-1. **Generatiehandtekening:** Moet overeenkomen met berekende waarde van vorig blok
-2. **Base target:** Moet overeenkomen met moeilijkheidsaanpassingsberekening
-3. **Schaalniveau:** Moet voldoen aan netwerkminimum (`compression >= min_compression`)
-4. **Kwaliteitsclaim:** Ingediende kwaliteit moet overeenkomen met berekende kwaliteit uit bewijs
-5. **Proof of Capacity:** Cryptografische bewijsvalidatie (SIMD-geoptimaliseerd)
-6. **Deadline-timing:** Time-bended deadline (`poc_time`) moet <= verstreken tijd zijn
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementatie:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +556,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementatie:**
 - Verbinding: `src/validation.cpp:ConnectBlock()`
-- Uitgebreide validatie: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Toewijzingslogica: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Uitgebreide validatie: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Toewijzingslogica: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Fase 5: Ketenactivering
 
@@ -599,7 +582,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Ontvang blok
     |
-CheckBlockHeader (basishandtekening)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     |
 CheckBlock (transacties, merkle)
     |
@@ -668,7 +651,7 @@ Transaction {
 - Wordt ASSIGNED na vertragingsperiode (4 blokken regtest, 30 blokken mainnet)
 - Vertraging voorkomt snelle hertoewijzingen tijdens blokraces
 
-**Implementatie:** `src/script/forging_assignment.h`, validatie in ConnectBlock
+**Implementatie:** `src/pocx/assignments/opcodes.h`, validatie in ConnectBlock
 
 ### Toewijzingen intrekken
 
@@ -831,7 +814,10 @@ SHA256(vorige_generatiehandtekening || vorige_miner_pubkey_33bytes)
 
 **Blokhandtekening-hash:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Compact handtekeningformaat:**
@@ -863,12 +849,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Kernimplementaties:**
 - RPC-interface: `src/pocx/rpc/mining.cpp`
 - Forger-wachtrij: `src/pocx/mining/scheduler.cpp`
-- Consensusvalidatie: `src/pocx/consensus/validation.cpp`
-- Bewijsvalidatie: `src/pocx/consensus/pocx.cpp`
+- Consensusvalidatie: `src/pocx/consensus/proof.cpp`
+- Bewijsvalidatie: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Blokvalidatie: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Toewijzingslogica: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Contextbeheer: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Toewijzingslogica: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Contextbeheer: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Gegevensstructuren:**
 - Blokformaat: `src/primitives/block.h`
@@ -902,7 +888,7 @@ waarbij:
 **Proces:**
 1. Genereer scoop uit generatiehandtekening en hoogte
 2. Lees plotgegevens voor berekende scoop
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Test schaalniveaus van min tot max
 5. Retourneer beste gevonden kwaliteit
 
@@ -925,7 +911,7 @@ waarbij:
 avg_base_target = voortschrijdend_gemiddelde(recente base targets)
 adjustment_factor = werkelijke_tijdsduur / doel_tijdsduur
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

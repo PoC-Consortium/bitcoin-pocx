@@ -42,7 +42,7 @@ Mahtutõestus (Proof of Capacity, PoC) on konsensusmehhanism, kus kaevandamisvõ
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integratsioon
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integratsioon
 │   └── src/pocx/        # PoCX implementatsioon
 ├── pocx/                # PoCX põhiraamistik (alamoodul, ainult lugemiseks)
 └── docs/                # See dokumentatsioon
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Lahendus**: Jaotuse teisendamine eksponentsiaalsest hii-ruut jaotuseks kuupjuurega: `Y = skaala × (X^(1/3))`.
 
-**Tulemus**: Väga head lahendused sepistavad hiljem (võrgul on aega kõiki kettaid skaneerida, vähendab kiireid plokke), kehvad lahendused paranevad. Keskmine plokkide aeg säilitatakse 120 sekundil, pikad plokid vähenevad.
+**Tulemus**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detailid**: [Peatükk 3: Konsensus ja kaevandamine](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Sama mis Bitcoin Core'il**:
 - **Protsessor**: Kaasaegne x86_64 protsessor
 - **Mälu**: 4-8 GB RAM
-- **Hoiustamine**: Uus ahel, praegu tühi (võib kasvada ~4× kiiremini kui Bitcoin 2-minutiliste plokkide ja ülesannete andmebaasi tõttu)
+- **Hoiustamine**: Uus ahel, praegu tühi (võib kasvada ~5× kiiremini kui Bitcoin 2-minutiliste plokkide ja ülesannete andmebaasi tõttu)
 - **Võrk**: Stabiilne internetiühendus
 - **Kell**: NTP sünkroniseerimine soovitatav optimaalseks tööks
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Kompileeri PoCX lubamisega
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detailid**: Vaata `CLAUDE.md` hoidla juurkataloogis
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Käivita sõlm
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Kaevandamiseks** (lubab RPC juurdepääsu välistele kaevandajatele):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # või
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detailid**: [Peatükk 6: Võrguparameetrid](6-network-parameters.md)

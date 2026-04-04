@@ -42,7 +42,7 @@ Bitcoin-PoCX 是一个 Bitcoin Core 集成项目，添加了**新一代容量证
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX 集成
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX 集成
 │   └── src/pocx/        # PoCX 实现
 ├── pocx/                # PoCX 核心框架（子模块，只读）
 └── docs/                # 本文档
@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **问题**：传统 PoC 区块时间遵循指数分布，当没有矿工找到好的解决方案时会导致长区块。
 
-**解决方案**：使用立方根将分布从指数分布转换为卡方分布：`Y = scale × (X^(1/3))`。
+**解决方案**：使用立方根将分布从指数分布转换为卡方分布：`Y = scale × (X^(1/3))` where `X = raw_quality / base_target`。
 
 **效果**：非常好的解决方案会延迟锻造（网络有时间扫描所有磁盘，减少快速区块），较差的解决方案得到改善。平均区块时间保持在 120 秒，长区块减少。
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# 启用 PoCX 构建
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**详情**：参见仓库根目录的 `CLAUDE.md`
+**Details**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 ### 2. 运行节点
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **用于挖矿**（为外部矿工启用 RPC 访问）：
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # 或
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **详情**：[第6章：网络参数](6-network-parameters.md)

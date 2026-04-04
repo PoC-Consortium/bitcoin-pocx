@@ -39,7 +39,7 @@ Kimenetek:
   [1]: Visszajáró a felhasználónak (opcionális, szabványos P2WPKH)
 ```
 
-**Implementáció:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementáció:** `src/pocx/assignments/opcodes.cpp`
 
 ### Visszavonás Tranzakció Formátum
 
@@ -58,14 +58,14 @@ Kimenetek:
   [1]: Visszajáró a felhasználónak (opcionális, szabványos P2WPKH)
 ```
 
-**Implementáció:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementáció:** `src/pocx/assignments/opcodes.cpp`
 
 ### Jelölők
 
 - **Megbízás Jelölő:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Visszavonás Jelölő:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Implementáció:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementáció:** `src/pocx/assignments/opcodes.cpp`
 
 ### Fő Tranzakció Jellemzők
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Teljes előzmény: minden megbízás plotonként időben
 ```
 
-**Implementáció:** `src/txdb.cpp:237-348`
+**Implementáció:** `src/txdb.cpp`
 
 ### ForgingAssignment Struktúra
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementáció:** `src/coins.h:111-178`
+**Implementáció:** `src/coins.h`
 
 ### Megbízás Állapotok
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementáció:** `src/coins.h:98-104`
+**Implementáció:** `src/coins.h`
 
 ### Adatbázis Kulcsok
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementáció:** `src/txdb.cpp:245-262`
+**Implementáció:** `src/txdb.cpp`
 
 ### Előzmény Nyilvántartás
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Plot állapot ellenőrzése (UNASSIGNED vagy REVOKED kell legyen)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Új megbízás létrehozása
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins normálisan folytatódik (automatikusan kihagyja az OP_RETURN kimeneteket)
 ```
 
-**Implementáció:** `src/validation.cpp:2775-2878`
+**Implementáció:** `src/validation.cpp:ConnectBlock()`
 
 ### Tulajdonjog Ellenőrzés
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Ellenőrzés, hogy legalább egy bemenet a plot tulajdonos által aláírt
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Célcím kinyerése
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Ellenőrzés, hogy P2WPKH a plot címre
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // A Bitcoin Core már validálta az aláírást
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementáció:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementáció:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Aktiválási Késleltetések
 
@@ -282,7 +280,7 @@ A `src/consensus/tx_check.cpp`-ben végrehajtva, lánc állapot hozzáférés n�
 
 1. **Maximum Egy POCX OP_RETURN:** A tranzakció nem tartalmazhat több POCX/XCOP jelölőt
 
-**Implementáció:** `src/consensus/tx_check.cpp:63-77`
+**Implementáció:** `src/consensus/tx_check.cpp`
 
 ### Mempool Elfogadási Ellenőrzések (PreChecks)
 
@@ -300,7 +298,7 @@ A `src/validation.cpp`-ben végrehajtva teljes lánc állapot és mempool hozzá
 2. **Aktív Megbízás:** A plot csak ASSIGNED (2) állapotban lehet
 3. **Mempool Konfliktusok:** Nincs másik visszavonás ehhez a plothoz a mempool-ban
 
-**Implementáció:** `src/validation.cpp:898-993`
+**Implementáció:** `src/validation.cpp:PreChecks()`
 
 ### Validációs Folyamat
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Piszkos megbízások összegyűjtése
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Üres - nem használt
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Írás az adatbázisba
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Nyilvántartás törlése
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Memória felszabadítása
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementáció:** `src/coins.cpp:278-315`
+**Implementáció:** `src/coins.cpp:Flush()`
 
 ### Adatbázis Batch Írás
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Megbízások külön írva, de ugyanabban az adatbázis tranzakció kontextusban
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Nem használt paraméter (API kompatibilitásért megtartva)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Új batch, de ugyanaz az adatbázis
+    CDBBatch batch(*m_db);
 
-    // Megbízás előzmény írása
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Törölt megbízások eltávolítása az előzményből
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ATOMI COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementáció:** `src/txdb.cpp:332-348`
+**Implementáció:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Atomitás Garanciák
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementáció:** `src/undo.h:63-105`
+**Implementáció:** `src/undo.h`
 
 ### DisconnectBlock Folyamat
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementáció:** `src/validation.cpp:2381-2415`
+**Implementáció:** `src/validation.cpp:DisconnectBlock()`
 
 ### Gyorsítótár Kezelés Reorg Során
 
@@ -556,7 +562,7 @@ private:
     // Megbízás gyorsítótárak
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Módosított plotok nyomon követése
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Törlések nyomon követése
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Törlések nyomon követése
     mutable size_t cachedAssignmentsUsage{0};  // Memória nyomon követés
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementáció:** `src/coins.cpp:494-565`
+**Implementáció:** `src/coins.cpp`
 
 ## RPC Interfész
 
@@ -613,7 +617,7 @@ Visszaadja az aktuális megbízás állapotot egy plot címhez:
 }
 ```
 
-**Implementáció:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementáció:** `src/pocx/rpc/assignments.cpp`
 
 ### Tárca Parancsok (Tárca Szükséges)
 
@@ -628,7 +632,7 @@ Megbízás tranzakciót hoz létre:
 - Aláírja a plot tulajdonos kulcsával
 - Közvetíti a hálózatra
 
-**Implementáció:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementáció:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Visszavonás tranzakciót hoz létre:
 - Aláírja a plot tulajdonos kulcsával
 - Közvetíti a hálózatra
 
-**Implementáció:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementáció:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Tárca Tranzakció Létrehozás
 
@@ -660,7 +664,7 @@ A tárca tranzakció létrehozási folyamat:
 
 **Fő felismerés:** A tárcának a plot címről kell költenie a tulajdonjog bizonyításához, így automatikusan kényszeríti az érme kiválasztást arról a címről.
 
-**Implementáció:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementáció:** `src/pocx/assignments/transactions.cpp`
 
 ## Fájl Struktúra
 
@@ -668,11 +672,11 @@ A tárca tranzakció létrehozási folyamat:
 
 ```
 src/
-├── coins.h                        # ForgingAssignment struct, CCoinsViewCache metódusok [710 sor]
-├── coins.cpp                      # Gyorsítótár kezelés, batch írások [603 sor]
+├── coins.h                        # ForgingAssignment struct, CCoinsViewCache metódusok
+├── coins.cpp                      # Gyorsítótár kezelés, batch írások
 │
-├── txdb.h                         # CCoinsViewDB megbízás metódusok [90 sor]
-├── txdb.cpp                       # Adatbázis olvasás/írás [349 sor]
+├── txdb.h                         # CCoinsViewDB megbízás metódusok
+├── txdb.cpp                       # Adatbázis olvasás/írás
 │
 ├── undo.h                         # ForgingUndo struktúra reorg-okhoz
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # OP_RETURN formátum, elemzés, ellenőrzés
-    │   ├── opcodes.cpp            # [259 sor] Jelölő definíciók, OP_RETURN műveletek, tulajdonjog ellenőrzés
+    │   ├── opcodes.cpp            # Jelölő definíciók, OP_RETURN műveletek, tulajdonjog ellenőrzés
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState segédfüggvények
     │   ├── assignment_state.cpp   # Megbízás állapot lekérdező függvények
     │   ├── transactions.h         # Tárca tranzakció létrehozás API
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # Csomópont RPC parancsok (nincs tárca)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC-k
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # Tárca RPC parancsok
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC-k
     │

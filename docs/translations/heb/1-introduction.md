@@ -42,7 +42,7 @@ Proof of Capacity (PoC) הוא מנגנון קונצנזוס בו כוח הכר�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + אינטגרציית PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + אינטגרציית PoCX
 │   └── src/pocx/        # יישום PoCX
 ├── pocx/                # מסגרת ליבת PoCX (תת-מודול, קריאה בלבד)
 └── docs/                # תיעוד זה
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **בעיה**: זמני בלוקים מסורתיים ב-PoC עוקבים אחר התפלגות מעריכית, מה שמוביל לבלוקים ארוכים כאשר אף כורה לא מוצא פתרון טוב.
 
-**פתרון**: טרנספורמציית התפלגות ממעריכית לכי-ריבוע באמצעות שורש שלישי: `Y = scale × (X^(1/3))`.
+**פתרון**: טרנספורמציית התפלגות ממעריכית לכי-ריבוע באמצעות שורש שלישי: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**אפקט**: פתרונות טובים מאוד מתכווצים מאוחר יותר (לרשת יש זמן לסרוק את כל הדיסקים, מפחית בלוקים מהירים), פתרונות גרועים משופרים. זמן בלוק ממוצע נשמר ב-120 שניות, בלוקים ארוכים מופחתים.
+**אפקט**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **פרטים**: [פרק 3: קונצנזוס וכרייה](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **זהה ל-Bitcoin Core**:
 - **מעבד**: מעבד x86_64 מודרני
 - **זיכרון**: 4-8 GB RAM
-- **אחסון**: שרשרת חדשה, כרגע ריקה (יכולה לגדול ~4× מהר יותר מ-Bitcoin עקב בלוקים של 2 דקות ומסד נתוני הקצאות)
+- **אחסון**: שרשרת חדשה, כרגע ריקה (יכולה לגדול ~5× מהר יותר מ-Bitcoin עקב בלוקים של 2 דקות ומסד נתוני הקצאות)
 - **רשת**: חיבור אינטרנט יציב
 - **שעון**: סנכרון NTP מומלץ לפעולה אופטימלית
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# בנייה עם PoCX מופעל
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**פרטים**: ראו `CLAUDE.md` בשורש המאגר
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. הפעלת צומת
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **לכרייה** (מאפשר גישת RPC לכורים חיצוניים):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # או
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **פרטים**: [פרק 6: פרמטרי רשת](6-network-parameters.md)

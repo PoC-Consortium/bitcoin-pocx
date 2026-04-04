@@ -49,7 +49,7 @@ Bitcoin-PoCX מיישם מנגנון קונצנזוס טהור של Proof of Cap
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed של plot (32 בתים)
     std::array<uint8_t, 20> account_id;       // כתובת plot (hash160 של 20 בתים)
-    uint32_t compression;                     // רמת סילום (1-255)
+    uint32_t compression;                     // רמת סילום (1-6)
     uint64_t nonce;                           // Nonce כרייה (64-bit)
     uint64_t quality;                         // איכות מוצהרת (פלט hash של PoC)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **חישוב:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **בלוק בראשית:** משתמש בחתימת יצירה ראשונית קבועה בקוד
 
-**יישום:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**יישום:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (קושי)
 
@@ -113,8 +113,8 @@ PoCX תומך ב-proof-of-work מדורג בקובצי plot דרך רמות סי
 **גבולות דינמיים:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // רמה מינימלית מתקבלת
-    uint8_t nPoCXTargetCompression;  // רמה מומלצת
+    uint32_t nPoCXMinCompression;     // רמה מינימלית מתקבלת
+    uint32_t nPoCXTargetCompression;  // רמה מומלצת
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - שומר על מרווח בטיחות בין עלויות יצירת plot לעלויות חיפוש
 - רמת סילום מקסימלית: 255
 
-**יישום:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**יישום:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **תמיכת הקצאות:** בעל plot עשוי להקצות זכויות כרייה לכתובת אחרת. הארנק חייב להחזיק במפתח לחותם האפקטיבי, לא בהכרח לבעל ה-plot.
 
-#### שלב 5: אימות הוכחה
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 בתים
     block_height,
     nonce,
-    seed,                // 32 בתים
-    min_compression,
-    max_compression,
-    &result             // פלט: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. אמת שהאיכות עומדת בדרישות קושי
 4. החזר ערך איכות גולמי
 
-**יישום:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**יישום:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### שלב 6: חישוב עיקום זמן
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **יישום:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### שלב 7: הגשה לכורה
+#### Step 8: Forger Submission: הגשה לכורה
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // לא deadline - מחושב מחדש בכורה
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // כתובת plot מקורית
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. חשב מחדש שורש merkle:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**יישום:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**יישום:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **החלטות עיצוב מפתח:**
 - Coinbase משלם לחותם אפקטיבי (מכבד הקצאות)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. אמת ש-pubkey משוחזר תואם ל-pubkey מאוחסן
 
 **יישום:** `src/validation.cpp:CheckBlockHeader()`
-**לוגיקת חתימה:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**לוגיקת חתימה:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### שלב 2: אימות בלוק (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // שלב 1: אמת חתימת יצירה
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // שלב 2: אמת base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // שלב 3: אמת proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // שלב 4: אמת תזמון deadline
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**שלבי אימות:**
-1. **חתימת יצירה:** חייבת להתאים לערך מחושב מבלוק קודם
-2. **Base Target:** חייב להתאים לחישוב התאמת קושי
-3. **רמת סילום:** חייבת לעמוד במינימום רשת (`compression >= min_compression`)
-4. **טענת איכות:** איכות מוגשת חייבת להתאים לאיכות מחושבת מההוכחה
-5. **Proof of Capacity:** אימות הוכחה קריפטוגרפי (מותאם SIMD)
-6. **תזמון Deadline:** deadline עם עיקום זמן (`poc_time`) חייב להיות ≤ זמן שעבר
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **יישום:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **יישום:**
 - חיבור: `src/validation.cpp:ConnectBlock()`
-- אימות מורחב: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- לוגיקת הקצאה: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- אימות מורחב: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- לוגיקת הקצאה: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### שלב 5: הפעלת שרשרת
 
@@ -668,7 +662,7 @@ Transaction {
 - הופכת ל-ASSIGNED לאחר תקופת עיכוב (4 בלוקים regtest, 30 בלוקים mainnet)
 - עיכוב מונע הקצאות מחדש מהירות במהלך מרוצי בלוקים
 
-**יישום:** `src/script/forging_assignment.h`, אימות ב-ConnectBlock
+**יישום:** `src/pocx/assignments/opcodes.h`, אימות ב-ConnectBlock
 
 ### ביטול הקצאות
 
@@ -826,12 +820,15 @@ Thread B: cs_wallet → cs_main
 
 **חתימת יצירה:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Hash חתימת בלוק:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **פורמט חתימה קומפקטית:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **יישומי ליבה:**
 - ממשק RPC: `src/pocx/rpc/mining.cpp`
 - תור כורה: `src/pocx/mining/scheduler.cpp`
-- אימות קונצנזוס: `src/pocx/consensus/validation.cpp`
-- אימות הוכחה: `src/pocx/consensus/pocx.cpp`
+- אימות קונצנזוס: `src/pocx/consensus/proof.cpp`
+- אימות הוכחה: `src/pocx/consensus/signature.cpp`
 - עיקום זמן: `src/pocx/algorithms/time_bending.cpp`
 - אימות בלוק: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- לוגיקת הקצאה: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- ניהול הקשר: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- לוגיקת הקצאה: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- ניהול הקשר: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **מבני נתונים:**
 - פורמט בלוק: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **תהליך:**
 1. צור scoop מחתימת יצירה וגובה
 2. קרא נתוני plot ל-scoop מחושב
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. בדוק רמות סילום ממינימום למקסימום
 5. החזר את האיכות הטובה ביותר שנמצאה
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(base targets אחרונים)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

@@ -23,7 +23,7 @@
 
 ### माइनिंग सर्वर मोड
 
-**फ़्लैग**: `-miningserver`
+**फ़्लैग**: ``
 
 **उद्देश्य**: बाहरी माइनर्स के लिए माइनिंग-विशिष्ट RPCs कॉल करने के लिए RPC एक्सेस सक्षम करता है
 
@@ -34,10 +34,9 @@
 **उपयोग**:
 ```bash
 # कमांड लाइन
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **सुरक्षा विचार**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // हेक्स, 64 अक्षर
-  "base_target": 36650387593,                // संख्यात्मक
+  "base_target": 36650387592,                // संख्यात्मक
   "height": 12345,                           // संख्यात्मक, अगले ब्लॉक की ऊंचाई
   "block_hash": "def456...",                 // हेक्स, पिछला ब्लॉक
   "target_quality": 18446744073709551615,    // uint64_max (सभी समाधान स्वीकृत)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **उद्देश्य**: PoCX माइनिंग समाधान सबमिट करें। प्रमाण सत्यापित करता है, time-bended फोर्जिंग के लिए कतारबद्ध करता है, और निर्धारित समय पर स्वचालित रूप से ब्लॉक बनाता है।
 
-**पैरामीटर**:
-1. `height` (संख्यात्मक, आवश्यक) - ब्लॉक ऊंचाई
-2. `generation_signature` (स्ट्रिंग हेक्स, आवश्यक) - Generation signature (64 अक्षर)
-3. `account_id` (स्ट्रिंग, आवश्यक) - Plot account ID (40 हेक्स अक्षर = 20 बाइट्स)
-4. `seed` (स्ट्रिंग, आवश्यक) - Plot seed (64 हेक्स अक्षर = 32 बाइट्स)
-5. `nonce` (संख्यात्मक, आवश्यक) - माइनिंग nonce
-6. `compression` (संख्यात्मक, आवश्यक) - उपयोग किया गया स्केलिंग/compression स्तर (1-255)
-7. `quality` (संख्यात्मक, वैकल्पिक) - गुणवत्ता मान (छोड़ने पर पुनर्गणना)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **रिटर्न मान** (सफलता):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **उदाहरण**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **नोट्स**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX संशोधन**:
 - **गणना**: `reference_base_target / current_base_target`
-- **संदर्भ**: 1 TiB नेटवर्क क्षमता (base_target = 36650387593)
+- **संदर्भ**: 1 TiB नेटवर्क क्षमता (base_target = 36650387592)
 - **व्याख्या**: TiB में अनुमानित नेटवर्क स्टोरेज क्षमता
   - उदाहरण: `1.0` = ~1 TiB
   - उदाहरण: `1024.0` = ~1 PiB
@@ -401,7 +406,7 @@ bitcoin-cli getdifficulty
 - `base_target` (संख्यात्मक) - PoCX कठिनाई base target
 - `generation_signature` (स्ट्रिंग हेक्स) - Generation signature
 - `pocx_proof` (ऑब्जेक्ट):
-  - `account_id` (स्ट्रिंग हेक्स) - Plot account ID (20 बाइट्स)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (स्ट्रिंग हेक्स) - Plot seed (32 बाइट्स)
   - `nonce` (संख्यात्मक) - माइनिंग nonce
   - `compression` (संख्यात्मक) - उपयोग किया गया स्केलिंग स्तर
@@ -464,7 +469,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (संख्यात्मक) - पूल माइनिंग के लिए
 
 **PoCX हटाए गए फ़ील्ड**:
-- `target` - हटाया गया (PoW-विशिष्ट)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - हटाया गया (PoW-विशिष्ट)
 - `bits` - हटाया गया (PoW-विशिष्ट)
 
@@ -494,10 +499,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **विकल्प**: `get_mining_info` (PoCX-विशिष्ट) उपयोग करें
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **कारण**: CPU माइनिंग PoCX पर लागू नहीं (पूर्व-उत्पन्न plots आवश्यक)
-- **विकल्प**: बाहरी plotter + miner + `submit_nonce` उपयोग करें
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**कार्यान्वयन**: `src/rpc/mining.cpp` (जब ENABLE_POCX परिभाषित तो RPCs त्रुटि लौटाते हैं)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +536,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Plot फ़ाइलें स्कैन करें (बाहरी कार्यान्वयन)
@@ -538,11 +544,15 @@ while True:
 
     # 3. सर्वोत्तम समाधान सबमिट करें
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +672,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **माइनिंग RPCs**: `src/pocx/rpc/mining.cpp`
 **असाइनमेंट RPCs**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **ब्लॉकचेन RPCs**: `src/rpc/blockchain.cpp`
-**प्रमाण सत्यापन**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**प्रमाण सत्यापन**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **असाइनमेंट स्थिति**: `src/pocx/assignments/assignment_state.cpp`
 **लेनदेन निर्माण**: `src/pocx/assignments/transactions.cpp`
 

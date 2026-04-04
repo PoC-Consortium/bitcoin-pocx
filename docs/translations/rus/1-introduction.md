@@ -42,7 +42,7 @@ Proof of Capacity (PoC) — это механизм консенсуса, в к�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + интеграция PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + интеграция PoCX
 │   └── src/pocx/        # Реализация PoCX
 ├── pocx/                # Фреймворк PoCX core (подмодуль, только чтение)
 └── docs/                # Эта документация
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Решение**: Преобразование распределения из экспоненциального в хи-квадрат с использованием кубического корня: `Y = масштаб × (X^(1/3))`.
 
-**Эффект**: Очень хорошие решения форджатся позже (сеть успевает просканировать все диски, уменьшает количество быстрых блоков), плохие решения улучшаются. Среднее время блока поддерживается на уровне 120 секунд, длинные блоки сокращаются.
+**Эффект**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Подробности**: [Глава 3: Консенсус и майнинг](3-consensus-and-mining.md)
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Сборка с включённым PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Подробности**: См. `CLAUDE.md` в корне репозитория
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Запуск узла
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Для майнинга** (включает RPC-доступ для внешних майнеров):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # или
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Подробности**: [Глава 6: Сетевые параметры](6-network-parameters.md)

@@ -32,16 +32,16 @@ PoCX konsensam nepieciešama precīza laika sinhronizācija visā tīklā. Šī 
 
 **Bitcoin-PoCX konfigurācija:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekundes
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekundes
 ```
 
 ### Validācijas pārbaudes
 
-**Bloka laikspiedoga validācija** (`src/validation.cpp:4547-4561`):
+**Bloka laikspiedoga validācija** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotonā pārbaude: laikspiedogs >= iepriekšējā bloka laikspiedogs
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Termiņa pārbaude: pagājušais laiks >= termiņš
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Jūsu kalnrūpniecības augstums 100, konkurents publicē bloku 99
 - Validācija pabeidzas milisekundēs
 
 **Resursu lietojums:** Minimāls
-- ~20 rindas pamata loģikas
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Atkārtoti izmanto esošo validācijas infrastruktūru
 - Viena bloķēšanas iegūšana
 
@@ -372,9 +372,9 @@ Mezgls **>15s aiz** ir katastrofāls:
 ## Implementācijas atsauces
 
 **Pamata faili**:
-- Laika validācija: `src/validation.cpp:4547-4561`
-- Nākotnes tolerances konstante: `src/chain.h:31`
-- Brīdinājuma slieksnis: `src/node/timeoffsets.h:27`
+- Laika validācija: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Nākotnes tolerances konstante: `src/chain.h`
+- Brīdinājuma slieksnis: `src/node/timeoffsets.h`
 - Laika nobīdes uzraudzība: `src/node/timeoffsets.cpp`
 - Aizsardzības kalšana: `src/pocx/mining/scheduler.cpp`
 

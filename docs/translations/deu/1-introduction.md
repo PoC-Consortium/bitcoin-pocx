@@ -42,7 +42,7 @@ Proof of Capacity (PoC) ist ein Konsensmechanismus, bei dem die Mining-Leistung 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX-Integration
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX-Integration
 │   └── src/pocx/        # PoCX-Implementierung
 ├── pocx/                # PoCX Core Framework (Submodul, schreibgeschützt)
 └── docs/                # Diese Dokumentation
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Problem**: Traditionelle PoC-Blockzeiten folgen einer Exponentialverteilung, was zu langen Blöcken führt, wenn kein Miner eine gute Lösung findet.
 
-**Lösung**: Verteilungstransformation von exponentiell zu Chi-Quadrat mittels Kubikwurzel: `Y = scale × (X^(1/3))`.
+**Lösung**: Verteilungstransformation von exponentiell zu Chi-Quadrat mittels Kubikwurzel: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Effekt**: Sehr gute Lösungen werden später geschmiedet (Netzwerk hat Zeit, alle Festplatten zu scannen, reduziert schnelle Blöcke), schlechte Lösungen werden verbessert. Durchschnittliche Blockzeit bleibt bei 120 Sekunden, lange Blöcke werden reduziert.
+**Effekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Details**: [Kapitel 3: Konsens und Mining](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Wie bei Bitcoin Core**:
 - **CPU**: Moderner x86_64-Prozessor
 - **Arbeitsspeicher**: 4-8 GB RAM
-- **Speicher**: Neue Chain, derzeit leer (kann ~4× schneller als Bitcoin wachsen aufgrund von 2-Minuten-Blöcken und Zuweisungsdatenbank)
+- **Speicher**: Neue Chain, derzeit leer (kann ~5× schneller als Bitcoin wachsen aufgrund von 2-Minuten-Blöcken und Zuweisungsdatenbank)
 - **Netzwerk**: Stabile Internetverbindung
 - **Uhr**: NTP-Synchronisation empfohlen für optimalen Betrieb
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Mit aktiviertem PoCX kompilieren
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Details**: Siehe `CLAUDE.md` im Repository-Stammverzeichnis
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Node ausführen
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Für Mining** (aktiviert RPC-Zugang für externe Miner):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # oder
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Details**: [Kapitel 6: Netzwerkparameter](6-network-parameters.md)

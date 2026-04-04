@@ -42,7 +42,7 @@ Proof of Capacity (PoC) on konsensusmekanismi, jossa louhintateho on verrannolli
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX-integraatio
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX-integraatio
 │   └── src/pocx/        # PoCX-toteutus
 ├── pocx/                # PoCX-ydinkehys (alimoduuli, vain luku)
 └── docs/                # Tämä dokumentaatio
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Ratkaisu**: Jakauman muunnos eksponentiaalisesta khii-neliö-jakaumaksi kuutiojuuren avulla: `Y = skaala × (X^(1/3))`.
 
-**Vaikutus**: Erittäin hyvät ratkaisut forgataan myöhemmin (verkolla on aikaa skannata kaikki levyt, vähentää nopeita lohkoja), huonot ratkaisut parannetaan. Keskimääräinen lohkoaika säilyy 120 sekunnissa, pitkät lohkot vähenevät.
+**Vaikutus**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Lisätiedot**: [Luku 3: Konsensus ja louhinta](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Samat kuin Bitcoin Corella**:
 - **Prosessori**: Moderni x86_64-prosessori
 - **Muisti**: 4-8 GB RAM
-- **Tallennustila**: Uusi ketju, tällä hetkellä tyhjä (voi kasvaa ~4× nopeammin kuin Bitcoin 2 minuutin lohkojen ja delegointitietokannan vuoksi)
+- **Tallennustila**: Uusi ketju, tällä hetkellä tyhjä (voi kasvaa ~5× nopeammin kuin Bitcoin 2 minuutin lohkojen ja delegointitietokannan vuoksi)
 - **Verkko**: Vakaa internet-yhteys
 - **Kello**: NTP-synkronointi suositeltava optimaaliseen toimintaan
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Rakenna PoCX käytössä
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Lisätiedot**: Katso `CLAUDE.md` repositorion juurihakemistossa
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Käynnistä solmu
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Louhintaa varten** (sallii RPC-pääsyn ulkoisille louhijoille):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # tai
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Lisätiedot**: [Luku 6: Verkkoparametrit](6-network-parameters.md)

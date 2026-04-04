@@ -39,12 +39,7 @@ Referință completă pentru configurarea rețelei Bitcoin-PoCX în toate tipuri
 
 ### Mesajul genesis
 
-Toate rețelele folosesc același mesaj genesis ca Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementare**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Toate rețelele folosesc același mesaj genesis ca Bitcoin:
 
 **Identitate rețea**:
 - **Octeți magici**: `0xa7 0x3c 0x91 0x5e`
-- **Port implicit**: `8888`
+- **Port implicit**: `8338`
 - **HRP Bech32**: `pocx`
 
 **Prefixe de adrese** (Base58):
@@ -84,14 +79,14 @@ Toate rețelele folosesc același mesaj genesis ca Bitcoin:
 ### Parametri testnet
 
 **Identitate rețea**:
-- **Octeți magici**: `0x6d 0xf2 0x48 0xb3`
-- **Port implicit**: `18888`
+- **Octeți magici**: `0x6d 0xf2 0x48 0xb4`
+- **Port implicit**: `18338`
 - **HRP Bech32**: `tpocx`
 
 **Prefixe de adrese** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Sincronizarea blocurilor**:
 - **Ținta timp bloc**: `120` secunde
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementare**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementare**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Structură**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Nivel minim acceptat
-    uint8_t nPoCXTargetCompression;  // Nivel recomandat
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Nivel minim acceptat
+    uint32_t nPoCXTargetCompression;  // Nivel recomandat
 };
 ```
 
@@ -313,7 +308,7 @@ Nivelurile de scalare cresc după un **calendar exponențial** bazat pe interval
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementare**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementare**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Versiunea protocolului
 
-**Bază**: Protocolul Bitcoin Core v30.0
+**Bază**: Protocolul Bitcoin Core v30.2
 - **Versiune protocol**: Moștenită de la Bitcoin Core
 - **Biți de serviciu**: Servicii standard Bitcoin
 - **Tipuri de mesaje**: Mesaje P2P standard Bitcoin
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Server de minerit PoCX (necesar pentru minerii externi)
-miningserver=1
 
 # Setări RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Setări de conexiune
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Ținta timp bloc (informațional, aplicată de consens)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Parametri consens**: `src/consensus/params.h`
-**Limite compresie**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Limite compresie**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Calculul țintei de bază genesis**: `src/pocx/consensus/params.cpp`
-**Logica plății coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Logica plății coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Stocarea stării atribuirilor**: `src/coins.h`, `src/coins.cpp` (extensii CCoinsViewCache)
 
 ---

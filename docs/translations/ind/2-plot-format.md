@@ -77,12 +77,12 @@ Semua metadata plot dikodekan dalam nama file menggunakan format persis ini:
 1. **ACCOUNT_PAYLOAD** (40 karakter heksadesimal)
    - Payload akun 20-byte mentah sebagai hex huruf besar
    - Independen jaringan (tanpa ID jaringan atau checksum)
-   - Contoh: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Contoh: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 karakter heksadesimal)
    - Nilai seed 32-byte sebagai hex huruf kecil
    - **Baru di PoCX**: Seed acak 32-byte dalam nama file menggantikan penomoran nonce berurutan — mencegah tumpang tindih plot
-   - Contoh: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Contoh: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (angka desimal)
    - **Unit ukuran BARU di PoCX**: Menggantikan ukuran berbasis nonce dari POC1/POC2
@@ -97,8 +97,8 @@ Semua metadata plot dikodekan dalam nama file menggunakan format persis ini:
 
 ### Contoh Nama File
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

@@ -77,12 +77,12 @@ Alle plotmetadata is gecodeerd in de bestandsnaam met dit exacte formaat:
 1. **ACCOUNT_PAYLOAD** (40 hex-tekens)
    - Ruwe 20-byte account-payload als hoofdletter-hex
    - Netwerk-onafhankelijk (geen netwerk-ID of checksum)
-   - Voorbeeld: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Voorbeeld: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 hex-tekens)
    - 32-byte seed-waarde als kleine letter-hex
    - **Nieuw in PoCX**: Willekeurige 32-byte seed in bestandsnaam vervangt opeenvolgende nonce-nummering - voorkomt plotoverlapping
-   - Voorbeeld: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Voorbeeld: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (decimaal getal)
    - **NIEUWE grootte-eenheid in PoCX**: Vervangt nonce-gebaseerde grootte van POC1/POC2
@@ -97,8 +97,8 @@ Alle plotmetadata is gecodeerd in de bestandsnaam met dit exacte formaat:
 
 ### Voorbeeldbestandsnamen
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

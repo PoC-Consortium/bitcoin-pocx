@@ -39,12 +39,7 @@ Marejeleo kamili ya usanidi wa mtandao wa Bitcoin-PoCX kwa aina zote za mtandao.
 
 ### Ujumbe wa Mwanzo
 
-Mitandao yote inashiriki ujumbe wa mwanzo wa Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Utekelezaji**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Mitandao yote inashiriki ujumbe wa mwanzo wa Bitcoin:
 
 **Utambulisho wa Mtandao**:
 - **Byte za Uchawi**: `0xa7 0x3c 0x91 0x5e`
-- **Bandari ya Default**: `8888`
+- **Bandari ya Default**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Viambishi vya Anwani** (Base58):
@@ -84,14 +79,14 @@ Mitandao yote inashiriki ujumbe wa mwanzo wa Bitcoin:
 ### Vigezo vya Testnet
 
 **Utambulisho wa Mtandao**:
-- **Byte za Uchawi**: `0x6d 0xf2 0x48 0xb3`
-- **Bandari ya Default**: `18888`
+- **Byte za Uchawi**: `0x6d 0xf2 0x48 0xb4`
+- **Bandari ya Default**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Viambishi vya Anwani** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Muda wa Bloku**:
 - **Lengo la Muda wa Bloku**: sekunde `120`
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Utekelezaji**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Utekelezaji**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Muundo**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Kiwango cha chini kinachokubaliwa
-    uint8_t nPoCXTargetCompression;  // Kiwango kinachopendekezwa
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Kiwango cha chini kinachokubaliwa
+    uint32_t nPoCXTargetCompression;  // Kiwango kinachopendekezwa
 };
 ```
 
@@ -313,7 +308,7 @@ Viwango vya upanuzi vinaongezeka kwa **ratiba ya exponential** kulingana na vipi
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Utekelezaji**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Utekelezaji**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Toleo la Itifaki
 
-**Msingi**: Itifaki ya Bitcoin Core v30.0
+**Msingi**: Itifaki ya Bitcoin Core v30.2
 - **Toleo la Itifaki**: Limerithi kutoka Bitcoin Core
 - **Bits za Huduma**: Huduma za kawaida za Bitcoin
 - **Aina za Ujumbe**: Ujumbe wa kawaida wa P2P wa Bitcoin
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Seva ya uchimbaji wa PoCX (inahitajika kwa wachimbaji wa nje)
-miningserver=1
 
 # Mipangilio ya RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Mipangilio ya muunganisho
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Lengo la muda wa bloku (habari, linatekelezwa na makubaliano)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Vigezo vya Makubaliano**: `src/consensus/params.h`
-**Mipaka ya Ukandamizaji**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Mipaka ya Ukandamizaji**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Hesabu ya Lengo la Msingi ya Mwanzo**: `src/pocx/consensus/params.cpp`
-**Mantiki ya Malipo ya Coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Mantiki ya Malipo ya Coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Hifadhi ya Hali ya Ugawaji**: `src/coins.h`, `src/coins.cpp` (viendelezi vya CCoinsViewCache)
 
 ---

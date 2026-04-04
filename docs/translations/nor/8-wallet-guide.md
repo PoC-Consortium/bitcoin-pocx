@@ -28,7 +28,7 @@ Fullstendig veiledning for Bitcoin-PoCX Qt-lommeboken og forging assignment-admi
 Bitcoin-PoCX Qt-lommeboken (`bitcoin-qt`) gir:
 - Standard Bitcoin Core-lommebokfunksjonalitet (send, motta, transaksjonsadministrasjon)
 - **Forging assignment manager**: GUI for å opprette/oppheve plottildelinger
-- **Mining-servermodus**: `-miningserver`-flagg aktiverer mining-relaterte funksjoner
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Transaksjonshistorikk**: Visning av tildelings- og opphevingstransaksjoner
 
 ### Starte lommeboken
@@ -38,20 +38,20 @@ Bitcoin-PoCX Qt-lommeboken (`bitcoin-qt`) gir:
 ./build/bin/bitcoin-qt
 ```
 
-**Med mining** (aktiverer tildelingsdialog):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Kommandolinjealternativ**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Mining-krav
 
 **For miningoperasjoner**:
-- `-miningserver`-flagg påkrevd
+- ``-flagg påkrevd
 - Lommebok med P2WPKH-adresser og private nøkler
 - Ekstern plotter (`pocx_plotter`) for plotgenerering
 - Ekstern miner (`pocx_miner`) for mining
@@ -84,7 +84,7 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 ### Åpne dialogen
 
 **Meny**: `Lommebok → Forging-tildelinger`
-**Verktøylinje**: Mining-ikon (synlig kun med `-miningserver`-flagg)
+**Verktøylinje**: Mining-ikon (synlig kun med ``-flagg)
 **Vindusstørrelse**: 600×450 piksler
 
 ### Dialogmoduser
@@ -118,7 +118,7 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- OP_RETURN-output: `POCX`-markør + plot_address + forging_address (46 bytes)
+- OP_RETURN-output: `POCX`-markør + plot_address + forging_address (44 bytes)
 - Vekslepenge-output: Returnert til lommebok
 
 #### Modus 2: Opphev tildeling
@@ -146,7 +146,7 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- OP_RETURN-output: `XCOP`-markør + plot_address (26 bytes)
+- OP_RETURN-output: `XCOP`-markør + plot_address (24 bytes)
 - Vekslepenge-output: Returnert til lommebok
 
 #### Modus 3: Sjekk tildelingsstatus
@@ -313,7 +313,6 @@ Oppheving effektiv ved høyde: 13020
 **Nodekonfigurasjon**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Start node** med mining-server:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigurer miner**:
@@ -450,8 +449,8 @@ server=1
 
 #### «Forging assignment-fane ikke synlig»
 
-**Årsak**: Node startet uten `-miningserver`-flagg
-**Løsning**: Start på nytt med `bitcoin-qt -server -miningserver`
+**Årsak**: Node startet uten ``-flagg
+**Løsning**: Start på nytt med `bitcoin-qt -server`
 
 ### Feilsøkingstrinn
 

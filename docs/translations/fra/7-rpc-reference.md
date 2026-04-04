@@ -23,7 +23,7 @@ Référence complète des commandes RPC Bitcoin-PoCX, incluant les RPCs de minag
 
 ### Mode serveur de minage
 
-**Option** : `-miningserver`
+**Option** : ``
 
 **Objectif** : Active l'accès RPC pour que les mineurs externes puissent appeler les RPCs spécifiques au minage
 
@@ -34,10 +34,9 @@ Référence complète des commandes RPC Bitcoin-PoCX, incluant les RPCs de minag
 **Utilisation** :
 ```bash
 # Ligne de commande
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Considérations de sécurité** :
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 caractères
-  "base_target": 36650387593,                // numérique
+  "base_target": 36650387592,                // numérique
   "height": 12345,                           // numérique, hauteur du prochain bloc
   "block_hash": "def456...",                 // hex, bloc précédent
   "target_quality": 18446744073709551615,    // uint64_max (toutes solutions acceptées)
@@ -116,7 +115,7 @@ bitcoin-cli get_mining_info
 ```json
 {
   "accepted": true,
-  "quality": 120,           // deadline ajustée à la difficulté en secondes
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // temps de forge time-bendé en secondes
 }
 ```
@@ -163,12 +162,16 @@ bitcoin-cli get_mining_info
 
 **Exemple** :
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Notes** :
@@ -294,7 +297,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Activation** :
 - L'assignation devient ASSIGNING à la confirmation
-- Devient ACTIVE après `nForgingAssignmentDelay` blocs
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Le délai empêche la réassignation rapide lors des forks de chaîne
 
 **Codes d'erreur** :
@@ -377,7 +380,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Modifications PoCX** :
 - **Calcul** : `reference_base_target / current_base_target`
-- **Référence** : Capacité réseau de 1 Tio (base_target = 36650387593)
+- **Référence** : Capacité réseau de 1 Tio (base_target = 36650387592)
 - **Interprétation** : Capacité de stockage réseau estimée en Tio
   - Exemple : `1.0` = ~1 Tio
   - Exemple : `1024.0` = ~1 Pio
@@ -401,7 +404,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numérique) - Cible de base de difficulté PoCX
 - `generation_signature` (chaîne hex) - Signature de génération
 - `pocx_proof` (objet) :
-  - `account_id` (chaîne hex) - ID de compte du plot (20 octets)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (chaîne hex) - Seed du plot (32 octets)
   - `nonce` (numérique) - Nonce de minage
   - `compression` (numérique) - Niveau de mise à l'échelle utilisé
@@ -530,7 +533,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Scanner les fichiers plot (implémentation externe)
@@ -538,11 +541,15 @@ while True:
 
     # 3. Soumettre la meilleure solution
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +669,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPCs de minage** : `src/pocx/rpc/mining.cpp`
 **RPCs d'assignation** : `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPCs blockchain** : `src/rpc/blockchain.cpp`
-**Validation de preuve** : `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Validation de preuve** : `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **État d'assignation** : `src/pocx/assignments/assignment_state.cpp`
 **Création de transaction** : `src/pocx/assignments/transactions.cpp`
 

@@ -77,12 +77,12 @@ Tất cả metadata plot được mã hóa trong tên tệp sử dụng định 
 1. **ACCOUNT_PAYLOAD** (40 ký tự hex)
    - Payload tài khoản 20-byte thô dưới dạng hex viết hoa
    - Độc lập mạng (không có ID mạng hoặc checksum)
-   - Ví dụ: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Ví dụ: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 ký tự hex)
    - Giá trị seed 32-byte dưới dạng hex viết thường
    - **Mới trong PoCX**: Seed 32-byte ngẫu nhiên trong tên tệp thay thế đánh số nonce liên tiếp - ngăn chồng chéo plot
-   - Ví dụ: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Ví dụ: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (số thập phân)
    - **Đơn vị kích thước MỚI trong PoCX**: Thay thế kích thước dựa trên nonce từ POC1/POC2
@@ -97,8 +97,8 @@ Tất cả metadata plot được mã hóa trong tên tệp sử dụng định 
 
 ### Ví dụ Tên tệp
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

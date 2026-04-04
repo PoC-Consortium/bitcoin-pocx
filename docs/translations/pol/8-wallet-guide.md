@@ -28,7 +28,7 @@ Kompletny przewodnik po portfelu Qt Bitcoin-PoCX i zarządzaniu przydziałami ku
 Portfel Qt Bitcoin-PoCX (`bitcoin-qt`) zapewnia:
 - Standardową funkcjonalność portfela Bitcoin Core (wysyłanie, odbieranie, zarządzanie transakcjami)
 - **Menedżer przydziałów kucia**: GUI do tworzenia/cofania przydziałów plotów
-- **Tryb serwera wydobywczego**: Flaga `-miningserver` włącza funkcje związane z wydobyciem
+- **Tryb serwera wydobywczego**: Flaga `` włącza funkcje związane z wydobyciem
 - **Historia transakcji**: Wyświetlanie transakcji przydziałów i cofnięć
 
 ### Uruchamianie portfela
@@ -40,18 +40,18 @@ Portfel Qt Bitcoin-PoCX (`bitcoin-qt`) zapewnia:
 
 **Z wydobyciem** (włącza dialog przydziałów):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternatywa linii poleceń**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Wymagania wydobycia
 
 **Do operacji wydobycia**:
-- Wymagana flaga `-miningserver`
+- Wymagana flaga ``
 - Portfel z adresami P2WPKH i kluczami prywatnymi
 - Zewnętrzny plotter (`pocx_plotter`) do generowania plotów
 - Zewnętrzny górnik (`pocx_miner`) do wydobycia
@@ -84,7 +84,7 @@ Bitcoin-PoCX używa jednostki waluty **BTCX** (nie BTC):
 ### Dostęp do dialogu
 
 **Menu**: `Portfel → Przydziały kucia`
-**Pasek narzędzi**: Ikona wydobycia (widoczna tylko z flagą `-miningserver`)
+**Pasek narzędzi**: Ikona wydobycia (widoczna tylko z flagą ``)
 **Rozmiar okna**: 600×450 pikseli
 
 ### Tryby dialogu
@@ -296,7 +296,7 @@ Cofnięcie weszło w życie na wysokości: 13020
 ### Komunikaty błędów walidacji
 
 **Błędy dialogu**:
-- "Adres plotu musi być P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
 - "Adres kucia musi być P2WPKH (bech32)"
 - "Nieprawidłowy format adresu"
 - "Brak monet na adresie plotu. Nie można udowodnić własności."
@@ -313,7 +313,6 @@ Cofnięcie weszło w życie na wysokości: 13020
 **Konfiguracja węzła**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Uruchom węzeł** z serwerem wydobywczym:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Skonfiguruj górnika**:
@@ -450,8 +449,8 @@ server=1
 
 #### "Karta przydziału kucia niewidoczna"
 
-**Przyczyna**: Węzeł uruchomiony bez flagi `-miningserver`
-**Rozwiązanie**: Uruchom ponownie z `bitcoin-qt -server -miningserver`
+**Przyczyna**: Węzeł uruchomiony bez flagi ``
+**Rozwiązanie**: Uruchom ponownie z `bitcoin-qt -server`
 
 ### Kroki debugowania
 

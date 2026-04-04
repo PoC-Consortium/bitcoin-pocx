@@ -77,12 +77,12 @@ XOR-transpose प्रत्येक scoop को अंतर्निहि�
 1. **ACCOUNT_PAYLOAD** (40 हेक्स अक्षर)
    - रॉ 20-बाइट अकाउंट payload अपरकेस हेक्स के रूप में
    - नेटवर्क-स्वतंत्र (कोई नेटवर्क ID या checksum नहीं)
-   - उदाहरण: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - उदाहरण: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 हेक्स अक्षर)
    - 32-बाइट seed मान लोअरकेस हेक्स के रूप में
    - **PoCX में नया**: फ़ाइलनाम में रैंडम 32-बाइट seed लगातार nonce नंबरिंग की जगह लेता है — plot ओवरलैप रोकता है
-   - उदाहरण: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - उदाहरण: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (दशमलव संख्या)
    - **PoCX में नई आकार इकाई**: POC1/POC2 से nonce-आधारित आकार को प्रतिस्थापित करता है
@@ -97,8 +97,8 @@ XOR-transpose प्रत्येक scoop को अंतर्निहि�
 
 ### उदाहरण फ़ाइलनाम
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

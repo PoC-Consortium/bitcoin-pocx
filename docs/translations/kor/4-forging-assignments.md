@@ -39,7 +39,7 @@
   [1]: 사용자에게 반환되는 잔돈 (선택적, 표준 P2WPKH)
 ```
 
-**구현:** `src/pocx/assignments/opcodes.cpp:25-52`
+**구현:** `src/pocx/assignments/opcodes.cpp`
 
 ### 취소 트랜잭션 형식
 
@@ -58,14 +58,14 @@
   [1]: 사용자에게 반환되는 잔돈 (선택적, 표준 P2WPKH)
 ```
 
-**구현:** `src/pocx/assignments/opcodes.cpp:54-77`
+**구현:** `src/pocx/assignments/opcodes.cpp`
 
 ### 마커
 
 - **할당 마커:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **취소 마커:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**구현:** `src/pocx/assignments/opcodes.cpp:15-19`
+**구현:** `src/pocx/assignments/opcodes.cpp`
 
 ### 주요 트랜잭션 특성
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ 전체 이력: 시간에 따른 플롯당 모든 할당
 ```
 
-**구현:** `src/txdb.cpp:237-348`
+**구현:** `src/txdb.cpp`
 
 ### ForgingAssignment 구조
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**구현:** `src/coins.h:111-178`
+**구현:** `src/coins.h`
 
 ### 할당 상태
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**구현:** `src/coins.h:98-104`
+**구현:** `src/coins.h`
 
 ### 데이터베이스 키
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**구현:** `src/txdb.cpp:245-262`
+**구현:** `src/txdb.cpp`
 
 ### 이력 추적
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // 플롯 상태 확인 (UNASSIGNED 또는 REVOKED여야 함)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // 새 할당 생성
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins가 정상적으로 진행됨 (OP_RETURN 출력은 자동으로 건너뜀)
 ```
 
-**구현:** `src/validation.cpp:2775-2878`
+**구현:** `src/validation.cpp:ConnectBlock()`
 
 ### 소유권 검증
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // 적어도 하나의 입력이 플롯 소유자에 의해 서명되었는지 확인
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // 대상 추출
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // 플롯 주소로의 P2WPKH인지 확인
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core가 이미 서명을 검증함
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**구현:** `src/pocx/assignments/opcodes.cpp:217-256`
+**구현:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### 활성화 지연
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // 취소 활성화 지연
 
 1. **최대 하나의 POCX OP_RETURN:** 트랜잭션에 여러 POCX/XCOP 마커가 포함될 수 없음
 
-**구현:** `src/consensus/tx_check.cpp:63-77`
+**구현:** `src/consensus/tx_check.cpp`
 
 ### 멤풀 수락 검사 (PreChecks)
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // 취소 활성화 지연
 2. **활성 할당:** 플롯이 ASSIGNED (2) 상태만이어야 함
 3. **멤풀 충돌:** 멤풀에 이 플롯에 대한 다른 취소가 없음
 
-**구현:** `src/validation.cpp:898-993`
+**구현:** `src/validation.cpp:PreChecks()`
 
 ### 검증 흐름
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // 더티 할당 수집
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // 비어 있음 - 사용되지 않음
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // 데이터베이스에 쓰기
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // 추적 지우기
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // 메모리 해제
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**구현:** `src/coins.cpp:278-315`
+**구현:** `src/coins.cpp:Flush()`
 
 ### 데이터베이스 배치 쓰기
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // 할당은 별도로 쓰지만 동일한 데이터베이스 트랜잭션 컨텍스트에서
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // 사용되지 않는 매개변수 (API 호환성 유지)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // 새 배치, 그러나 동일한 데이터베이스
+    CDBBatch batch(*m_db);
 
-    // 할당 이력 쓰기
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // 이력에서 삭제된 할당 지우기
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // 원자적 커밋
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**구현:** `src/txdb.cpp:332-348`
+**구현:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### 원자성 보장
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**구현:** `src/undo.h:63-105`
+**구현:** `src/undo.h`
 
 ### DisconnectBlock 과정
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**구현:** `src/validation.cpp:2381-2415`
+**구현:** `src/validation.cpp:DisconnectBlock()`
 
 ### 재구성 중 캐시 관리
 
@@ -556,7 +562,7 @@ private:
     // 할당 캐시
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // 수정된 플롯 추적
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // 삭제 추적
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // 삭제 추적
     mutable size_t cachedAssignmentsUsage{0};  // 메모리 추적
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**구현:** `src/coins.cpp:494-565`
+**구현:** `src/coins.cpp`
 
 ## RPC 인터페이스
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**구현:** `src/pocx/rpc/assignments.cpp:31-126`
+**구현:** `src/pocx/rpc/assignments.cpp`
 
 ### 지갑 명령 (지갑 필요)
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - 플롯 소유자의 키로 서명
 - 네트워크에 브로드캐스트
 
-**구현:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**구현:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - 플롯 소유자의 키로 서명
 - 네트워크에 브로드캐스트
 
-**구현:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**구현:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### 지갑 트랜잭션 생성
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **핵심 통찰:** 지갑은 소유권을 증명하기 위해 플롯 주소에서 지출해야 하므로, 해당 주소에서 코인 선택을 자동으로 강제합니다.
 
-**구현:** `src/pocx/assignments/transactions.cpp:38-263`
+**구현:** `src/pocx/assignments/transactions.cpp`
 
 ## 파일 구조
 
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # 노드 RPC 명령 (지갑 없음)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # 지갑 RPC 명령
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │

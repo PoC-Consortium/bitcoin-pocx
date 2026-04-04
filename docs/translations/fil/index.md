@@ -1,7 +1,7 @@
 # Teknikal na Dokumentasyon ng Bitcoin-PoCX
 
 **Bersyon**: 1.0
-**Base ng Bitcoin Core**: v30.0
+**Base ng Bitcoin Core**: v30.2
 **Katayuan**: Yugto ng Testnet
 **Huling Pagbabago**: 2025-12-25
 
@@ -118,8 +118,8 @@ Gabay para sa gumagamit ng Bitcoin-PoCX Qt wallet: forging assignment dialog, ka
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# I-configure na naka-enable ang PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Buuin
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Mga Variant ng Build**:
 ```bash
 # May Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug build
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Mga Dependency**: Karaniwang mga dependency ng Bitcoin Core build. Tingnan ang [dokumentasyon ng Bitcoin Core build](https://github.com/bitcoin/bitcoin/tree/master/doc#building) para sa mga kinakailangan ayon sa platform.
@@ -188,7 +188,7 @@ Malugod na tinatanggap ang mga kontribusyon sa dokumentasyon. Mangyaring panatil
 
 ## Lisensya
 
-Ang Bitcoin-PoCX ay nagmamana ng MIT license ng Bitcoin Core. Tingnan ang `COPYING` sa root ng repository.
+Ang Bitcoin-PoCX ay nagmamana ng MIT license ng Bitcoin Core. Tingnan ang `bitcoin/COPYING` sa root ng repository.
 
 Ang attribution ng PoCX core framework ay dokumentado sa [Kabanata 2: Format ng Plot](2-plot-format.md).
 

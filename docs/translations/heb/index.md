@@ -1,7 +1,7 @@
 # תיעוד טכני של Bitcoin-PoCX
 
 **גרסה**: 1.0
-**בסיס Bitcoin Core**: v30.0
+**בסיס Bitcoin Core**: v30.2
 **סטטוס**: שלב רשת בדיקה (Testnet)
 **עדכון אחרון**: 2025-12-25
 
@@ -114,8 +114,8 @@
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# תצורה עם PoCX מופעל
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # בנייה
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **וריאנטי בנייה**:
 ```bash
 # עם ממשק Qt גרפי
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # בניית Debug
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **תלויות**: תלויות בנייה סטנדרטיות של Bitcoin Core. ראו [תיעוד בניית Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) לדרישות ספציפיות לפלטפורמה.
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## רישיון
 
-Bitcoin-PoCX יורש את רישיון MIT של Bitcoin Core. ראו `COPYING` בשורש המאגר.
+Bitcoin-PoCX יורש את רישיון MIT של Bitcoin Core. ראו `bitcoin/COPYING` בשורש המאגר.
 
 ייחוס מסגרת הליבה של PoCX מתועד ב[פרק 2: פורמט Plot](2-plot-format.md).
 

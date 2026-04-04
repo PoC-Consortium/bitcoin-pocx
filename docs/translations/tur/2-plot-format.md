@@ -77,12 +77,12 @@ Tüm plot metadata'sı dosya adında bu kesin format kullanılarak kodlanır:
 1. **HESAP_YÜKÜ** (40 onaltılık karakter)
    - Ham 20 baytlık hesap yükü, büyük harfli onaltılık olarak
    - Ağdan bağımsız (ağ kimliği veya sağlama toplamı yok)
-   - Örnek: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Örnek: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 onaltılık karakter)
    - 32 baytlık seed değeri, küçük harfli onaltılık olarak
    - **PoCX'te Yeni**: Dosya adında rastgele 32 baytlık seed, ardışık nonce numaralandırmasının yerini alır — plot örtüşmelerini önler
-   - Örnek: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Örnek: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARP'LAR** (ondalık sayı)
    - **PoCX'te YENİ boyut birimi**: POC1/POC2'den nonce tabanlı boyutlandırmanın yerini alır
@@ -97,8 +97,8 @@ Tüm plot metadata'sı dosya adında bu kesin format kullanılarak kodlanır:
 
 ### Örnek Dosya Adları
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

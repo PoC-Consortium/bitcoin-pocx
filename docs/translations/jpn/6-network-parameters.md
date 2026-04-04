@@ -39,12 +39,7 @@
 
 ### ジェネシスメッセージ
 
-すべてのネットワークでBitcoinジェネシスメッセージを共有:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**実装**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **ネットワークID**:
 - **マジックバイト**: `0xa7 0x3c 0x91 0x5e`
-- **デフォルトポート**: `8888`
+- **デフォルトポート**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **アドレスプレフィックス**（Base58）:
@@ -84,14 +79,14 @@
 ### テストネットパラメータ
 
 **ネットワークID**:
-- **マジックバイト**: `0x6d 0xf2 0x48 0xb3`
-- **デフォルトポート**: `18888`
+- **マジックバイト**: `0x6d 0xf2 0x48 0xb4`
+- **デフォルトポート**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **アドレスプレフィックス**（Base58）:
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **ブロックタイミング**:
 - **ブロック時間ターゲット**: `120`秒
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**実装**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**実装**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **構造**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 受け入れられる最小レベル
-    uint8_t nPoCXTargetCompression;  // 推奨レベル
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // 受け入れられる最小レベル
+    uint32_t nPoCXTargetCompression;  // 推奨レベル
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**実装**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`、`src/pocx/consensus/params.cpp`
+**実装**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`、`src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### プロトコルバージョン
 
-**ベース**: Bitcoin Core v30.0プロトコル
+**ベース**: Bitcoin Core v30.2プロトコル
 - **プロトコルバージョン**: Bitcoin Coreから継承
 - **サービスビット**: 標準Bitcoinサービス
 - **メッセージタイプ**: 標準Bitcoin P2Pメッセージ
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCXマイニングサーバー（外部マイナーに必要）
-miningserver=1
 
 # RPC設定
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # 接続設定
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # ブロック時間ターゲット（情報提供、コンセンサスで強制）
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **コンセンサスパラメータ**: `src/consensus/params.h`
-**圧縮境界**: `src/pocx/algorithms/algorithms.h`、`src/pocx/consensus/params.cpp`
+**圧縮境界**: `src/pocx/consensus/params.h`、`src/pocx/consensus/params.cpp`
 **ジェネシスベースターゲット計算**: `src/pocx/consensus/params.cpp`
-**Coinbase支払いロジック**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase支払いロジック**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **割り当て状態ストレージ**: `src/coins.h`、`src/coins.cpp`（CCoinsViewCache拡張）
 
 ---

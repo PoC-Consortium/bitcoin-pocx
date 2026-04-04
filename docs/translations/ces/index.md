@@ -1,7 +1,7 @@
 # Technická dokumentace Bitcoin-PoCX
 
 **Verze**: 1.0
-**Základ Bitcoin Core**: v30.0
+**Základ Bitcoin Core**: v30.2
 **Stav**: Fáze testovací sítě
 **Poslední aktualizace**: 2025-12-25
 
@@ -118,8 +118,8 @@ Uživatelská příručka pro Qt peněženku Bitcoin-PoCX: dialog forging přiř
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfigurace s povoleným PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Sestavení
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Varianty sestavení**:
 ```bash
 # S Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug sestavení
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Závislosti**: Standardní závislosti sestavení Bitcoin Core. Viz [dokumentace sestavení Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) pro požadavky specifické pro platformu.
@@ -188,7 +188,7 @@ Příspěvky do dokumentace jsou vítány. Prosím udržujte:
 
 ## Licence
 
-Bitcoin-PoCX dědí licenci MIT od Bitcoin Core. Viz `COPYING` v kořenovém adresáři repozitáře.
+Bitcoin-PoCX dědí licenci MIT od Bitcoin Core. Viz `bitcoin/COPYING` v kořenovém adresáři repozitáře.
 
 Atribuce PoCX core frameworku dokumentována v [Kapitola 2: Formát plotů](2-plot-format.md).
 

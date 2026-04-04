@@ -16,7 +16,7 @@ Vores implementering introducerer flere nogleinnovationer:
 (3) En OP_RETURN-baseret forging-assignment-mekanisme, der muliggor ikke-custodial pool-mining; og
 (4) Dynamisk kompressionsskalering, der oger plotgenereringssvaerhedsgrad i overensstemmelse med halveringsplaner for at opretholde langsigtede sikkerhedsmarginer, efterhanden som hardware forbedres.
 
-Bitcoin-PoCX opretholder Bitcoin Cores arkitektur gennem minimale, feature-flaggede modifikationer, der isolerer PoC-logik fra den eksisterende konsensuskode. Systemet bevarer Bitcoins pengepolitik ved at sigte mod et 120-sekunders blokinterval og justere bloksubsidien til 10 BTC. Den reducerede subsidie opvejer den femdobbelte forogelse i blokfrekvens og holder den langsigtede udstedelsesrate i overensstemmelse med Bitcoins oprindelige plan og opretholder den maksimale forsyning pa ~21 millioner.
+Bitcoin-PoCX opretholder Bitcoin Cores arkitektur gennem minimale, feature-flaggede modifikationer, der isolerer PoC-logik fra den eksisterende konsensuskode. Systemet bevarer Bitcoins pengepolitik ved at sigte mod et 120-sekunders blokinterval og justere bloksubsidien til 10 BTCX. Den reducerede subsidie opvejer den femdobbelte forogelse i blokfrekvens og holder den langsigtede udstedelsesrate i overensstemmelse med Bitcoins oprindelige plan og opretholder den maksimale forsyning pa ~21 millioner.
 
 ---
 
@@ -211,9 +211,9 @@ Beviset indlejrer al konsensusrelevant information, der er nodvendig for, at val
 
 Generationssignaturen giver den uforudsigelighed, der kraeves til sikker Proof of Capacity-mining. Hver blok udleder sin generationssignatur fra den forrige bloks signatur og underskriver, hvilket sikrer, at minere ikke kan forudsige fremtidige udfordringer eller forberegne fordelagtige plotomrader:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Dette producerer en sekvens af kryptografisk staerke, minerafhaengige entropivaerdier. Fordi en miners offentlige nogle er ukendt, indtil den forrige blok offentliggores, kan ingen deltager forudsige fremtidige scoopvalg. Dette forebygger selektiv forberegning eller strategisk plotting og sikrer, at hver blok introducerer aegte frisk miningarbejde.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Dette producerer en sekvens af kryptografisk staerke, minerafhaengige entropivaerdier. Fordi en miners offentlige nogle er ukendt, indtil den forrige blok offentliggores, kan ingen deltager forudsige fremtidige scoopvalg. Dette forebygger selektiv forberegning eller strategisk plotting og sikrer, at hver blok introducerer aegte frisk miningarbejde.
 
 ### 4.3 Forgingproces
 
@@ -233,7 +233,7 @@ Time Bending omformer fordelingen ved at anvende en kubikrodstransformation:
 
 `deadline_bended = scale x (quality / base_target)^(1/3)`
 
-Skalafaktoren bevarer den forventede bloktid (120 sekunder), mens den dramatisk reducerer varians. Korte deadlines udvides, hvilket forbedrer blokpropagering og netvaerkssikkerhed. Lange deadlines komprimeres, hvilket forebygger outliers i at forsinke kaeden.
+Where `scale = block_time / (block_time^(1/3) × Γ(4/3))` and `Γ(4/3) ≈ 0.893`. The Gamma normalization ensures the expected block time (120 seconds) is preserved while dramatically reducing variance.
 
 ![Bloktidsfordelinger](blocktime_distributions.svg)
 
@@ -411,12 +411,12 @@ Tabellerne nedenfor opsummerer de resulterende mainnet-, testnet- og regtest-ind
 | Parameter | Vaerdi |
 |-----------|--------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Standardport | 8888 |
+| Standardport | 8338 |
 | Bech32 HRP | `pocx` |
 | Bloktidsmal | 120 sekunder |
-| Indledende subsidie | 10 BTC |
+| Indledende subsidie | 10 BTCX |
 | Halveringsinterval | 1050000 blokke (~4 ar) |
-| Samlet forsyning | ~21 millioner BTC |
+| Samlet forsyning | ~21 millioner BTCX |
 | Assignment-aktivering | 30 blokke |
 | Assignment-tilbagekaldelse | 720 blokke |
 | Rullende vindue | 24 blokke |
@@ -425,8 +425,8 @@ Tabellerne nedenfor opsummerer de resulterende mainnet-, testnet- og regtest-ind
 
 | Parameter | Vaerdi |
 |-----------|--------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Standardport | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Standardport | 18338 |
 | Bech32 HRP | `tpocx` |
 | Bloktidsmal | 120 sekunder |
 | Andre parametre | Samme som mainnet |

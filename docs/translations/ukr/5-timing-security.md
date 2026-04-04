@@ -32,16 +32,16 @@
 
 **Конфігурація Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 секунд
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 секунд
 ```
 
 ### Перевірки валідації
 
-**Валідація мітки часу блоку** (`src/validation.cpp:4547-4561`):
+**Валідація мітки часу блоку** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Перевірка монотонності: мітка часу >= мітка часу попереднього блоку
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Перевірка дедлайну: минулий час >= дедлайн
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX моніторить зміщення часу між вашим в
 ## Посилання на реалізацію
 
 **Основні файли**:
-- Валідація часу: `src/validation.cpp:4547-4561`
-- Константа допуску на майбутнє: `src/chain.h:31`
-- Поріг попередження: `src/node/timeoffsets.h:27`
+- Валідація часу: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Константа допуску на майбутнє: `src/chain.h`
+- Поріг попередження: `src/node/timeoffsets.h`
 - Моніторинг зміщення часу: `src/node/timeoffsets.cpp`
 - Захисне кування: `src/pocx/mining/scheduler.cpp`
 

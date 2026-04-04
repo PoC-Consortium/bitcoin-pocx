@@ -49,7 +49,7 @@ Bloku za PoCX zinaendeleza muundo wa bloku wa Bitcoin na sehemu za ziada za maku
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Mbegu ya plot (byte 32)
     std::array<uint8_t, 20> account_id;       // Anwani ya plot (hash160 ya byte 20)
-    uint32_t compression;                     // Kiwango cha upanuzi (1-255)
+    uint32_t compression;                     // Kiwango cha upanuzi (1-6)
     uint64_t nonce;                           // Nonce ya uchimbaji (64-bit)
     uint64_t quality;                         // Ubora uliodaiwa (matokeo ya hash ya PoC)
 };
@@ -87,12 +87,12 @@ Sahihi ya uzalishaji inaunda entropi ya uchimbaji na kuzuia mashambulizi ya preh
 
 **Hesabu:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Bloku ya Mwanzo:** Inatumia sahihi ya awali ya uzalishaji iliyosimbwa ngumu
 
-**Utekelezaji:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Utekelezaji:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Lengo la Msingi (Ugumu)
 
@@ -113,8 +113,8 @@ PoCX inasaidia proof-of-work inayopanuka katika faili za plot kupitia viwango vy
 **Mipaka Inayobadilika:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Kiwango cha chini kinachokubaliwa
-    uint8_t nPoCXTargetCompression;  // Kiwango kinachopendekezwa
+    uint32_t nPoCXMinCompression;     // Kiwango cha chini kinachokubaliwa
+    uint32_t nPoCXTargetCompression;  // Kiwango kinachopendekezwa
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Inadumisha ukingo wa usalama kati ya gharama za kuunda plot na kutafuta
 - Kiwango cha juu cha upanuzi: 255
 
-**Utekelezaji:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Utekelezaji:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -231,10 +231,9 @@ bool success = pocx_validate_block(
     account_payload,     // byte 20
     block_height,
     nonce,
-    seed,                // byte 32
-    min_compression,
-    max_compression,
-    &result             // Matokeo: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +243,7 @@ bool success = pocx_validate_block(
 3. Thibitisha ubora unakidhi mahitaji ya ugumu
 4. Rudisha thamani ya ubora isiyo na mabadiliko
 
-**Utekelezaji:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Utekelezaji:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Hatua ya 6: Hesabu ya Kupinda Muda
 ```cpp
@@ -276,9 +275,9 @@ g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // SIO tarehe ya mwisho - inahesabiwa tena katika kuunda
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +396,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Anwani ya awali ya plot
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Hesabu tena mzizi wa merkle:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +421,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Utekelezaji:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Utekelezaji:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Maamuzi Muhimu ya Usanifu:**
 - Coinbase inalipa msaini anayefanya kazi (inaheshimu ugawaji)
@@ -468,7 +468,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Thibitisha pubkey iliyorejeshwa inalingana na pubkey iliyohifadhiwa
 
 **Utekelezaji:** `src/validation.cpp:CheckBlockHeader()`
-**Mantiki ya Sahihi:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Mantiki ya Sahihi:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Hatua ya 2: Uthibitishaji wa Bloku (CheckBlock)
 
@@ -487,49 +487,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Hatua ya 1: Thibitisha sahihi ya uzalishaji
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Hatua ya 2: Thibitisha lengo la msingi
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Hatua ya 3: Thibitisha proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Hatua ya 4: Thibitisha muda wa tarehe ya mwisho
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Hatua za Uthibitishaji:**
-1. **Sahihi ya Uzalishaji:** Lazima ilingane na thamani iliyohesabiwa kutoka bloku iliyotangulia
-2. **Lengo la Msingi:** Lazima ilingane na hesabu ya marekebisho ya ugumu
-3. **Kiwango cha Upanuzi:** Lazima kikidhi kiwango cha chini cha mtandao (`compression >= min_compression`)
-4. **Dai la Ubora:** Ubora uliowasilishwa lazima ulingane na ubora uliohesabiwa kutoka uthibitisho
-5. **Proof of Capacity:** Uthibitishaji wa kriptografia wa uthibitisho (umeimarishwa kwa SIMD)
-6. **Muda wa Tarehe ya Mwisho:** Tarehe ya mwisho iliyopindwa muda (`poc_time`) lazima iwe ≤ muda uliopita
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Utekelezaji:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +560,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Utekelezaji:**
 - Muunganisho: `src/validation.cpp:ConnectBlock()`
-- Uthibitishaji ulioongezwa: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Mantiki ya ugawaji: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Uthibitishaji ulioongezwa: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Mantiki ya ugawaji: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Hatua ya 5: Uanzishaji wa Mtandao
 
@@ -599,7 +586,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Pokea Bloku
     ↓
-CheckBlockHeader (sahihi ya msingi)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (miamala, merkle)
     ↓
@@ -668,7 +655,7 @@ Transaction {
 - Unakuwa ASSIGNED baada ya kipindi cha ucheleweshaji (bloku 4 regtest, bloku 30 mainnet)
 - Ucheleweshaji unazuia ugawaji upya wa haraka wakati wa mashindano ya bloku
 
-**Utekelezaji:** `src/script/forging_assignment.h`, uthibitishaji katika ConnectBlock
+**Utekelezaji:** `src/pocx/assignments/opcodes.h`, uthibitishaji katika ConnectBlock
 
 ### Kubatilisha Ugawaji
 
@@ -826,12 +813,15 @@ Thread B: cs_wallet → cs_main
 
 **Sahihi ya Uzalishaji:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Hash ya Sahihi ya Bloku:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Muundo wa Sahihi Iliyoshikana:**
@@ -863,12 +853,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Utekelezaji wa Msingi:**
 - Kiolesura cha RPC: `src/pocx/rpc/mining.cpp`
 - Foleni ya Kuunda: `src/pocx/mining/scheduler.cpp`
-- Uthibitishaji wa Makubaliano: `src/pocx/consensus/validation.cpp`
-- Uthibitishaji wa Uthibitisho: `src/pocx/consensus/pocx.cpp`
+- Uthibitishaji wa Makubaliano: `src/pocx/consensus/proof.cpp`
+- Uthibitishaji wa Uthibitisho: `src/pocx/consensus/signature.cpp`
 - Kupinda Muda: `src/pocx/algorithms/time_bending.cpp`
 - Uthibitishaji wa Bloku: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Mantiki ya Ugawaji: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Usimamizi wa Muktadha: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Mantiki ya Ugawaji: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Usimamizi wa Muktadha: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Miundo ya Data:**
 - Muundo wa Bloku: `src/primitives/block.h`
@@ -902,7 +892,7 @@ ambapo:
 **Mchakato:**
 1. Zalisha scoop kutoka sahihi ya uzalishaji na urefu
 2. Soma data ya plot kwa scoop iliyohesabiwa
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Jaribu viwango vya upanuzi kutoka min hadi max
 5. Rudisha ubora bora uliopatikana
 
@@ -925,7 +915,7 @@ ambapo:
 avg_base_target = moving_average(lengo la msingi la hivi karibuni)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

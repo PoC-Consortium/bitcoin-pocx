@@ -42,7 +42,7 @@ Proof of Capacity (PoC) yra konsensuso mechanizmas, kuriame kasimo galia proporc
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integracija
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integracija
 │   └── src/pocx/        # PoCX įgyvendinimas
 ├── pocx/                # PoCX pagrindinis karkasas (submodulis, tik skaitymui)
 └── docs/                # Ši dokumentacija
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Sprendimas**: Pasiskirstymo transformacija iš eksponentinio į chi-kvadratinį naudojant kubinę šaknį: `Y = skalė × (X^(1/3))`.
 
-**Poveikis**: Labai geri sprendimai kalami vėliau (tinklas turi laiko nuskaityti visus diskus, sumažina greitus blokus), blogi sprendimai pagerinti. Vidutinis bloko laikas išlaikomas 120 sekundžių, ilgi blokai sumažinti.
+**Poveikis**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detalės**: [3 skyrius: Konsensusas ir kasimas](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Tokie pat kaip Bitcoin Core**:
 - **Procesorius**: Šiuolaikinis x86_64 procesorius
 - **Atmintis**: 4-8 GB RAM
-- **Saugykla**: Nauja grandinė, šiuo metu tuščia (gali augti ~4× greičiau nei Bitcoin dėl 2 minučių blokų ir priskyrimo duomenų bazės)
+- **Saugykla**: Nauja grandinė, šiuo metu tuščia (gali augti ~5× greičiau nei Bitcoin dėl 2 minučių blokų ir priskyrimo duomenų bazės)
 - **Tinklas**: Stabilus interneto ryšys
 - **Laikrodis**: Rekomenduojama NTP sinchronizacija optimaliam veikimui
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Kompiliuoti su įjungtu PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detalės**: Žr. `CLAUDE.md` saugyklos šaknyje
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Paleisti mazgą
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Kasimui** (įjungia RPC prieigą išoriniams kasėjams):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # arba
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detalės**: [6 skyrius: Tinklo parametrai](6-network-parameters.md)

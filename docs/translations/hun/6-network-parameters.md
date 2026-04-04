@@ -39,12 +39,7 @@ Teljes referencia a Bitcoin-PoCX hálózati konfigurációhoz minden hálózatt�
 
 ### Genezis Üzenet
 
-Minden hálózat a Bitcoin genezis üzenetet osztja:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementáció**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Minden hálózat a Bitcoin genezis üzenetet osztja:
 
 **Hálózati Azonosítás**:
 - **Magic Bájtok**: `0xa7 0x3c 0x91 0x5e`
-- **Alapértelmezett Port**: `8888`
+- **Alapértelmezett Port**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Cím Előtagok** (Base58):
@@ -84,14 +79,14 @@ Minden hálózat a Bitcoin genezis üzenetet osztja:
 ### Testnet Paraméterek
 
 **Hálózati Azonosítás**:
-- **Magic Bájtok**: `0x6d 0xf2 0x48 0xb3`
-- **Alapértelmezett Port**: `18888`
+- **Magic Bájtok**: `0x6d 0xf2 0x48 0xb4`
+- **Alapértelmezett Port**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Cím Előtagok** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Blokk Időzítés**:
 - **Blokk Idő Cél**: `120` másodperc
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementáció**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementáció**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Struktúra**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum elfogadott szint
-    uint8_t nPoCXTargetCompression;  // Ajánlott szint
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimum elfogadott szint
+    uint32_t nPoCXTargetCompression;  // Ajánlott szint
 };
 ```
 
@@ -313,7 +308,7 @@ A skálázási szintek **exponenciális ütemterv** szerint növekednek a felez�
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementáció**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementáció**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Protokoll Verzió
 
-**Alap**: Bitcoin Core v30.0 protokoll
+**Alap**: Bitcoin Core v30.2 protokoll
 - **Protokoll Verzió**: Bitcoin Core-ból örökölt
 - **Szolgáltatás Bitek**: Szabványos Bitcoin szolgáltatások
 - **Üzenet Típusok**: Szabványos Bitcoin P2P üzenetek
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX bányász szerver (külső bányászokhoz szükséges)
-miningserver=1
 
 # RPC beállítások
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Kapcsolat beállítások
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Blokk idő cél (tájékoztató, konszenzus által érvényesített)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konszenzus Paraméterek**: `src/consensus/params.h`
-**Tömörítési Határok**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Tömörítési Határok**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genezis Alap Célérték Számítás**: `src/pocx/consensus/params.cpp`
-**Coinbase Fizetési Logika**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase Fizetési Logika**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Megbízás Állapot Tárolás**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache kiterjesztések)
 
 ---

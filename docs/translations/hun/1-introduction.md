@@ -42,7 +42,7 @@ A Proof of Capacity (PoC) egy konszenzus mechanizmus, ahol a bányászati teljes
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integráció
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integráció
 │   └── src/pocx/        # PoCX implementáció
 ├── pocx/                # PoCX keretrendszer (almodul, csak olvasható)
 └── docs/                # Ez a dokumentáció
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Megoldás**: Eloszlás transzformáció exponenciálisról chi-négyzetre köbgyök használatával: `Y = skála × (X^(1/3))`.
 
-**Hatás**: A nagyon jó megoldások később kovácsolódnak (a hálózatnak van ideje minden lemezt átnézni, csökkenti a gyors blokkokat), a gyenge megoldások javulnak. Az átlagos blokkidő 120 másodpercen marad, a hosszú blokkok csökkennek.
+**Hatás**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Részletek**: [3. Fejezet: Konszenzus és Bányászat](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Megegyezik a Bitcoin Core-ral**:
 - **CPU**: Modern x86_64 processzor
 - **Memória**: 4-8 GB RAM
-- **Tárhely**: Új lánc, jelenleg üres (körülbelül 4× gyorsabban nőhet, mint a Bitcoin a 2 perces blokkok és a megbízás adatbázis miatt)
+- **Tárhely**: Új lánc, jelenleg üres (körülbelül 5× gyorsabban nőhet, mint a Bitcoin a 2 perces blokkok és a megbízás adatbázis miatt)
 - **Hálózat**: Stabil internetkapcsolat
 - **Óra**: NTP szinkronizáció ajánlott az optimális működéshez
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Fordítás PoCX engedélyezésével
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Részletek**: Lásd `CLAUDE.md` a repository gyökerében
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Csomópont Futtatása
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Bányászathoz** (engedélyezi az RPC hozzáférést külső bányászoknak):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # vagy
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Részletek**: [6. Fejezet: Hálózati Paraméterek](6-network-parameters.md)

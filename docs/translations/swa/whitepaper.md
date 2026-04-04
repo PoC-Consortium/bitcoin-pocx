@@ -16,7 +16,7 @@ Utekelezaji wetu unaanzisha uvumbuzi kadhaa muhimu:
 (3) Utaratibu wa kugawia uundaji unaotegemea OP_RETURN unaowezesha uchimbaji wa pool bila uhifadhi wa fedha; na
 (4) Ukadiriaji wa ukandamizaji unaobadilika, unaoongeza ugumu wa uundaji wa plot kulingana na ratiba za nusu ili kudumisha margin za usalama za muda mrefu kadri vifaa vinavyoboreshwa.
 
-Bitcoin-PoCX inahifadhi usanifu wa Bitcoin Core kupitia marekebisho madogo yaliyowekwa alama za vipengele, ikitenga mantiki ya PoC kutoka kwa msimbo uliopo wa makubaliano. Mfumo unahifadhi sera ya fedha ya Bitcoin kwa kulenga muda wa block wa sekunde 120 na kurekebisha ruzuku ya block hadi BTC 10. Ruzuku iliyopunguzwa inalingana na ongezeko la mara tano la masafa ya block, ikihifadhi kiwango cha utoaji wa muda mrefu kulingana na ratiba asili ya Bitcoin na kudumisha ugavi wa juu zaidi wa ~milioni 21.
+Bitcoin-PoCX inahifadhi usanifu wa Bitcoin Core kupitia marekebisho madogo yaliyowekwa alama za vipengele, ikitenga mantiki ya PoC kutoka kwa msimbo uliopo wa makubaliano. Mfumo unahifadhi sera ya fedha ya Bitcoin kwa kulenga muda wa block wa sekunde 120 na kurekebisha ruzuku ya block hadi BTCX 10. Ruzuku iliyopunguzwa inalingana na ongezeko la mara tano la masafa ya block, ikihifadhi kiwango cha utoaji wa muda mrefu kulingana na ratiba asili ya Bitcoin na kudumisha ugavi wa juu zaidi wa ~milioni 21.
 
 ---
 
@@ -211,9 +211,9 @@ Uthibitisho unaingiza taarifa zote muhimu za makubaliano zinazohitajika na wathi
 
 Saini ya uzalishaji inatoa kutotabirika kunakohitajika kwa uchimbaji salama wa Proof of Capacity. Kila block inapata saini yake ya uzalishaji kutoka kwa saini na msainiaji wa block iliyotangulia, kuhakikisha kuwa wachimbaji hawawezi kutabiri changamoto za baadaye au kuhesabu mapema maeneo ya plot yenye faida:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Hii inazalisha mfuatano wa thamani za entropy zenye nguvu za kriptografia, zinazotegemea mchimbaji. Kwa sababu funguo ya umma ya mchimbaji haijulikani hadi block iliyotangulia ichapishwe, hakuna mshiriki anayeweza kutabiri uchaguzi wa scoop za baadaye. Hii inazuia kuhesabu mapema kwa kuchagua au kupanga plot kwa kimkakati na inahakikisha kuwa kila block inaanzisha kazi ya uchimbaji mpya kweli.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Hii inazalisha mfuatano wa thamani za entropy zenye nguvu za kriptografia, zinazotegemea mchimbaji. Kwa sababu funguo ya umma ya mchimbaji haijulikani hadi block iliyotangulia ichapishwe, hakuna mshiriki anayeweza kutabiri uchaguzi wa scoop za baadaye. Hii inazuia kuhesabu mapema kwa kuchagua au kupanga plot kwa kimkakati na inahakikisha kuwa kila block inaanzisha kazi ya uchimbaji mpya kweli.
 
 ### 4.3 Mchakato wa Uundaji
 
@@ -231,7 +231,7 @@ Proof of Capacity inazalisha tarehe za mwisho zilizosambazwa kwa exponential. Ba
 
 Time Bending inaumba upya usambazaji kwa kutumia mabadiliko ya mzizi wa mchemraba:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Kipengele cha ukadiriaji kinahifadhi muda wa block unaotarajiwa (sekunde 120) huku kikipunguza sana tofauti. Tarehe fupi za mwisho zinapanuliwa, kuboresha usambazaji wa block na usalama wa mtandao. Tarehe ndefu za mwisho zinakandamizwa, kuzuia vipengele vya nje kuchelewisha mnyororo.
 
@@ -411,12 +411,12 @@ Jedwali zilizo hapa chini zinaonyesha muhtasari wa mipangilio ya mainnet, testne
 | Kigezo | Thamani |
 |--------|---------|
 | Baiti za uchawi | `0xa7 0x3c 0x91 0x5e` |
-| Mlango wa kawaida | 8888 |
+| Mlango wa kawaida | 8338 |
 | Bech32 HRP | `pocx` |
 | Lengo la muda wa block | sekunde 120 |
-| Ruzuku ya awali | BTC 10 |
+| Ruzuku ya awali | BTCX 10 |
 | Muda wa nusu | block 1050000 (~miaka 4) |
-| Ugavi wa jumla | ~milioni 21 BTC |
+| Ugavi wa jumla | ~milioni 21 BTCX |
 | Uanzishaji wa ugawaji | block 30 |
 | Ubatilishaji wa ugawaji | block 720 |
 | Dirisha la kusogea | block 24 |
@@ -425,8 +425,8 @@ Jedwali zilizo hapa chini zinaonyesha muhtasari wa mipangilio ya mainnet, testne
 
 | Kigezo | Thamani |
 |--------|---------|
-| Baiti za uchawi | `0x6d 0xf2 0x48 0xb3` |
-| Mlango wa kawaida | 18888 |
+| Baiti za uchawi | `0x6d 0xf2 0x48 0xb4` |
+| Mlango wa kawaida | 18338 |
 | Bech32 HRP | `tpocx` |
 | Lengo la muda wa block | sekunde 120 |
 | Vigezo vingine | Sawa na mainnet |

@@ -28,30 +28,25 @@ Bitcoin-PoCX Qt 钱包和锻造委派管理的完整指南。
 Bitcoin-PoCX Qt 钱包（`bitcoin-qt`）提供：
 - 标准 Bitcoin Core 钱包功能（发送、接收、交易管理）
 - **锻造委派管理器**：用于创建/撤销绘图委派的图形界面
-- **挖矿服务器模式**：`-miningserver` 标志启用挖矿相关功能
+- **挖矿服务器模式**：`` 标志启用挖矿相关功能
 - **交易历史**：委派和撤销交易显示
 
 ### 启动钱包
 
-**仅节点**（无挖矿）：
+**仅节点**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt
-```
-
-**启用挖矿**（启用委派对话框）：
-```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **命令行替代方案**：
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### 挖矿要求
 
 **挖矿操作需要**：
-- `-miningserver` 标志
+- `` 标志
 - 带 P2WPKH 地址和私钥的钱包
 - 外部绘图工具（`pocx_plotter`）用于绘图生成
 - 外部矿工（`pocx_miner`）用于挖矿
@@ -84,7 +79,7 @@ Bitcoin-PoCX 使用 **BTCX** 货币单位（不是 BTC）：
 ### 访问对话框
 
 **菜单**：`钱包 → 锻造委派`
-**工具栏**：挖矿图标（仅在使用 `-miningserver` 标志时可见）
+**工具栏**：挖矿图标（仅在使用 `` 标志时可见）
 **窗口大小**：600×450 像素
 
 ### 对话框模式
@@ -297,7 +292,7 @@ REVOKED - 委派已撤销
 
 **对话框错误**：
 - "绘图地址必须是 P2WPKH（bech32）"
-- "锻造地址必须是 P2WPKH（bech32）"
+- Invalid forging address silently disables the Send button
 - "地址格式无效"
 - "绘图地址没有可用的币。无法证明所有权。"
 - "无法使用仅观察钱包创建交易"
@@ -313,7 +308,6 @@ REVOKED - 委派已撤销
 **节点配置**：
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +331,7 @@ server=1
 
 2. **启动节点**（带挖矿服务器）：
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **配置矿工**：
@@ -450,8 +444,8 @@ server=1
 
 #### "锻造委派标签不可见"
 
-**原因**：节点启动时没有 `-miningserver` 标志
-**解决方案**：使用 `bitcoin-qt -server -miningserver` 重启
+**原因**：节点启动时没有 `` 标志
+**解决方案**：使用 `bitcoin-qt -server` 重启
 
 ### 调试步骤
 

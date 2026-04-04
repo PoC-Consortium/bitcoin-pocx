@@ -23,7 +23,7 @@
 
 ### 채굴 서버 모드
 
-**플래그**: `-miningserver`
+**플래그**: ``
 
 **목적**: 외부 마이너가 채굴 전용 RPC를 호출할 수 있도록 RPC 접근 활성화
 
@@ -34,10 +34,9 @@
 **사용법**:
 ```bash
 # 명령줄
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **보안 고려사항**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **카테고리**: mining
-**채굴 서버 필요**: 아니오
 **지갑 필요**: 아니오
 
 **목적**: 외부 마이너가 플롯 파일을 스캔하고 데드라인을 계산하는 데 필요한 현재 채굴 매개변수를 반환합니다.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // 16진수, 64자
-  "base_target": 36650387593,                // 숫자
+  "base_target": 36650387592,                // 숫자
   "height": 12345,                           // 숫자, 다음 블록 높이
   "block_hash": "def456...",                 // 16진수, 이전 블록
   "target_quality": 18446744073709551615,    // uint64_max (모든 솔루션 허용)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **카테고리**: mining
-**채굴 서버 필요**: 예
 **지갑 필요**: 예 (개인키용)
 
 **목적**: PoCX 채굴 솔루션을 제출합니다. 증명을 검증하고, 시간 왜곡 포징을 위해 큐에 넣고, 예정된 시간에 자동으로 블록을 생성합니다.
 
-**매개변수**:
-1. `height` (숫자, 필수) - 블록 높이
-2. `generation_signature` (문자열 16진수, 필수) - 생성 서명 (64자)
-3. `account_id` (문자열, 필수) - 플롯 계정 ID (40 16진수 문자 = 20 바이트)
-4. `seed` (문자열, 필수) - 플롯 시드 (64 16진수 문자 = 32 바이트)
-5. `nonce` (숫자, 필수) - 채굴 논스
-6. `compression` (숫자, 필수) - 사용된 스케일링/압축 레벨 (1-255)
-7. `quality` (숫자, 선택) - 품질 값 (생략 시 재계산)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **반환값** (성공):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // 난이도 조정된 데드라인 (초)
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // 시간 왜곡된 포징 시간 (초)
 }
 ```
@@ -163,12 +162,16 @@ bitcoin-cli get_mining_info
 
 **예시**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **참고**:
@@ -186,7 +189,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **카테고리**: mining
-**채굴 서버 필요**: 아니오
 **지갑 필요**: 아니오
 
 **목적**: 플롯 주소에 대한 포징 할당 상태를 조회합니다. 읽기 전용, 지갑 필요 없음.
@@ -260,7 +262,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **카테고리**: wallet
-**채굴 서버 필요**: 아니오
 **지갑 필요**: 예 (로드되고 잠금 해제되어야 함)
 
 **목적**: 다른 주소(예: 채굴 풀)에 포징 권한을 위임하는 포징 할당 트랜잭션을 생성합니다.
@@ -316,7 +317,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **카테고리**: wallet
-**채굴 서버 필요**: 아니오
 **지갑 필요**: 예 (로드되고 잠금 해제되어야 함)
 
 **목적**: 기존 포징 할당을 취소하고 포징 권한을 플롯 소유자에게 반환합니다.
@@ -377,7 +377,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX 수정사항**:
 - **계산**: `reference_base_target / current_base_target`
-- **참조**: 1 TiB 네트워크 용량 (base_target = 36650387593)
+- **참조**: 1 TiB 네트워크 용량 (base_target = 36650387592)
 - **해석**: TiB 단위 예상 네트워크 스토리지 용량
   - 예: `1.0` = ~1 TiB
   - 예: `1024.0` = ~1 PiB
@@ -401,7 +401,7 @@ bitcoin-cli getdifficulty
 - `base_target` (숫자) - PoCX 난이도 기본 목표
 - `generation_signature` (문자열 16진수) - 생성 서명
 - `pocx_proof` (객체):
-  - `account_id` (문자열 16진수) - 플롯 계정 ID (20 바이트)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (문자열 16진수) - 플롯 시드 (32 바이트)
   - `nonce` (숫자) - 채굴 논스
   - `compression` (숫자) - 사용된 스케일링 레벨
@@ -464,7 +464,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (숫자) - 풀 채굴용
 
 **PoCX 제거 필드**:
-- `target` - 제거됨 (PoW 전용)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - 제거됨 (PoW 전용)
 - `bits` - 제거됨 (PoW 전용)
 
@@ -494,10 +494,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **대안**: PoCX 전용 `get_mining_info` 사용
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **이유**: CPU 채굴이 PoCX에 적용되지 않음 (사전 생성된 플롯 필요)
-- **대안**: 외부 플로터 + 마이너 + `submit_nonce` 사용
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**구현**: `src/rpc/mining.cpp` (ENABLE_POCX 정의 시 RPC가 오류 반환)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +531,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. 플롯 파일 스캔 (외부 구현)
@@ -538,11 +539,15 @@ while True:
 
     # 3. 최적의 솔루션 제출
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +667,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **채굴 RPC**: `src/pocx/rpc/mining.cpp`
 **할당 RPC**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **블록체인 RPC**: `src/rpc/blockchain.cpp`
-**증명 검증**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**증명 검증**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **할당 상태**: `src/pocx/assignments/assignment_state.cpp`
 **트랜잭션 생성**: `src/pocx/assignments/transactions.cpp`
 

@@ -39,7 +39,7 @@ Väljundid:
   [1]: Vahetus tagasi kasutajale (valikuline, standardne P2WPKH)
 ```
 
-**Implementatsioon:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementatsioon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Tühistamise tehingu vorming
 
@@ -58,14 +58,14 @@ Väljundid:
   [1]: Vahetus tagasi kasutajale (valikuline, standardne P2WPKH)
 ```
 
-**Implementatsioon:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementatsioon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Markerid
 
 - **Ülesande marker:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Tühistamise marker:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Implementatsioon:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementatsioon:** `src/pocx/assignments/opcodes.cpp`
 
 ### Tehingu põhiomadused
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Täielik ajalugu: kõik ülesanded graafiku kohta aja jooksul
 ```
 
-**Implementatsioon:** `src/txdb.cpp:237-348`
+**Implementatsioon:** `src/txdb.cpp`
 
 ### ForgingAssignment struktuur
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementatsioon:** `src/coins.h:111-178`
+**Implementatsioon:** `src/coins.h`
 
 ### Ülesannete olekud
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementatsioon:** `src/coins.h:98-104`
+**Implementatsioon:** `src/coins.h`
 
 ### Andmebaasi võtmed
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementatsioon:** `src/txdb.cpp:245-262`
+**Implementatsioon:** `src/txdb.cpp`
 
 ### Ajaloo jälgimine
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Kontrolli graafiku olekut (peab olema UNASSIGNED või REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Loo uus ülesanne
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins jätkab normaalselt (jätab automaatselt OP_RETURN väljundid vahele)
 ```
 
-**Implementatsioon:** `src/validation.cpp:2775-2878`
+**Implementatsioon:** `src/validation.cpp:ConnectBlock()`
 
 ### Omandi verifitseerimine
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Kontrolli, et vähemalt üks sisend on allkirjastatud graafikuomaniku poolt
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Ekstrakteeri sihtkoht
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Kontrolli, kas P2WPKH graafiku aadressile
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core on allkirja juba valideerinud
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementatsioon:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementatsioon:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Aktiveerimise viivitused
 
@@ -282,7 +280,7 @@ Tehakse failis `src/consensus/tx_check.cpp` ilma ahela oleku juurdepääsuta:
 
 1. **Maksimaalselt üks POCX OP_RETURN:** Tehing ei saa sisaldada mitut POCX/XCOP markerit
 
-**Implementatsioon:** `src/consensus/tx_check.cpp:63-77`
+**Implementatsioon:** `src/consensus/tx_check.cpp`
 
 ### Mempool'i vastuvõtu kontrollid (PreChecks)
 
@@ -300,7 +298,7 @@ Tehakse failis `src/validation.cpp` täieliku ahela oleku ja mempool'i juurdepä
 2. **Aktiivne ülesanne:** Graafik peab olema ainult ASSIGNED (2) olekus
 3. **Mempool'i konfliktid:** Pole teist tühistamist sellele graafikule mempool'is
 
-**Implementatsioon:** `src/validation.cpp:898-993`
+**Implementatsioon:** `src/validation.cpp:PreChecks()`
 
 ### Valideerimise voog
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Kogu muudetud ülesanded
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Tühi - kasutamata
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Kirjuta andmebaasi
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Tühjenda jälgimine
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Vabasta mälu
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementatsioon:** `src/coins.cpp:278-315`
+**Implementatsioon:** `src/coins.cpp:Flush()`
 
 ### Andmebaasi pakkkirjutamine
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Ülesanded kirjutatakse eraldi, kuid samas andmebaasi tehingu kontekstis
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Kasutamata parameeter (hoitakse API ühilduvuse jaoks)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Uus pakk, kuid sama andmebaas
+    CDBBatch batch(*m_db);
 
-    // Kirjuta ülesannete ajalugu
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Kustuta kustutatud ülesanded ajaloost
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // AATOMILINE COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementatsioon:** `src/txdb.cpp:332-348`
+**Implementatsioon:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Aatomilisuse garantiid
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementatsioon:** `src/undo.h:63-105`
+**Implementatsioon:** `src/undo.h`
 
 ### DisconnectBlock protsess
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementatsioon:** `src/validation.cpp:2381-2415`
+**Implementatsioon:** `src/validation.cpp:DisconnectBlock()`
 
 ### Vahemälu haldamine ümberkorralduse ajal
 
@@ -556,7 +562,7 @@ private:
     // Ülesannete vahemälud
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Jälgi muudetud graafikuid
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Jälgi kustutamisi
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Jälgi kustutamisi
     mutable size_t cachedAssignmentsUsage{0};  // Mälu jälgimine
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementatsioon:** `src/coins.cpp:494-565`
+**Implementatsioon:** `src/coins.cpp`
 
 ## RPC liides
 
@@ -613,7 +617,7 @@ Tagastab praeguse ülesande oleku graafiku aadressi jaoks:
 }
 ```
 
-**Implementatsioon:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementatsioon:** `src/pocx/rpc/assignments.cpp`
 
 ### Rahakoti käsud (rahakott vajalik)
 
@@ -628,7 +632,7 @@ Loob ülesande tehingu:
 - Allkirjastab graafikuomaniku võtmega
 - Edastab võrku
 
-**Implementatsioon:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementatsioon:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Loob tühistamise tehingu:
 - Allkirjastab graafikuomaniku võtmega
 - Edastab võrku
 
-**Implementatsioon:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementatsioon:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Rahakoti tehingu loomine
 
@@ -660,7 +664,7 @@ Rahakoti tehingu loomise protsess:
 
 **Põhiline taipamine:** Rahakott peab kulutama graafiku aadressilt omandi tõestamiseks, seega sunnib see automaatselt mündi valiku sellelt aadressilt.
 
-**Implementatsioon:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementatsioon:** `src/pocx/assignments/transactions.cpp`
 
 ## Failistruktuur
 
@@ -668,11 +672,11 @@ Rahakoti tehingu loomise protsess:
 
 ```
 src/
-├── coins.h                        # ForgingAssignment struktuur, CCoinsViewCache meetodid [710 rida]
-├── coins.cpp                      # Vahemälu haldamine, pakkkirjutused [603 rida]
+├── coins.h                        # ForgingAssignment struktuur, CCoinsViewCache meetodid
+├── coins.cpp                      # Vahemälu haldamine, pakkkirjutused
 │
-├── txdb.h                         # CCoinsViewDB ülesande meetodid [90 rida]
-├── txdb.cpp                       # Andmebaasi lugemine/kirjutamine [349 rida]
+├── txdb.h                         # CCoinsViewDB ülesande meetodid
+├── txdb.cpp                       # Andmebaasi lugemine/kirjutamine
 │
 ├── undo.h                         # ForgingUndo struktuur ümberkorralduste jaoks
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # OP_RETURN vorming, parsimine, verifitseerimine
-    │   ├── opcodes.cpp            # [259 rida] Markeri definitsioonid, OP_RETURN op-d, omandi kontroll
+    │   ├── opcodes.cpp            # Markeri definitsioonid, OP_RETURN op-d, omandi kontroll
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState abistajad
     │   ├── assignment_state.cpp   # Ülesande oleku päringufunktsioonid
     │   ├── transactions.h         # Rahakoti tehingu loomise API
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # Sõlme RPC käsud (ilma rahakotita)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC-d
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # Rahakoti RPC käsud
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC-d
     │

@@ -49,7 +49,7 @@ PoCX blokai išplečia Bitcoin bloko struktūrą papildomais konsensuso laukais:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Grafiko sėkla (32 baitai)
     std::array<uint8_t, 20> account_id;       // Grafiko adresas (20 baitų hash160)
-    uint32_t compression;                     // Mastelio lygis (1-255)
+    uint32_t compression;                     // Mastelio lygis (1-6)
     uint64_t nonce;                           // Kasimo nonce (64 bitai)
     uint64_t quality;                         // Deklaruota kokybė (PoC maišos išvestis)
 };
@@ -92,7 +92,7 @@ generationSignature = SHA256(anksčiau_generationSignature || anksčiau_kasėjo_
 
 **Pradinis blokas:** Naudoja užkoduotą pradinį generavimo parašą
 
-**Įgyvendinimas:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Įgyvendinimas:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Bazinis tikslas (sudėtingumas)
 
@@ -113,8 +113,8 @@ PoCX palaiko keičiamą darbo įrodymą grafiko failuose per mastelio lygius (Xn
 **Dinaminės ribos:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimalus priimamas lygis
-    uint8_t nPoCXTargetCompression;  // Rekomenduojamas lygis
+    uint32_t nPoCXMinCompression;     // Minimalus priimamas lygis
+    uint32_t nPoCXTargetCompression;  // Rekomenduojamas lygis
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Išlaiko saugumo ribą tarp grafiko kūrimo ir paieškos kaštų
 - Maksimalus mastelio lygis: 255
 
-**Įgyvendinimas:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Įgyvendinimas:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -231,10 +231,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 baitų
     block_height,
     nonce,
-    seed,                // 32 baitai
-    min_compression,
-    max_compression,
-    &result             // Išvestis: kokybė, terminas
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +243,7 @@ bool success = pocx_validate_block(
 3. Validuoti, kad kokybė atitinka sudėtingumo reikalavimus
 4. Grąžinti neapdorotą kokybės reikšmę
 
-**Įgyvendinimas:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Įgyvendinimas:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### 6 žingsnis: Laiko lenkimo skaičiavimas
 ```cpp
@@ -276,9 +275,9 @@ g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // NE terminas - perskaičiuojamas kalėje
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,7 +323,7 @@ while (!shutdown) {
    - Generavimo parašo neatitikimas → atmesti
    - Viršūnės bloko maišos pasikeitimas (reorg) → atstatyti kalimo būseną
 
-3. Kokybės palyginimas:
+3. Quality comparison (lower = better):
    - Jei kokybė >= dabartinė_geriausia → atmesti
 
 4. Apskaičiuoti laiko lenktą terminą:
@@ -397,6 +396,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Originalus grafiko adresas
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Perskaičiuoti merkle šaknį:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +421,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Įgyvendinimas:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Įgyvendinimas:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Pagrindiniai projektavimo sprendimai:**
 - Coinbase moka efektyviajam pasirašytojui (gerbia priskyrimus)
@@ -468,7 +468,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Patikrinti, kad atkurtas pubkey atitinka saugomą pubkey
 
 **Įgyvendinimas:** `src/validation.cpp:CheckBlockHeader()`
-**Parašo logika:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Parašo logika:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### 2 etapas: Bloko validacija (CheckBlock)
 
@@ -487,49 +487,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // 1 žingsnis: Validuoti generavimo parašą
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // 2 žingsnis: Validuoti bazinį tikslą
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // 3 žingsnis: Validuoti talpos įrodymą
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // 4 žingsnis: Patikrinti termino laikymąsi
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Validacijos žingsniai:**
-1. **Generavimo parašas:** Turi atitikti apskaičiuotą reikšmę iš ankstesnio bloko
-2. **Bazinis tikslas:** Turi atitikti sudėtingumo koregavimo skaičiavimą
-3. **Mastelio lygis:** Turi atitikti tinklo minimumą (`compression >= min_compression`)
-4. **Kokybės deklaracija:** Pateikta kokybė turi atitikti apskaičiuotą kokybę iš įrodymo
-5. **Talpos įrodymas:** Kriptografinio įrodymo validacija (SIMD optimizuota)
-6. **Termino laikymas:** Laiko lenktas terminas (`poc_time`) turi būti ≤ praėjusio laiko
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Įgyvendinimas:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +560,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Įgyvendinimas:**
 - Prijungimas: `src/validation.cpp:ConnectBlock()`
-- Išplėstinė validacija: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Priskyrimo logika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Išplėstinė validacija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Priskyrimo logika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### 5 etapas: Grandinės aktyvacija
 
@@ -668,7 +655,7 @@ Transaction {
 - Tampa ASSIGNED po atidėjimo periodo (4 blokai regtest, 30 blokų pagrindiniame tinkle)
 - Atidėjimas apsaugo nuo greitų perpriskyrimų blokų lenktynių metu
 
-**Įgyvendinimas:** `src/script/forging_assignment.h`, validacija ConnectBlock
+**Įgyvendinimas:** `src/pocx/assignments/opcodes.h`, validacija ConnectBlock
 
 ### Priskyrimo atšaukimas
 
@@ -683,9 +670,10 @@ Transaction {
 ```
 
 **Poveikis:**
-- Iš karto būsenos perėjimas į REVOKED
-- Grafiko savininkas gali kalti iš karto
-- Gali sukurti naują priskyrimą vėliau
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Priskyrimo validacija kasimo metu
 
@@ -831,7 +819,10 @@ SHA256(anksčiau_generavimo_parašas || anksčiau_kasėjo_pubkey_33baitai)
 
 **Bloko parašo maiša:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || bloko_maišos_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompaktiško parašo formatas:**
@@ -863,12 +854,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || bloko_maišos_hex))
 **Pagrindiniai įgyvendinimai:**
 - RPC sąsaja: `src/pocx/rpc/mining.cpp`
 - Kalėjo eilė: `src/pocx/mining/scheduler.cpp`
-- Konsensuso validacija: `src/pocx/consensus/validation.cpp`
-- Įrodymo validacija: `src/pocx/consensus/pocx.cpp`
+- Konsensuso validacija: `src/pocx/consensus/proof.cpp`
+- Įrodymo validacija: `src/pocx/consensus/signature.cpp`
 - Laiko lenkimas: `src/pocx/algorithms/time_bending.cpp`
 - Bloko validacija: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Priskyrimo logika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Konteksto valdymas: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Priskyrimo logika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Konteksto valdymas: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Duomenų struktūros:**
 - Bloko formatas: `src/primitives/block.h`
@@ -902,7 +893,7 @@ kur:
 **Procesas:**
 1. Generuoti scoop iš generavimo parašo ir aukščio
 2. Skaityti grafiko duomenis apskaičiuotam scoop
-3. Maišyti: `SHABAL256(generavimo_parašas || scoop_duomenys)`
+3. Maišyti: `Shabal256Lite(scoop_data, generation_signature)`
 4. Testuoti mastelio lygius nuo min iki max
 5. Grąžinti geriausią rastą kokybę
 

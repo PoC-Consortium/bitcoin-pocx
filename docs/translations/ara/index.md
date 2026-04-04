@@ -1,7 +1,7 @@
 # التوثيق التقني لـ Bitcoin-PoCX
 
 **الإصدار**: 1.0
-**إصدار Bitcoin Core الأساسي**: v30.0
+**إصدار Bitcoin Core الأساسي**: v30.2
 **الحالة**: مرحلة شبكة الاختبار
 **آخر تحديث**: 2025-12-25
 
@@ -116,8 +116,8 @@
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# التكوين مع تفعيل PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # البناء
 cmake --build build -j$(nproc)
@@ -126,10 +126,10 @@ cmake --build build -j$(nproc)
 **متغيرات البناء**:
 ```bash
 # مع واجهة Qt
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # بناء التصحيح
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **التبعيات**: تبعيات بناء Bitcoin Core القياسية. راجع [توثيق بناء Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) للمتطلبات الخاصة بكل منصة.
@@ -186,7 +186,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## الترخيص
 
-يرث Bitcoin-PoCX ترخيص MIT من Bitcoin Core. راجع `COPYING` في جذر المستودع.
+يرث Bitcoin-PoCX ترخيص MIT من Bitcoin Core. راجع `bitcoin/COPYING` في جذر المستودع.
 
 إسناد إطار عمل PoCX الأساسي موثق في [الفصل الثاني: صيغة الرسم](2-plot-format.md).
 

@@ -39,12 +39,7 @@ Täielik viide Bitcoin-PoCX võrgu konfiguratsioonile kõigis võrgutüüpides.
 
 ### Genesisiteade
 
-Kõik võrgud jagavad Bitcoin'i geneesisteadet:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementatsioon**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Kõik võrgud jagavad Bitcoin'i geneesisteadet:
 
 **Võrgu identiteet**:
 - **Maagilised baidid**: `0xa7 0x3c 0x91 0x5e`
-- **Vaikeport**: `8888`
+- **Vaikeport**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Aadressi prefiksid** (Base58):
@@ -84,14 +79,14 @@ Kõik võrgud jagavad Bitcoin'i geneesisteadet:
 ### Testnet parameetrid
 
 **Võrgu identiteet**:
-- **Maagilised baidid**: `0x6d 0xf2 0x48 0xb3`
-- **Vaikeport**: `18888`
+- **Maagilised baidid**: `0x6d 0xf2 0x48 0xb4`
+- **Vaikeport**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Aadressi prefiksid** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Ploki ajastus**:
 - **Plokkide aja sihtmärk**: `120` sekundit
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementatsioon**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementatsioon**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Struktuur**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimaalne aktsepteeritud tase
-    uint8_t nPoCXTargetCompression;  // Soovitatav tase
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimaalne aktsepteeritud tase
+    uint32_t nPoCXTargetCompression;  // Soovitatav tase
 };
 ```
 
@@ -313,7 +308,7 @@ Skaleerimistasemed suurenevad **eksponentsiaalsel graafikul** poolnemise interva
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementatsioon**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementatsioon**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Protokolli versioon
 
-**Baas**: Bitcoin Core v30.0 protokoll
+**Baas**: Bitcoin Core v30.2 protokoll
 - **Protokolli versioon**: Päritud Bitcoin Core'ilt
 - **Teenuse bitid**: Standardsed Bitcoin teenused
 - **Sõnumitüübid**: Standardsed Bitcoin P2P sõnumid
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX kaevandamisserver (vajalik väliste kaevandajate jaoks)
-miningserver=1
 
 # RPC seaded
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Ühenduse seaded
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Plokkide aja sihtmärk (informatsiooniline, konsensuse poolt jõustatud)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konsensuse parameetrid**: `src/consensus/params.h`
-**Kompressiooni piirid**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Kompressiooni piirid**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesise baassihtmärgi arvutamine**: `src/pocx/consensus/params.cpp`
-**Coinbase makse loogika**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase makse loogika**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Ülesannete oleku hoiustus**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache laiendused)
 
 ---

@@ -32,16 +32,16 @@ A PoCX konszenzus pontos időszinkronizációt igényel a hálózaton keresztül
 
 **Bitcoin-PoCX Konfiguráció:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 másodperc
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 másodperc
 ```
 
 ### Validációs Ellenőrzések
 
-**Blokk Időbélyeg Validáció** (`src/validation.cpp:4547-4561`):
+**Blokk Időbélyeg Validáció** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monoton ellenőrzés: időbélyeg >= előző blokk időbélyeg
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Határidő ellenőrzés: eltelt idő >= határidő
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Az Ön bányászati magassága 100, versenyző 99-es blokkot publikál
 - Validáció milliszekundumok alatt befejeződik
 
 **Erőforrás Használat:** Minimális
-- ~20 sor központi logika
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Újrafelhasználja a meglévő validációs infrastruktúrát
 - Egyetlen zár beszerzés
 
@@ -372,9 +372,9 @@ Egy **>15mp-cel lemaradó** csomópont katasztrofális:
 ## Implementációs Hivatkozások
 
 **Központi Fájlok**:
-- Idő validáció: `src/validation.cpp:4547-4561`
-- Jövőbeli tűrés konstans: `src/chain.h:31`
-- Figyelmeztetési küszöb: `src/node/timeoffsets.h:27`
+- Idő validáció: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Jövőbeli tűrés konstans: `src/chain.h`
+- Figyelmeztetési küszöb: `src/node/timeoffsets.h`
 - Időeltolás figyelés: `src/node/timeoffsets.cpp`
 - Védelmi kovácsolás: `src/pocx/mining/scheduler.cpp`
 

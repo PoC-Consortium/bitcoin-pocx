@@ -28,7 +28,7 @@ Panduan lengkap untuk dompet Qt Bitcoin-PoCX dan manajemen penugasan forging.
 Dompet Qt Bitcoin-PoCX (`bitcoin-qt`) menyediakan:
 - Fungsionalitas dompet Bitcoin Core standar (kirim, terima, manajemen transaksi)
 - **Manajer Penugasan Forging**: GUI untuk membuat/mencabut penugasan plot
-- **Mode Server Penambangan**: Flag `-miningserver` mengaktifkan fitur terkait penambangan
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Riwayat Transaksi**: Tampilan transaksi penugasan dan pencabutan
 
 ### Memulai Dompet
@@ -38,20 +38,20 @@ Dompet Qt Bitcoin-PoCX (`bitcoin-qt`) menyediakan:
 ./build/bin/bitcoin-qt
 ```
 
-**Dengan Penambangan** (mengaktifkan dialog penugasan):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternatif Baris Perintah**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Persyaratan Penambangan
 
 **Untuk Operasi Penambangan**:
-- Flag `-miningserver` diperlukan
+- Flag `` diperlukan
 - Dompet dengan alamat P2WPKH dan kunci privat
 - Plotter eksternal (`pocx_plotter`) untuk pembuatan plot
 - Miner eksternal (`pocx_miner`) untuk penambangan
@@ -83,8 +83,7 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 
 ### Mengakses Dialog
 
-**Menu**: `Dompet -> Penugasan Forging`
-**Toolbar**: Ikon penambangan (terlihat hanya dengan flag `-miningserver`)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Ukuran Jendela**: 600x450 piksel
 
 ### Mode Dialog
@@ -118,7 +117,7 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output OP_RETURN: marker `POCX` + plot_address + forging_address (46 byte)
+- Output OP_RETURN: marker `POCX` + plot_address + forging_address (44 byte)
 - Output kembalian: Dikembalikan ke dompet
 
 #### Mode 2: Cabut Penugasan
@@ -146,7 +145,7 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output OP_RETURN: marker `XCOP` + plot_address (26 byte)
+- Output OP_RETURN: marker `XCOP` + plot_address (24 byte)
 - Output kembalian: Dikembalikan ke dompet
 
 #### Mode 3: Periksa Status Penugasan
@@ -296,8 +295,8 @@ Pencabutan efektif pada tinggi: 13020
 ### Pesan Kesalahan Validasi
 
 **Kesalahan Dialog**:
-- "Alamat plot harus P2WPKH (bech32)"
-- "Alamat forging harus P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Format alamat tidak valid"
 - "Tidak ada koin tersedia di alamat plot. Tidak dapat membuktikan kepemilikan."
 - "Tidak dapat membuat transaksi dengan dompet hanya-pantau"
@@ -313,7 +312,6 @@ Pencabutan efektif pada tinggi: 13020
 **Konfigurasi Node**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Mulai Node** dengan server penambangan:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigurasi Miner**:
@@ -365,7 +363,7 @@ server=1
    - Pilih alamat plot
    - Masukkan alamat forging pool
    - Klik "Kirim Penugasan"
-   - Tunggu penundaan aktivasi (30 blok testnet)
+   - Tunggu penundaan aktivasi (30 blocks mainnet/testnet))
 
 3. **Konfigurasi Miner**:
    - Arahkan ke endpoint **pool** (bukan node lokal)
@@ -406,13 +404,13 @@ server=1
 - Impor kunci privat via RPC `importprivkey`
 - Atau gunakan alamat plot berbeda yang dimiliki dompet
 
-#### "Penugasan sudah ada untuk plot ini"
+#### "Cannot create assignment: plot is in ... state"
 
-**Penyebab**: Plot sudah ditugaskan ke alamat lain
-**Solusi**:
-1. Cabut penugasan yang ada
-2. Tunggu penundaan pencabutan (720 blok testnet)
-3. Buat penugasan baru
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Format alamat tidak didukung"
 
@@ -450,8 +448,8 @@ server=1
 
 #### "Tab Penugasan Forging tidak terlihat"
 
-**Penyebab**: Node dimulai tanpa flag `-miningserver`
-**Solusi**: Mulai ulang dengan `bitcoin-qt -server -miningserver`
+**Penyebab**: Node dimulai tanpa flag ``
+**Solusi**: Mulai ulang dengan `bitcoin-qt -server`
 
 ### Langkah Debug
 
@@ -525,12 +523,12 @@ server=1
 
 ### Penundaan Penugasan
 
-**Penundaan Aktivasi** (30 blok testnet):
+**Penundaan Aktivasi** (30 blocks mainnet/testnet)):
 - Mencegah penugasan ulang cepat selama fork rantai
 - Memungkinkan jaringan mencapai konsensus
 - Tidak dapat dilewati
 
-**Penundaan Pencabutan** (720 blok testnet):
+**Penundaan Pencabutan** (720 blocks mainnet/testnet)):
 - Memberikan stabilitas untuk pool penambangan
 - Mencegah serangan "griefing" penugasan
 - Alamat forging tetap aktif selama penundaan

@@ -42,7 +42,7 @@ Proof of Capacity (PoC) is een consensusmechanisme waarbij miningkracht evenredi
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX-integratie
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX-integratie
 │   └── src/pocx/        # PoCX-implementatie
 ├── pocx/                # PoCX core framework (submodule, alleen-lezen)
 └── docs/                # Deze documentatie
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Oplossing**: Distributietransformatie van exponentieel naar chi-kwadraat met kubuswortel: `Y = schaal × (X^(1/3))`.
 
-**Effect**: Zeer goede oplossingen forgen later (netwerk heeft tijd om alle schijven te scannen, vermindert snelle blokken), slechte oplossingen worden verbeterd. Gemiddelde bloktijd blijft 120 seconden, lange blokken worden verminderd.
+**Effect**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Details**: [Hoofdstuk 3: Consensus en mining](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Zelfde als Bitcoin Core**:
 - **CPU**: Moderne x86_64-processor
 - **Geheugen**: 4-8 GB RAM
-- **Opslag**: Nieuwe keten, momenteel leeg (kan ~4x sneller groeien dan Bitcoin door 2-minuten blokken en toewijzingsdatabase)
+- **Opslag**: Nieuwe keten, momenteel leeg (kan ~5x sneller groeien dan Bitcoin door 2-minuten blokken en toewijzingsdatabase)
 - **Netwerk**: Stabiele internetverbinding
 - **Klok**: NTP-synchronisatie aanbevolen voor optimale werking
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Bouw met PoCX ingeschakeld
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Details**: Zie `CLAUDE.md` in de repository-root
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Voer node uit
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Voor mining** (schakelt RPC-toegang in voor externe miners):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # of
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Details**: [Hoofdstuk 6: Netwerkparameters](6-network-parameters.md)

@@ -39,12 +39,7 @@
 
 ### 제네시스 메시지
 
-모든 네트워크가 Bitcoin 제네시스 메시지를 공유합니다:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**구현**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **네트워크 식별**:
 - **매직 바이트**: `0xa7 0x3c 0x91 0x5e`
-- **기본 포트**: `8888`
+- **기본 포트**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **주소 접두사** (Base58):
@@ -84,14 +79,14 @@
 ### 테스트넷 매개변수
 
 **네트워크 식별**:
-- **매직 바이트**: `0x6d 0xf2 0x48 0xb3`
-- **기본 포트**: `18888`
+- **매직 바이트**: `0x6d 0xf2 0x48 0xb4`
+- **기본 포트**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **주소 접두사** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **블록 타이밍**:
 - **블록 시간 목표**: `120`초
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**구현**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**구현**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **구조**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 허용되는 최소 레벨
-    uint8_t nPoCXTargetCompression;  // 권장 레벨
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // 허용되는 최소 레벨
+    uint32_t nPoCXTargetCompression;  // 권장 레벨
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**구현**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**구현**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### 프로토콜 버전
 
-**기반**: Bitcoin Core v30.0 프로토콜
+**기반**: Bitcoin Core v30.2 프로토콜
 - **프로토콜 버전**: Bitcoin Core에서 상속
 - **서비스 비트**: 표준 Bitcoin 서비스
 - **메시지 유형**: 표준 Bitcoin P2P 메시지
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX 채굴 서버 (외부 마이너에 필요)
-miningserver=1
 
 # RPC 설정
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # 연결 설정
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # 블록 시간 목표 (정보 제공용, 합의에서 강제)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **체인 매개변수**: `src/kernel/chainparams.cpp`
 **합의 매개변수**: `src/consensus/params.h`
-**압축 범위**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**압축 범위**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **제네시스 기본 목표 계산**: `src/pocx/consensus/params.cpp`
-**코인베이스 지급 로직**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**코인베이스 지급 로직**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **할당 상태 저장**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache 확장)
 
 ---

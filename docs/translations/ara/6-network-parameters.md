@@ -39,12 +39,7 @@
 
 ### رسالة التكوين
 
-جميع الشبكات تشترك في رسالة تكوين Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**التنفيذ**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **هوية الشبكة**:
 - **بايتات السحر**: `0xa7 0x3c 0x91 0x5e`
-- **المنفذ الافتراضي**: `8888`
+- **المنفذ الافتراضي**: `8338`
 - **بادئة Bech32**: `pocx`
 
 **بادئات العناوين** (Base58):
@@ -84,14 +79,14 @@
 ### معلمات شبكة الاختبار
 
 **هوية الشبكة**:
-- **بايتات السحر**: `0x6d 0xf2 0x48 0xb3`
-- **المنفذ الافتراضي**: `18888`
+- **بايتات السحر**: `0x6d 0xf2 0x48 0xb4`
+- **المنفذ الافتراضي**: `18338`
 - **بادئة Bech32**: `tpocx`
 
 **بادئات العناوين** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **توقيت الكتل**:
 - **هدف وقت الكتلة**: `120` ثانية
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**التنفيذ**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**التنفيذ**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **الهيكل**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // الحد الأدنى المقبول
-    uint8_t nPoCXTargetCompression;  // المستوى الموصى به
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // الحد الأدنى المقبول
+    uint32_t nPoCXTargetCompression;  // المستوى الموصى به
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**التنفيذ**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`، `src/pocx/consensus/params.cpp`
+**التنفيذ**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`، `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### إصدار البروتوكول
 
-**الأساس**: بروتوكول Bitcoin Core v30.0
+**الأساس**: بروتوكول Bitcoin Core v30.2
 - **إصدار البروتوكول**: موروث من Bitcoin Core
 - **بتات الخدمة**: خدمات Bitcoin القياسية
 - **أنواع الرسائل**: رسائل P2P Bitcoin القياسية
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # خادم تعدين PoCX (مطلوب للمُعدّنين الخارجيين)
-miningserver=1
 
 # إعدادات RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # إعدادات الاتصال
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # هدف وقت الكتلة (معلوماتي، الإجماع يُنفذ)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **معلمات الإجماع**: `src/consensus/params.h`
-**حدود الضغط**: `src/pocx/algorithms/algorithms.h`، `src/pocx/consensus/params.cpp`
+**حدود الضغط**: `src/pocx/consensus/params.h`، `src/pocx/consensus/params.cpp`
 **حساب الهدف الأساسي للتكوين**: `src/pocx/consensus/params.cpp`
-**منطق دفع Coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**منطق دفع Coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **تخزين حالة التعيين**: `src/coins.h`، `src/coins.cpp` (ملحقات CCoinsViewCache)
 
 ---

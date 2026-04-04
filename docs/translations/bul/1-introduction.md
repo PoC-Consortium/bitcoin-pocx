@@ -42,7 +42,7 @@ Proof of Capacity (PoC) е консенсусен механизъм, при к�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX интеграция
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX интеграция
 │   └── src/pocx/        # Имплементация на PoCX
 ├── pocx/                # Основен фреймуърк PoCX (submodule, само за четене)
 └── docs/                # Тази документация
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Проблем**: Традиционните PoC времена на блокове следват експоненциално разпределение, което води до дълги блокове, когато никой миньор не намира добро решение.
 
-**Решение**: Трансформация на разпределението от експоненциално към хи-квадрат чрез кубичен корен: `Y = scale × (X^(1/3))`.
+**Решение**: Трансформация на разпределението от експоненциално към хи-квадрат чрез кубичен корен: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Ефект**: Много добрите решения се подписват по-късно (мрежата има време да сканира всички дискове, намалява бързите блокове), лошите решения се подобряват. Средното време на блок се поддържа на 120 секунди, дългите блокове се намаляват.
+**Ефект**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Подробности**: [Глава 3: Консенсус и копаене](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Същите като Bitcoin Core**:
 - **CPU**: Модерен x86_64 процесор
 - **Памет**: 4-8 GB RAM
-- **Съхранение**: Нова верига, понастоящем празна (може да расте ~4× по-бързо от Bitcoin поради 2-минутни блокове и база данни за делегирания)
+- **Съхранение**: Нова верига, понастоящем празна (може да расте ~5× по-бързо от Bitcoin поради 2-минутни блокове и база данни за делегирания)
 - **Мрежа**: Стабилна интернет връзка
 - **Часовник**: Препоръчва се NTP синхронизация за оптимална работа
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Изграждане с включен PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Подробности**: Вижте `CLAUDE.md` в корена на хранилището
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Стартиране на възел
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **За копаене** (позволява RPC достъп за външни миньори):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # или
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Подробности**: [Глава 6: Мрежови параметри](6-network-parameters.md)

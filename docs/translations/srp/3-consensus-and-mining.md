@@ -49,7 +49,7 @@ PoCX блокови проширују Bitcoin-ову структуру бло�
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed плота (32 бајта)
     std::array<uint8_t, 20> account_id;       // Адреса плота (20-бајтни hash160)
-    uint32_t compression;                     // Ниво скалирања (1-255)
+    uint32_t compression;                     // Ниво скалирања (1-6)
     uint64_t nonce;                           // Nonce рударења (64-бит)
     uint64_t quality;                         // Пријављени квалитет (излаз PoC хеша)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **Израчунавање:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Генезис блок:** Користи хардкодирани иницијални генерацијски потпис
 
-**Имплементација:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Имплементација:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Базни циљ (тежина)
 
@@ -113,8 +113,8 @@ PoCX подржава скалабилни доказ рада у плот да�
 **Динамичке границе:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Минимални прихваћен ниво
-    uint8_t nPoCXTargetCompression;  // Препоручени ниво
+    uint32_t nPoCXMinCompression;     // Минимални прихваћен ниво
+    uint32_t nPoCXTargetCompression;  // Препоручени ниво
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - Минимални ниво скалирања се повећава за 1
 - Циљани ниво скалирања се повећава за 1
 - Одржава сигурносну маргину између трошкова креирања плота и претраживања
-- Максимални ниво скалирања: 255
+- Максимални ниво скалирања: 7 (target = min + 1, with min capping at 6)
 
-**Имплементација:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Имплементација:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Подршка за додељивање:** Власник плота може доделити права ковања другој адреси. Новчаник мора имати кључ за ефективног потписника, не обавезно за власника плота.
 
-#### Корак 5: Валидација доказа
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 бајтова
     block_height,
     nonce,
-    seed,                // 32 бајта
-    min_compression,
-    max_compression,
-    &result             // Излаз: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Валидирај да квалитет задовољава захтеве тежине
 4. Врати сирову вредност квалитета
 
-**Имплементација:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Имплементација:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Корак 6: Израчунавање савијања времена
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **Имплементација:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Корак 7: Слање ковачу
+#### Step 8: Forger Submission: Слање ковачу
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // НЕ deadline - поново се рачуна у ковачу
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Оригинална адреса плота
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Прерачунај merkle корен:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Имплементација:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Имплементација:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Кључне дизајнерске одлуке:**
 - Coinbase плаћа ефективном потписнику (поштује додељивања)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Верификуј да повраћени pubkey одговара складиштеном pubkey-у
 
 **Имплементација:** `src/validation.cpp:CheckBlockHeader()`
-**Логика потписа:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Логика потписа:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Фаза 2: Валидација блока (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Корак 1: Валидирај генерацијски потпис
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Корак 2: Валидирај базни циљ
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Корак 3: Валидирај доказ капацитета
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Корак 4: Верификуј време рока
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Кораци валидације:**
-1. **Генерацијски потпис:** Мора одговарати израчунатој вредности из претходног блока
-2. **Базни циљ:** Мора одговарати израчунавању подешавања тежине
-3. **Ниво скалирања:** Мора задовољити минимум мреже (`compression >= min_compression`)
-4. **Тврдња квалитета:** Пријављени квалитет мора одговарати израчунатом квалитету из доказа
-5. **Доказ капацитета:** Валидација криптографског доказа (SIMD-оптимизована)
-6. **Време рока:** Рок савијен временом (`poc_time`) мора бити ≤ протеклог времена
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Имплементација:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Имплементација:**
 - Повезивање: `src/validation.cpp:ConnectBlock()`
-- Проширена валидација: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Логика додељивања: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Проширена валидација: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Логика додељивања: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Фаза 5: Активација ланца
 
@@ -668,7 +662,7 @@ Transaction {
 - Постаје ASSIGNED након периода кашњења (4 блока regtest, 30 блокова mainnet)
 - Кашњење спречава брзо поновно додељивање током трка блокова
 
-**Имплементација:** `src/script/forging_assignment.h`, валидација у ConnectBlock
+**Имплементација:** `src/pocx/assignments/opcodes.h`, валидација у ConnectBlock
 
 ### Опозивање додељивања
 
@@ -826,12 +820,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **Генерацијски потпис:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Хеш потписа блока:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Формат компактног потписа:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Основне имплементације:**
 - RPC интерфејс: `src/pocx/rpc/mining.cpp`
 - Ред чекања ковача: `src/pocx/mining/scheduler.cpp`
-- Валидација консензуса: `src/pocx/consensus/validation.cpp`
-- Валидација доказа: `src/pocx/consensus/pocx.cpp`
+- Валидација консензуса: `src/pocx/consensus/proof.cpp`
+- Валидација доказа: `src/pocx/consensus/signature.cpp`
 - Савијање времена: `src/pocx/algorithms/time_bending.cpp`
 - Валидација блока: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Логика додељивања: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Управљање контекстом: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Логика додељивања: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Управљање контекстом: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Структуре података:**
 - Формат блока: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **Процес:**
 1. Генериши scoop из генерацијског потписа и висине
 2. Прочитај податке плота за израчунати scoop
-3. Хеш: `SHABAL256(generation_signature || scoop_data)`
+3. Хеш: `Shabal256Lite(scoop_data, generation_signature)`
 4. Тестирај нивое скалирања од min до max
 5. Врати најбољи пронађени квалитет
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(недавни базни циљеви)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

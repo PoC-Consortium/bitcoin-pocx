@@ -28,7 +28,7 @@ Täielik juhend Bitcoin-PoCX Qt rahakotile ja sepistamisülesannete haldamisele.
 Bitcoin-PoCX Qt rahakott (`bitcoin-qt`) pakub:
 - Standardset Bitcoin Core rahakoti funktsionaalsust (saatmine, vastuvõtmine, tehingute haldamine)
 - **Sepistamisülesannete haldur**: GUI graafikuülesannete loomiseks/tühistamiseks
-- **Kaevandamisserveri režiim**: `-miningserver` lipp lubab kaevandamisega seotud funktsioone
+- **Kaevandamisserveri režiim**: `` lipp lubab kaevandamisega seotud funktsioone
 - **Tehingute ajalugu**: Ülesande ja tühistamise tehingute kuvamine
 
 ### Rahakoti käivitamine
@@ -38,20 +38,20 @@ Bitcoin-PoCX Qt rahakott (`bitcoin-qt`) pakub:
 ./build/bin/bitcoin-qt
 ```
 
-**Kaevandamisega** (lubab ülesannete dialoogi):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Käsurea alternatiiv**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Kaevandamise nõuded
 
 **Kaevandamisoperatsioonideks**:
-- `-miningserver` lipp vajalik
+- `` lipp vajalik
 - Rahakott P2WPKH aadresside ja privaatvõtmetega
 - Väline graafikukoostaja (`pocx_plotter`) graafikute genereerimiseks
 - Väline kaevandaja (`pocx_miner`) kaevandamiseks
@@ -83,8 +83,7 @@ Bitcoin-PoCX kasutab **BTCX** valuutaühikut (mitte BTC):
 
 ### Dialoogi avamine
 
-**Menüü**: `Rahakott -> Sepistamisülesanded`
-**Tööriistariba**: Kaevandamise ikoon (nähtav ainult `-miningserver` lipuga)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Akna suurus**: 600×450 pikslit
 
 ### Dialoogirežiimid
@@ -296,8 +295,8 @@ Tühistamine jõustus kõrgusel: 13020
 ### Valideerimise veateated
 
 **Dialoogi vead**:
-- "Graafiku aadress peab olema P2WPKH (bech32)"
-- "Sepistamise aadress peab olema P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Kehtetu aadressi vorming"
 - "Graafiku aadressil pole münte. Ei saa tõestada omandi."
 - "Ei saa luua tehinguid ainult vaatamise rahakotiga"
@@ -313,7 +312,6 @@ Tühistamine jõustus kõrgusel: 13020
 **Sõlme konfiguratsioon**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Käivita sõlm** kaevandamisserveriga:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigureeri kaevandaja**:
@@ -365,7 +363,7 @@ server=1
    - Vali graafiku aadress
    - Sisesta basseini sepistamise aadress
    - Klõpsa "Saada ülesanne"
-   - Oota aktiveerimise viivitust (30 plokki testnet)
+   - Oota aktiveerimise viivitust (30 blocks mainnet/testnet))
 
 3. **Konfigureeri kaevandaja**:
    - Suuna **basseini** lõpp-punktile (mitte kohalikule sõlmele)
@@ -399,19 +397,14 @@ server=1
 
 ### Levinud probleemid
 
-#### "Rahakotis pole graafiku aadressi privaatvõtit"
-
-**Põhjus**: Rahakott ei oma aadressi
-**Lahendus**:
-- Impordi privaatvõti `importprivkey` RPC kaudu
-- Või kasuta teist rahakotile kuuluvat graafiku aadressi
+- Or use different plot address owned by wallet
 
 #### "Sellele graafikule on juba ülesanne"
 
 **Põhjus**: Graafik on juba määratud teisele aadressile
 **Lahendus**:
 1. Tühista olemasolev ülesanne
-2. Oota tühistamise viivitust (720 plokki testnet)
+2. Oota tühistamise viivitust (720 blocks mainnet/testnet))
 3. Loo uus ülesanne
 
 #### "Aadressi vorming pole toetatud"
@@ -450,8 +443,8 @@ server=1
 
 #### "Sepistamisülesannete sakk pole nähtav"
 
-**Põhjus**: Sõlm käivitati ilma `-miningserver` liputa
-**Lahendus**: Taaskäivita `bitcoin-qt -server -miningserver`
+**Põhjus**: Sõlm käivitati ilma `` liputa
+**Lahendus**: Taaskäivita `bitcoin-qt -server`
 
 ### Silumise sammud
 
@@ -525,12 +518,12 @@ server=1
 
 ### Ülesannete viivitused
 
-**Aktiveerimise viivitus** (30 plokki testnet):
+**Aktiveerimise viivitus** (30 blocks mainnet/testnet)):
 - Takistab kiiret ümberseadistamist ahela hargnemisel
 - Võimaldab võrgul jõuda konsensusele
 - Ei saa mööda minna
 
-**Tühistamise viivitus** (720 plokki testnet):
+**Tühistamise viivitus** (720 blocks mainnet/testnet)):
 - Tagab stabiilsuse kaevandamisbasseinidele
 - Takistab ülesande "kiusamise" rünnakuid
 - Sepistamise aadress jääb viivituse ajal aktiivseks

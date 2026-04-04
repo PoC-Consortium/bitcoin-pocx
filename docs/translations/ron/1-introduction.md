@@ -42,7 +42,7 @@ Proof of Capacity (PoC) este un mecanism de consens în care puterea de minerit 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + integrare PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + integrare PoCX
 │   └── src/pocx/        # Implementare PoCX
 ├── pocx/                # Framework PoCX core (submodul, doar citire)
 └── docs/                # Această documentație
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Soluția**: Transformarea distribuției din exponențială în chi-pătrat folosind rădăcina cubică: `Y = scala × (X^(1/3))`.
 
-**Efectul**: Soluțiile foarte bune sunt forjate mai târziu (rețeaua are timp să scaneze toate discurile, reduce blocurile rapide), soluțiile slabe sunt îmbunătățite. Timpul mediu al blocului este menținut la 120 secunde, blocurile lungi sunt reduse.
+**Efectul**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detalii**: [Capitolul 3: Consens și minerit](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **La fel ca Bitcoin Core**:
 - **CPU**: Procesor modern x86_64
 - **Memorie**: 4-8 GB RAM
-- **Stocare**: Lanț nou, momentan gol (poate crește de ~4× mai repede decât Bitcoin datorită blocurilor de 2 minute și bazei de date de atribuiri)
+- **Stocare**: Lanț nou, momentan gol (poate crește de ~5× mai repede decât Bitcoin datorită blocurilor de 2 minute și bazei de date de atribuiri)
 - **Rețea**: Conexiune stabilă la internet
 - **Ceas**: Sincronizare NTP recomandată pentru operare optimă
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Compilare cu PoCX activat
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detalii**: Consultați `CLAUDE.md` în rădăcina depozitului
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Rularea nodului
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Pentru minerit** (activează accesul RPC pentru mineri externi):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # sau
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detalii**: [Capitolul 6: Parametri de rețea](6-network-parameters.md)

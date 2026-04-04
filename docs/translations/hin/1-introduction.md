@@ -42,7 +42,7 @@ Proof of Capacity (PoC) एक सहमति तंत्र है जहा�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX एकीकरण
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX एकीकरण
 │   └── src/pocx/        # PoCX कार्यान्वयन
 ├── pocx/                # PoCX core framework (सबमॉड्यूल, केवल-पढ़ने योग्य)
 └── docs/                # यह दस्तावेज़ीकरण
@@ -67,7 +67,7 @@ bitcoin-pocx/
 - **ब्लॉक संरचना**: PoCX-विशिष्ट फ़ील्ड PoW nonce और difficulty bits को प्रतिस्थापित करते हैं
   - Generation signature (नियतात्मक माइनिंग एन्ट्रॉपी)
   - Base target (कठिनाई का विलोम)
-  - PoCX proof (account ID, seed, nonce)
+  - PoCX proof (account ID, seed, nonce, compression, quality)
   - Block signature (plot स्वामित्व सिद्ध करता है)
 
 - **सत्यापन**: हेडर जांच से ब्लॉक कनेक्शन तक 5-चरण सत्यापन पाइपलाइन
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **समस्या**: पारंपरिक PoC ब्लॉक समय घातांकीय वितरण का पालन करते हैं, जब कोई माइनर अच्छा समाधान नहीं पाता तो लंबे ब्लॉक होते हैं।
 
-**समाधान**: घन मूल का उपयोग करते हुए घातांकीय से ची-वर्ग में वितरण परिवर्तन: `Y = scale × (X^(1/3))`।
+**समाधान**: घन मूल का उपयोग करते हुए घातांकीय से ची-वर्ग में वितरण परिवर्तन: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`।
 
-**प्रभाव**: बहुत अच्छे समाधान बाद में फोर्ज होते हैं (नेटवर्क के पास सभी डिस्क स्कैन करने का समय होता है, तेज़ ब्लॉक कम होते हैं), खराब समाधान में सुधार होता है। औसत ब्लॉक समय 120 सेकंड पर बनाए रखा गया, लंबे ब्लॉक कम हुए।
+**प्रभाव**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **विवरण**: [अध्याय 3: सहमति और माइनिंग](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Bitcoin Core के समान**:
 - **CPU**: आधुनिक x86_64 प्रोसेसर
 - **मेमोरी**: 4-8 GB RAM
-- **स्टोरेज**: नई चेन, वर्तमान में खाली (2-मिनट ब्लॉक और असाइनमेंट डेटाबेस के कारण Bitcoin से ~4× तेज़ बढ़ सकती है)
+- **स्टोरेज**: नई चेन, वर्तमान में खाली (2-मिनट ब्लॉक और असाइनमेंट डेटाबेस के कारण Bitcoin से ~5× तेज़ बढ़ सकती है)
 - **नेटवर्क**: स्थिर इंटरनेट कनेक्शन
 - **क्लॉक**: इष्टतम संचालन के लिए NTP सिंक्रनाइज़ेशन अनुशंसित
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX सक्षम करके बनाएं
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**विवरण**: रिपॉजिटरी रूट में `CLAUDE.md` देखें
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. नोड चलाएं
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **माइनिंग के लिए** (बाहरी माइनर्स के लिए RPC पहुंच सक्षम करता है):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # या
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **विवरण**: [अध्याय 6: नेटवर्क पैरामीटर](6-network-parameters.md)

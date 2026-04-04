@@ -21,40 +21,15 @@ Teljes referencia a Bitcoin-PoCX RPC parancsokhoz, beleértve a bányászati RPC
 
 ## Konfiguráció
 
-### Bányász Szerver Mód
+### Mining RPCs
 
-**Jelző**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Cél**: Engedélyezi az RPC hozzáférést külső bányászoknak a bányászat-specifikus RPC-k hívásához
-
-**Követelmények**:
-- Szükséges a `submit_nonce` működéséhez
-- Szükséges a kovácsolási megbízás párbeszédpanel láthatóságához a Qt tárcában
-
-**Használat**:
-```bash
-# Parancssor
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Biztonsági Megfontolások**:
-- Nincs további hitelesítés a szabványos RPC hitelesítésen túl
-- A bányászati RPC-k sor kapacitással korlátozottak
-- Szabványos RPC hitelesítés továbbra is szükséges
-
-**Implementáció**: `src/pocx/rpc/mining.cpp`
-
----
-
-## PoCX Bányászati RPC-k
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **Kategória**: bányászat
-**Bányász Szerver Szükséges**: Nem
 **Tárca Szükséges**: Nem
 
 **Cél**: Visszaadja az aktuális bányászati paramétereket, amelyekre a külső bányászoknak szükségük van a plotfájlok átnézéséhez és a határidők számításához.
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 karakter
-  "base_target": 36650387593,                // numerikus
+  "base_target": 36650387592,                // numerikus
   "height": 12345,                           // numerikus, következő blokk magasság
   "block_hash": "def456...",                 // hex, előző blokk
   "target_quality": 18446744073709551615,    // uint64_max (minden megoldás elfogadott)
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategória**: bányászat
-**Bányász Szerver Szükséges**: Igen
 **Tárca Szükséges**: Igen (privát kulcsokhoz)
 
 **Cél**: PoCX bányászati megoldás beküldése. Validálja a bizonyítékot, sorba állítja time-bended kovácsoláshoz, és automatikusan létrehozza a blokkot az ütemezett időben.
 
-**Paraméterek**:
-1. `height` (numerikus, kötelező) - Blokk magasság
-2. `generation_signature` (string hex, kötelező) - Generációs aláírás (64 karakter)
-3. `account_id` (string, kötelező) - Plot account ID (40 hex karakter = 20 bájt)
-4. `seed` (string, kötelező) - Plot seed (64 hex karakter = 32 bájt)
-5. `nonce` (numerikus, kötelező) - Bányászati nonce
-6. `compression` (numerikus, kötelező) - Használt skálázási/tömörítési szint (1-255)
-7. `quality` (numerikus, opcionális) - Minőség érték (újraszámolva, ha hiányzik)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Visszatérési Értékek** (sikeres):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // nehézség-állított határidő másodpercben
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended kovácsolási idő másodpercben
 }
 ```
@@ -163,12 +139,16 @@ bitcoin-cli get_mining_info
 
 **Példa**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_karakter..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Megjegyzések**:
@@ -186,7 +166,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategória**: bányászat
-**Bányász Szerver Szükséges**: Nem
 **Tárca Szükséges**: Nem
 
 **Cél**: Kovácsolási megbízás állapot lekérdezése plot címhez. Csak olvasható, nincs szükség tárcára.
@@ -260,7 +239,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategória**: tárca
-**Bányász Szerver Szükséges**: Nem
 **Tárca Szükséges**: Igen (betöltve és feloldva kell legyen)
 
 **Cél**: Kovácsolási megbízás tranzakció létrehozása kovácsolási jogok delegálásához másik címre (pl. bányász pool).
@@ -316,7 +294,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategória**: tárca
-**Bányász Szerver Szükséges**: Nem
 **Tárca Szükséges**: Igen (betöltve és feloldva kell legyen)
 
 **Cél**: Meglévő kovácsolási megbízás visszavonása, kovácsolási jogok visszaadása a plot tulajdonosnak.
@@ -377,7 +354,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX Módosítások**:
 - **Számítás**: `referencia_alap_célérték / aktuális_alap_célérték`
-- **Referencia**: 1 TiB hálózati kapacitás (alap_célérték = 36650387593)
+- **Referencia**: 1 TiB hálózati kapacitás (alap_célérték = 36650387592)
 - **Értelmezés**: Becsült hálózati tárolókapacitás TiB-ben
   - Példa: `1.0` = ~1 TiB
   - Példa: `1024.0` = ~1 PiB
@@ -401,7 +378,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numerikus) - PoCX nehézség alap célérték
 - `generation_signature` (string hex) - Generációs aláírás
 - `pocx_proof` (objektum):
-  - `account_id` (string hex) - Plot account ID (20 bájt)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (string hex) - Plot seed (32 bájt)
   - `nonce` (numerikus) - Bányászati nonce
   - `compression` (numerikus) - Használt skálázási szint
@@ -464,7 +441,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numerikus) - Pool bányászathoz
 
 **PoCX Eltávolított Mezők**:
-- `target` - Eltávolítva (PoW-specifikus)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Eltávolítva (PoW-specifikus)
 - `bits` - Eltávolítva (PoW-specifikus)
 
@@ -494,10 +471,11 @@ A következő PoW-specifikus RPC-k **letiltottak** PoCX módban:
 - **Alternatíva**: Használja a `get_mining_info`-t (PoCX-specifikus)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Ok**: CPU bányászat nem alkalmazható PoCX-re (előre generált plotok szükségesek)
-- **Alternatíva**: Használjon külső plotter-t + bányászt + `submit_nonce`-t
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementáció**: `src/rpc/mining.cpp` (RPC-k hibát adnak vissza, amikor ENABLE_POCX definiálva)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +508,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Plotfájlok átnézése (külső implementáció)
@@ -538,11 +516,15 @@ while True:
 
     # 3. Legjobb megoldás beküldése
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +644,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Bányászati RPC-k**: `src/pocx/rpc/mining.cpp`
 **Megbízás RPC-k**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blokklánc RPC-k**: `src/rpc/blockchain.cpp`
-**Bizonyíték Validáció**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Bizonyíték Validáció**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Megbízás Állapot**: `src/pocx/assignments/assignment_state.cpp`
 **Tranzakció Létrehozás**: `src/pocx/assignments/transactions.cpp`
 

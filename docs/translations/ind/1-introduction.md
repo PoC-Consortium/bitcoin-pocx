@@ -42,7 +42,7 @@ Proof of Capacity (PoC) adalah mekanisme konsensus di mana kekuatan penambangan 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + integrasi PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + integrasi PoCX
 │   └── src/pocx/        # Implementasi PoCX
 ├── pocx/                # Framework inti PoCX (submodule, hanya-baca)
 └── docs/                # Dokumentasi ini
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Solusi**: Transformasi distribusi dari eksponensial ke chi-squared menggunakan akar pangkat tiga: `Y = scale * (X^(1/3))`.
 
-**Efek**: Solusi yang sangat baik di-forge lebih lambat (jaringan punya waktu untuk memindai semua disk, mengurangi blok cepat), solusi buruk ditingkatkan. Rata-rata waktu blok dipertahankan pada 120 detik, blok panjang berkurang.
+**Efek**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detail**: [Bab 3: Konsensus dan Penambangan](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Sama dengan Bitcoin Core**:
 - **CPU**: Prosesor x86_64 modern
 - **Memori**: 4-8 GB RAM
-- **Penyimpanan**: Rantai baru, saat ini kosong (dapat tumbuh ~4x lebih cepat dari Bitcoin karena blok 2 menit dan database penugasan)
+- **Penyimpanan**: Rantai baru, saat ini kosong (dapat tumbuh ~5x lebih cepat dari Bitcoin karena blok 2 menit dan database penugasan)
 - **Jaringan**: Koneksi internet yang stabil
 - **Jam**: Sinkronisasi NTP direkomendasikan untuk operasi optimal
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Build dengan PoCX diaktifkan
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detail**: Lihat `CLAUDE.md` di root repositori
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Jalankan Node
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Untuk penambangan** (mengaktifkan akses RPC untuk miner eksternal):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # atau
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detail**: [Bab 6: Parameter Jaringan](6-network-parameters.md)

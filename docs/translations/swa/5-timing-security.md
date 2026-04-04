@@ -32,16 +32,16 @@ Makubaliano ya PoCX yanahitaji usawazishaji sahihi wa muda kote kwenye mtandao. 
 
 **Usanidi wa Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // sekunde 15
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // sekunde 10
 ```
 
 ### Ukaguzi wa Uthibitishaji
 
-**Uthibitishaji wa Muda wa Bloku** (`src/validation.cpp:4547-4561`):
+**Uthibitishaji wa Muda wa Bloku** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Ukaguzi wa monotonic: muda >= muda wa bloku iliyotangulia
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Ukaguzi wa tarehe ya mwisho: muda uliopita >= tarehe ya mwisho
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Nodi **>15s nyuma** ni maafa:
 ## Marejeleo ya Utekelezaji
 
 **Faili za Msingi**:
-- Uthibitishaji wa muda: `src/validation.cpp:4547-4561`
-- Kiwango cha uvumilivu wa baadaye: `src/chain.h:31`
-- Kizingiti cha onyo: `src/node/timeoffsets.h:27`
+- Uthibitishaji wa muda: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Kiwango cha uvumilivu wa baadaye: `src/chain.h`
+- Kizingiti cha onyo: `src/node/timeoffsets.h`
 - Ufuatiliaji wa mkengeuko wa muda: `src/node/timeoffsets.cpp`
 - Kuunda kwa kujilinda: `src/pocx/mining/scheduler.cpp`
 

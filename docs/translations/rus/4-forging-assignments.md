@@ -39,7 +39,7 @@
   [1]: Сдача пользователю (опционально, стандартный P2WPKH)
 ```
 
-**Реализация:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Реализация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Формат транзакции отзыва
 
@@ -58,14 +58,14 @@
   [1]: Сдача пользователю (опционально, стандартный P2WPKH)
 ```
 
-**Реализация:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Реализация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Маркеры
 
 - **Маркер делегирования:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Маркер отзыва:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Реализация:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Реализация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Ключевые характеристики транзакций
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Полная история: все делегирования по графику за всё время
 ```
 
-**Реализация:** `src/txdb.cpp:237-348`
+**Реализация:** `src/txdb.cpp`
 
 ### Структура ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Реализация:** `src/coins.h:111-178`
+**Реализация:** `src/coins.h`
 
 ### Состояния делегирования
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Реализация:** `src/coins.h:98-104`
+**Реализация:** `src/coins.h`
 
 ### Ключи базы данных
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Реализация:** `src/txdb.cpp:245-262`
+**Реализация:** `src/txdb.cpp`
 
 ### Отслеживание истории
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Проверка состояния графика (должен быть UNASSIGNED или REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Создание нового делегирования
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins продолжается нормально (автоматически пропускает выходы OP_RETURN)
 ```
 
-**Реализация:** `src/validation.cpp:2775-2878`
+**Реализация:** `src/validation.cpp:ConnectBlock()`
 
 ### Проверка владения
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Проверка, что хотя бы один вход подписан владельцем графика
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Извлечение назначения
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Проверка на P2WPKH по адресу графика
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core уже валидировал подпись
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Реализация:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Реализация:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Задержки активации
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // Задержка активации от
 
 1. **Максимум один POCX OP_RETURN:** Транзакция не может содержать несколько маркеров POCX/XCOP
 
-**Реализация:** `src/consensus/tx_check.cpp:63-77`
+**Реализация:** `src/consensus/tx_check.cpp`
 
 ### Проверки принятия в мемпул (PreChecks)
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // Задержка активации от
 2. **Активное делегирование:** Графику должен быть только в состоянии ASSIGNED (2)
 3. **Конфликты мемпула:** Нет другого отзыва для этого графика в мемпуле
 
-**Реализация:** `src/validation.cpp:898-993`
+**Реализация:** `src/validation.cpp:PreChecks()`
 
 ### Поток валидации
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Сбор грязных делегирований
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Пустая - не используется
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Запись в базу данных
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Очистка отслеживания
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Освобождение памяти
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Реализация:** `src/coins.cpp:278-315`
+**Реализация:** `src/coins.cpp:Flush()`
 
 ### Пакетная запись в базу данных
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Делегирования записываются отдельно, но в том же контексте транзакции базы данных
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Неиспользуемый параметр (сохранён для совместимости API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Новый пакет, но та же база данных
+    CDBBatch batch(*m_db);
 
-    // Запись истории делегирования
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Удаление удалённых делегирований из истории
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // АТОМАРНЫЙ КОММИТ
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Реализация:** `src/txdb.cpp:332-348`
+**Реализация:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Гарантии атомарности
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Реализация:** `src/undo.h:63-105`
+**Реализация:** `src/undo.h`
 
 ### Процесс DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Реализация:** `src/validation.cpp:2381-2415`
+**Реализация:** `src/validation.cpp:DisconnectBlock()`
 
 ### Управление кешем при реорганизации
 
@@ -556,7 +562,7 @@ private:
     // Кеши делегирования
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Отслеживание изменённых графиков
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Отслеживание удалений
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Отслеживание удалений
     mutable size_t cachedAssignmentsUsage{0};  // Отслеживание памяти
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Реализация:** `src/coins.cpp:494-565`
+**Реализация:** `src/coins.cpp`
 
 ## RPC-интерфейс
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**Реализация:** `src/pocx/rpc/assignments.cpp:31-126`
+**Реализация:** `src/pocx/rpc/assignments.cpp`
 
 ### Команды кошелька (требуется кошелёк)
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - Подписывает ключом владельца графика
 - Транслирует в сеть
 
-**Реализация:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Реализация:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - Подписывает ключом владельца графика
 - Транслирует в сеть
 
-**Реализация:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Реализация:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Создание транзакции кошельком
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **Ключевой момент:** Кошелёк должен тратить с адреса графика для подтверждения владения, поэтому он автоматически принуждает выбор монет с этого адреса.
 
-**Реализация:** `src/pocx/assignments/transactions.cpp:38-263`
+**Реализация:** `src/pocx/assignments/transactions.cpp`
 
 ## Структура файлов
 
@@ -668,11 +672,11 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 ```
 src/
-├── coins.h                        # Структура ForgingAssignment, методы CCoinsViewCache [710 строк]
+├── coins.h                        # Структура ForgingAssignment, методы CCoinsViewCache
 ├── coins.cpp                      # Управление кешем, пакетные записи [603 строки]
 │
-├── txdb.h                         # Методы делегирования CCoinsViewDB [90 строк]
-├── txdb.cpp                       # Чтение/запись базы данных [349 строк]
+├── txdb.h                         # Методы делегирования CCoinsViewDB
+├── txdb.cpp                       # Чтение/запись базы данных
 │
 ├── undo.h                         # Структура ForgingUndo для реоргов
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # Формат OP_RETURN, разбор, проверка
-    │   ├── opcodes.cpp            # [259 строк] Определения маркеров, операции OP_RETURN, проверка владения
+    │   ├── opcodes.cpp            # Определения маркеров, операции OP_RETURN, проверка владения
     │   ├── assignment_state.h     # Хелперы GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Функции запроса состояния делегирования
     │   ├── transactions.h         # API создания транзакций кошелька

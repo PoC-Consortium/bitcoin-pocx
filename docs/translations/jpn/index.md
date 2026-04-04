@@ -1,7 +1,7 @@
 # Bitcoin-PoCX 技術文書
 
 **バージョン**: 1.0
-**Bitcoin Core ベース**: v30.0
+**Bitcoin Core ベース**: v30.2
 **ステータス**: テストネットフェーズ
 **最終更新**: 2025年12月25日
 
@@ -114,8 +114,8 @@ Bitcoin-PoCX Qtウォレットのユーザーガイド：フォージング割�
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCXを有効にして設定
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # ビルド
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **ビルドバリアント**:
 ```bash
 # Qt GUI付き
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # デバッグビルド
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **依存関係**: 標準のBitcoin Coreビルド依存関係。プラットフォーム固有の要件については[Bitcoin Coreビルド文書](https://github.com/bitcoin/bitcoin/tree/master/doc#building)を参照。
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## ライセンス
 
-Bitcoin-PoCXはBitcoin CoreのMITライセンスを継承しています。リポジトリルートの`COPYING`を参照してください。
+Bitcoin-PoCXはBitcoin CoreのMITライセンスを継承しています。リポジトリルートの`bitcoin/COPYING`を参照してください。
 
 PoCXコアフレームワークへの帰属は[第2章: プロット形式](2-plot-format.md)に記載。
 

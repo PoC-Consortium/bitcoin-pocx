@@ -42,7 +42,7 @@ Bitcoin-PoCXは、**次世代容量証明（Proof of Capacity neXt generation、
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX統合
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX統合
 │   └── src/pocx/        # PoCX実装
 ├── pocx/                # PoCXコアフレームワーク（サブモジュール、読み取り専用）
 └── docs/                # 本文書
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **問題**: 従来のPoC ブロック時間は指数分布に従い、良い解を見つけるマイナーがいない場合に長いブロックが発生。
 
-**解決策**: 立方根を使用した指数分布からカイ二乗分布への変換: `Y = scale × (X^(1/3))`
+**解決策**: 立方根を使用した指数分布からカイ二乗分布への変換: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`
 
-**効果**: 非常に良い解は遅くフォージ（ネットワークがすべてのディスクをスキャンする時間を確保、高速ブロックを削減）、悪い解は改善。平均ブロック時間は120秒を維持、長いブロックを削減。
+**効果**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **詳細**: [第3章: コンセンサスとマイニング](3-consensus-and-mining.md)
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCXを有効にしてビルド
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**詳細**: リポジトリルートの`CLAUDE.md`を参照
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. ノードの実行
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **マイニング用**（外部マイナー用のRPCアクセスを有効化）:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # または
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **詳細**: [第6章: ネットワークパラメータ](6-network-parameters.md)

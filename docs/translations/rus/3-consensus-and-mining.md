@@ -49,7 +49,7 @@ Bitcoin-PoCX реализует чистый механизм консенсус
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed графика (32 байта)
     std::array<uint8_t, 20> account_id;       // Адрес графика (20-байтный hash160)
-    uint32_t compression;                     // Уровень масштабирования (1-255)
+    uint32_t compression;                     // Уровень масштабирования (1-6)
     uint64_t nonce;                           // Нонс майнинга (64-бит)
     uint64_t quality;                         // Заявленное качество (выход хеша PoC)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **Вычисление:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Генезис-блок:** Использует жёстко закодированную начальную сигнатуру генерации
 
-**Реализация:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Реализация:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Базовая цель (сложность)
 
@@ -113,8 +113,8 @@ PoCX поддерживает масштабируемое доказатель�
 **Динамические границы:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Минимальный принимаемый уровень
-    uint8_t nPoCXTargetCompression;  // Рекомендуемый уровень
+    uint32_t nPoCXMinCompression;     // Минимальный принимаемый уровень
+    uint32_t nPoCXTargetCompression;  // Рекомендуемый уровень
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - Минимальный уровень масштабирования увеличивается на 1
 - Целевой уровень масштабирования увеличивается на 1
 - Поддерживает запас безопасности между стоимостью создания и поиска в графиках
-- Максимальный уровень масштабирования: 255
+- Максимальный уровень масштабирования: 7 (target = min + 1, with min capping at 6)
 
-**Реализация:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Реализация:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Поддержка делегирования:** Владелец графика может делегировать права форджинга другому адресу. Кошелёк должен иметь ключ для эффективного подписанта, не обязательно владельца графика.
 
-#### Шаг 5: Валидация доказательства
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 байт
     block_height,
     nonce,
-    seed,                // 32 байта
-    min_compression,
-    max_compression,
-    &result             // Выход: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Проверка соответствия качества требованиям сложности
 4. Возврат сырого значения качества
 
-**Реализация:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Реализация:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Шаг 6: Вычисление искривления времени
 ```cpp
@@ -270,20 +276,20 @@ Y = scale * (X^(1/3))
 
 **Реализация:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Шаг 7: Отправка в форджер
+#### Step 8: Forger Submission: Отправка в форджер
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // НЕ дедлайн — пересчитывается в форджере
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **Дизайн на основе очереди:**
-- Отправка всегда успешна (добавляется в очередь)
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPC возвращается немедленно
 - Рабочий поток обрабатывает асинхронно
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Несовпадение сигнатуры генерации -> отбросить
    - Изменился хеш блока вершины (реорг) -> сбросить состояние форджинга
 
-3. Сравнение качества:
+3. Quality comparison (lower = better):
    - Если quality >= current_best -> отбросить
 
 4. Вычислить искривлённый дедлайн:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Оригинальный адрес графика
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Пересчитать корень Меркла:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Реализация:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Реализация:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Ключевые проектные решения:**
 - Coinbase платит эффективному подписанту (уважает делегирование)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Проверка совпадения восстановленного pubkey с сохранённым
 
 **Реализация:** `src/validation.cpp:CheckBlockHeader()`
-**Логика подписи:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Логика подписи:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Этап 2: Валидация блока (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Шаг 1: Валидация сигнатуры генерации
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Шаг 2: Валидация базовой цели
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Шаг 3: Валидация proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Шаг 4: Проверка времени дедлайна
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Шаги валидации:**
-1. **Сигнатура генерации:** Должна совпадать с вычисленным значением из предыдущего блока
-2. **Базовая цель:** Должна совпадать с вычислением корректировки сложности
-3. **Уровень масштабирования:** Должен соответствовать минимуму сети (`compression >= min_compression`)
-4. **Заявка качества:** Отправленное качество должно совпадать с вычисленным качеством из доказательства
-5. **Proof of Capacity:** Валидация криптографического доказательства (SIMD-оптимизированная)
-6. **Время дедлайна:** Искривлённый дедлайн (`poc_time`) должен быть <= прошедшего времени
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Реализация:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Реализация:**
 - Подключение: `src/validation.cpp:ConnectBlock()`
-- Расширенная валидация: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Логика делегирования: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Расширенная валидация: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Логика делегирования: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Этап 5: Активация цепочки
 
@@ -599,7 +593,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Получение блока
     |
-CheckBlockHeader (базовая подпись)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     |
 CheckBlock (транзакции, merkle)
     |
@@ -668,7 +662,7 @@ Transaction {
 - Становится ASSIGNED после периода задержки (4 блока regtest, 30 блоков mainnet)
 - Задержка предотвращает быстрые переназначения во время гонок блоков
 
-**Реализация:** `src/script/forging_assignment.h`, валидация в ConnectBlock
+**Реализация:** `src/pocx/assignments/opcodes.h`, валидация в ConnectBlock
 
 ### Отзыв делегирования
 
@@ -826,12 +820,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **Сигнатура генерации:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Хеш подписи блока:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Формат компактной подписи:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Основные реализации:**
 - RPC-интерфейс: `src/pocx/rpc/mining.cpp`
 - Очередь форджера: `src/pocx/mining/scheduler.cpp`
-- Валидация консенсуса: `src/pocx/consensus/validation.cpp`
-- Валидация доказательства: `src/pocx/consensus/pocx.cpp`
+- Валидация консенсуса: `src/pocx/consensus/proof.cpp`
+- Валидация доказательства: `src/pocx/consensus/signature.cpp`
 - Искривление времени: `src/pocx/algorithms/time_bending.cpp`
 - Валидация блока: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Логика делегирования: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Управление контекстом: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Логика делегирования: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Управление контекстом: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Структуры данных:**
 - Формат блока: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **Процесс:**
 1. Генерация скупа из сигнатуры генерации и высоты
 2. Чтение данных графика для вычисленного скупа
-3. Хеширование: `SHABAL256(generation_signature || scoop_data)`
+3. Хеширование: `Shabal256Lite(scoop_data, generation_signature)`
 4. Тестирование уровней масштабирования от min до max
 5. Возврат лучшего найденного качества
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(недавние базовые цели)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

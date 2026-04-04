@@ -23,7 +23,7 @@
 
 ### מצב שרת כרייה
 
-**דגל**: `-miningserver`
+**דגל**: ``
 
 **מטרה**: מאפשר גישת RPC לכורים חיצוניים לקרוא לקריאות RPC ספציפיות לכרייה
 
@@ -34,10 +34,9 @@
 **שימוש**:
 ```bash
 # שורת פקודה
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **שיקולי אבטחה**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 תווים
-  "base_target": 36650387593,                // מספרי
+  "base_target": 36650387592,                // מספרי
   "height": 12345,                           // מספרי, גובה בלוק הבא
   "block_hash": "def456...",                 // hex, בלוק קודם
   "target_quality": 18446744073709551615,    // uint64_max (כל הפתרונות מתקבלים)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **מטרה**: הגש פתרון כריית PoCX. מאמת הוכחה, מכניס לתור לכרייה עם עיקום זמן, ויוצר בלוק אוטומטית בזמן המתוזמן.
 
-**פרמטרים**:
-1. `height` (מספרי, נדרש) - גובה בלוק
-2. `generation_signature` (מחרוזת hex, נדרש) - חתימת יצירה (64 תווים)
-3. `account_id` (מחרוזת, נדרש) - מזהה חשבון plot (40 תווי hex = 20 בתים)
-4. `seed` (מחרוזת, נדרש) - seed של plot (64 תווי hex = 32 בתים)
-5. `nonce` (מספרי, נדרש) - nonce כרייה
-6. `compression` (מספרי, נדרש) - רמת סילום/דחיסה שנעשה בה שימוש (1-255)
-7. `quality` (מספרי, אופציונלי) - ערך איכות (מחושב מחדש אם נשמט)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **ערכי החזרה** (הצלחה):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **דוגמה**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **הערות**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **שינויי PoCX**:
 - **חישוב**: `reference_base_target / current_base_target`
-- **הפניה**: קיבולת רשת 1 TiB (base_target = 36650387593)
+- **הפניה**: קיבולת רשת 1 TiB (base_target = 36650387592)
 - **פרשנות**: קיבולת אחסון רשת משוערת ב-TiB
   - דוגמה: `1.0` = ~1 TiB
   - דוגמה: `1024.0` = ~1 PiB
@@ -494,10 +499,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **חלופה**: השתמש ב-`get_mining_info` (ספציפי ל-PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **סיבה**: כריית CPU לא רלוונטית ל-PoCX (דורש plots מיוצרים מראש)
-- **חלופה**: השתמש ב-plotter חיצוני + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**יישום**: `src/rpc/mining.cpp` (קריאות RPC מחזירות שגיאה כאשר ENABLE_POCX מוגדר)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +536,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. סרוק קובצי plot (יישום חיצוני)
@@ -538,11 +544,15 @@ while True:
 
     # 3. הגש את הפתרון הטוב ביותר
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +672,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **קריאות RPC כרייה**: `src/pocx/rpc/mining.cpp`
 **קריאות RPC הקצאה**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **קריאות RPC Blockchain**: `src/rpc/blockchain.cpp`
-**אימות הוכחה**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**אימות הוכחה**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **מצב הקצאה**: `src/pocx/assignments/assignment_state.cpp`
 **יצירת עסקה**: `src/pocx/assignments/transactions.cpp`
 

@@ -42,7 +42,7 @@ Jaudas pierādījums (PoC — Proof of Capacity) ir konsensa mehānisms, kurā k
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integrācija
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integrācija
 │   └── src/pocx/        # PoCX implementācija
 ├── pocx/                # PoCX pamata ietvars (apakšmodulis, tikai lasāms)
 └── docs/                # Šī dokumentācija
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Risinājums**: Sadalījuma transformācija no eksponenciālā uz hī-kvadrāta, izmantojot kubsakni: `Y = skala × (X^(1/3))`.
 
-**Efekts**: Ļoti labi risinājumi tiek kalti vēlāk (tīklam ir laiks skenēt visus diskus, samazina ātrus blokus), slikti risinājumi tiek uzlaboti. Vidējais bloku laiks tiek uzturēts 120 sekundēs, garie bloki samazināti.
+**Efekts**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detaļas**: [3. nodaļa: Konsensa un kalnrūpniecības process](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Tāpat kā Bitcoin Core**:
 - **CPU**: Moderns x86_64 procesors
 - **Atmiņa**: 4-8 GB RAM
-- **Krātuve**: Jauna ķēde, pašlaik tukša (var augt ~4× ātrāk nekā Bitcoin 2 minūšu bloku un piešķīrumu datu bāzes dēļ)
+- **Krātuve**: Jauna ķēde, pašlaik tukša (var augt ~5× ātrāk nekā Bitcoin 2 minūšu bloku un piešķīrumu datu bāzes dēļ)
 - **Tīkls**: Stabils interneta savienojums
 - **Pulkstenis**: NTP sinhronizācija ieteicama optimālai darbībai
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Būvēt ar iespējotu PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detaļas**: Skatiet `CLAUDE.md` repozitorija saknē
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Palaist mezglu
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Kalnrūpniecībai** (iespējo RPC piekļuvi ārējiem kalnračiem):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # vai
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detaļas**: [6. nodaļa: Tīkla parametri](6-network-parameters.md)

@@ -39,7 +39,7 @@ Output:
   [1]: Kembalian ke pengguna (opsional, P2WPKH standar)
 ```
 
-**Implementasi:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementasi:** `src/pocx/assignments/opcodes.cpp`
 
 ### Format Transaksi Pencabutan
 
@@ -58,14 +58,14 @@ Output:
   [1]: Kembalian ke pengguna (opsional, P2WPKH standar)
 ```
 
-**Implementasi:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementasi:** `src/pocx/assignments/opcodes.cpp`
 
 ### Marker
 
 - **Marker Penugasan:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Marker Pencabutan:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Implementasi:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementasi:** `src/pocx/assignments/opcodes.cpp`
 
 ### Karakteristik Transaksi Utama
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Riwayat penuh: semua penugasan per plot dari waktu ke waktu
 ```
 
-**Implementasi:** `src/txdb.cpp:237-348`
+**Implementasi:** `src/txdb.cpp`
 
 ### Struktur ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementasi:** `src/coins.h:111-178`
+**Implementasi:** `src/coins.h`
 
 ### Status Penugasan
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementasi:** `src/coins.h:98-104`
+**Implementasi:** `src/coins.h`
 
 ### Kunci Database
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementasi:** `src/txdb.cpp:245-262`
+**Implementasi:** `src/txdb.cpp`
 
 ### Pelacakan Riwayat
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Periksa status plot (harus UNASSIGNED atau REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Buat penugasan baru
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins berjalan normal (secara otomatis melewati output OP_RETURN)
 ```
 
-**Implementasi:** `src/validation.cpp:2775-2878`
+**Implementasi:** `src/validation.cpp:ConnectBlock()`
 
 ### Verifikasi Kepemilikan
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Periksa bahwa setidaknya satu input ditandatangani oleh pemilik plot
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Ekstrak tujuan
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Periksa apakah P2WPKH ke alamat plot
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core sudah memvalidasi tanda tangan
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementasi:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementasi:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Penundaan Aktivasi
 
@@ -282,7 +280,7 @@ Dilakukan di `src/consensus/tx_check.cpp` tanpa akses status rantai:
 
 1. **Maksimal Satu OP_RETURN POCX:** Transaksi tidak dapat berisi beberapa marker POCX/XCOP
 
-**Implementasi:** `src/consensus/tx_check.cpp:63-77`
+**Implementasi:** `src/consensus/tx_check.cpp`
 
 ### Pemeriksaan Penerimaan Mempool (PreChecks)
 
@@ -300,7 +298,7 @@ Dilakukan di `src/validation.cpp` dengan akses status rantai penuh dan mempool:
 2. **Penugasan Aktif:** Plot harus dalam status ASSIGNED (2) saja
 3. **Konflik Mempool:** Tidak ada pencabutan lain untuk plot ini di mempool
 
-**Implementasi:** `src/validation.cpp:898-993`
+**Implementasi:** `src/validation.cpp:PreChecks()`
 
 ### Alur Validasi
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Kumpulkan penugasan dirty
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Kosong - tidak digunakan
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Tulis ke database
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Bersihkan pelacakan
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Lepaskan memori
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementasi:** `src/coins.cpp:278-315`
+**Implementasi:** `src/coins.cpp:Flush()`
 
 ### Penulisan Batch Database
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Penugasan ditulis terpisah tetapi dalam konteks transaksi database yang sama
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Parameter tidak digunakan (disimpan untuk kompatibilitas API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Batch baru, tetapi database yang sama
+    CDBBatch batch(*m_db);
 
-    // Tulis riwayat penugasan
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Hapus penugasan yang dihapus dari riwayat
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // COMMIT ATOMIK
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementasi:** `src/txdb.cpp:332-348`
+**Implementasi:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Jaminan Atomisitas
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementasi:** `src/undo.h:63-105`
+**Implementasi:** `src/undo.h`
 
 ### Proses DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementasi:** `src/validation.cpp:2381-2415`
+**Implementasi:** `src/validation.cpp:DisconnectBlock()`
 
 ### Manajemen Cache Selama Reorg
 
@@ -556,7 +562,7 @@ private:
     // Cache penugasan
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Lacak plot yang dimodifikasi
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Lacak penghapusan
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Lacak penghapusan
     mutable size_t cachedAssignmentsUsage{0};  // Pelacakan memori
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementasi:** `src/coins.cpp:494-565`
+**Implementasi:** `src/coins.cpp`
 
 ## Antarmuka RPC
 
@@ -613,7 +617,7 @@ Mengembalikan status penugasan saat ini untuk alamat plot:
 }
 ```
 
-**Implementasi:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementasi:** `src/pocx/rpc/assignments.cpp`
 
 ### Perintah Dompet (Memerlukan Dompet)
 
@@ -628,7 +632,7 @@ Membuat transaksi penugasan:
 - Menandatangani dengan kunci pemilik plot
 - Menyiarkan ke jaringan
 
-**Implementasi:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementasi:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Membuat transaksi pencabutan:
 - Menandatangani dengan kunci pemilik plot
 - Menyiarkan ke jaringan
 
-**Implementasi:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementasi:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Pembuatan Transaksi Dompet
 
@@ -660,7 +664,7 @@ Proses pembuatan transaksi dompet:
 
 **Wawasan utama:** Dompet harus membelanjakan dari alamat plot untuk membuktikan kepemilikan, jadi secara otomatis memaksa pemilihan coin dari alamat itu.
 
-**Implementasi:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementasi:** `src/pocx/assignments/transactions.cpp`
 
 ## Struktur File
 
@@ -668,11 +672,11 @@ Proses pembuatan transaksi dompet:
 
 ```
 src/
-├── coins.h                        # Struct ForgingAssignment, metode CCoinsViewCache [710 baris]
-├── coins.cpp                      # Manajemen cache, penulisan batch [603 baris]
+├── coins.h                        # Struct ForgingAssignment, metode CCoinsViewCache
+├── coins.cpp                      # Manajemen cache, penulisan batch
 │
-├── txdb.h                         # Metode penugasan CCoinsViewDB [90 baris]
-├── txdb.cpp                       # Baca/tulis database [349 baris]
+├── txdb.h                         # Metode penugasan CCoinsViewDB
+├── txdb.cpp                       # Baca/tulis database
 │
 ├── undo.h                         # Struktur ForgingUndo untuk reorg
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # Format OP_RETURN, parsing, verifikasi
-    │   ├── opcodes.cpp            # [259 baris] Definisi marker, ops OP_RETURN, pemeriksaan kepemilikan
+    │   ├── opcodes.cpp            # Definisi marker, ops OP_RETURN, pemeriksaan kepemilikan
     │   ├── assignment_state.h     # Helper GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Fungsi kueri status penugasan
     │   ├── transactions.h         # API pembuatan transaksi dompet

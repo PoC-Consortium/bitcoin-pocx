@@ -23,7 +23,7 @@ Kompletna dokumentacja poleceń RPC Bitcoin-PoCX, w tym RPC wydobycia, zarządza
 
 ### Tryb serwera wydobywczego
 
-**Flaga**: `-miningserver`
+**Flaga**: ``
 
 **Cel**: Włącza dostęp RPC dla zewnętrznych górników do wywoływania RPC specyficznych dla wydobycia
 
@@ -34,10 +34,9 @@ Kompletna dokumentacja poleceń RPC Bitcoin-PoCX, w tym RPC wydobycia, zarządza
 **Użycie**:
 ```bash
 # Linia poleceń
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Rozważania bezpieczeństwa**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 znaki
-  "base_target": 36650387593,                // numeryczny
+  "base_target": 36650387592,                // numeryczny
   "height": 12345,                           // numeryczny, wysokość następnego bloku
   "block_hash": "def456...",                 // hex, poprzedni blok
   "target_quality": 18446744073709551615,    // uint64_max (wszystkie rozwiązania akceptowane)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **Cel**: Zgłoś rozwiązanie wydobywcze PoCX. Waliduje dowód, kolejkuje do zgiętego czasowo kucia i automatycznie tworzy blok w zaplanowanym czasie.
 
-**Parametry**:
-1. `height` (numeryczny, wymagany) - Wysokość bloku
-2. `generation_signature` (string hex, wymagany) - Sygnatura generacji (64 znaki)
-3. `account_id` (string, wymagany) - ID konta plotu (40 znaków hex = 20 bajtów)
-4. `seed` (string, wymagany) - Seed plotu (64 znaki hex = 32 bajty)
-5. `nonce` (numeryczny, wymagany) - Nonce wydobywczy
-6. `compression` (numeryczny, wymagany) - Używany poziom skalowania/kompresji (1-255)
-7. `quality` (numeryczny, opcjonalny) - Wartość jakości (przeliczana jeśli pominięta)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Wartości zwracane** (sukces):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Przykład**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Uwagi**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Modyfikacje PoCX**:
 - **Obliczenie**: `referencyjny_base_target / aktualny_base_target`
-- **Odniesienie**: Pojemność sieci 1 TiB (base_target = 36650387593)
+- **Odniesienie**: Pojemność sieci 1 TiB (base_target = 36650387592)
 - **Interpretacja**: Szacowana pojemność pamięci sieci w TiB
   - Przykład: `1.0` = ~1 TiB
   - Przykład: `1024.0` = ~1 PiB
@@ -494,10 +499,11 @@ Następujące RPC specyficzne dla PoW są **wyłączone** w trybie PoCX:
 - **Alternatywa**: Użyj `get_mining_info` (specyficzne dla PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Powód**: Wydobycie CPU nie dotyczy PoCX (wymaga wstępnie wygenerowanych plotów)
-- **Alternatywa**: Użyj zewnętrznego plottera + minera + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementacja**: `src/rpc/mining.cpp` (RPC zwracają błąd gdy zdefiniowane ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +536,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skanuj pliki plot (zewnętrzna implementacja)
@@ -538,11 +544,15 @@ while True:
 
     # 3. Zgłoś najlepsze rozwiązanie
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +672,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC wydobycia**: `src/pocx/rpc/mining.cpp`
 **RPC przydziałów**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC blockchainu**: `src/rpc/blockchain.cpp`
-**Walidacja dowodu**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Walidacja dowodu**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Stan przydziału**: `src/pocx/assignments/assignment_state.cpp`
 **Tworzenie transakcji**: `src/pocx/assignments/transactions.cpp`
 

@@ -1,7 +1,7 @@
 # Bitcoin-PoCX tehniline dokumentatsioon
 
 **Versioon**: 1.0
-**Bitcoin Core baas**: v30.0
+**Bitcoin Core baas**: v30.2
 **Staatus**: Testivorgu faas
 **Viimati uuendatud**: 2025-12-25
 
@@ -118,8 +118,8 @@ Kasutusjuhend Bitcoin-PoCX Qt rahakotile: sepistamisülesannete dialoog, tehingu
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Seadista PoCX lubamisega
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Kompileeri
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Kompileerimise variandid**:
 ```bash
 # Qt graafilise liidesega
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Silumise kompileerimine
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Sõltuvused**: Standardsed Bitcoin Core kompileerimise sõltuvused. Vaata [Bitcoin Core kompileerimise dokumentatsiooni](https://github.com/bitcoin/bitcoin/tree/master/doc#building) platvormispetsiifiliste nõuete kohta.
@@ -188,7 +188,7 @@ Dokumentatsiooni täiendused on teretulnud. Palun järgi:
 
 ## Litsents
 
-Bitcoin-PoCX pärib Bitcoin Core'i MIT litsentsi. Vaata `COPYING` hoidla juurkataloogis.
+Bitcoin-PoCX pärib Bitcoin Core'i MIT litsentsi. Vaata `bitcoin/COPYING` hoidla juurkataloogis.
 
 PoCX raamistiku omistus on dokumenteeritud [Peatükk 2: Graafikuvorming](2-plot-format.md).
 

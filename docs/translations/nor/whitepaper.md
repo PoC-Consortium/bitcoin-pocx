@@ -16,7 +16,7 @@ Vår implementasjon introduserer flere viktige innovasjoner:
 (3) En OP_RETURN-basert forging-tildelingsmekanisme som muliggjør ikke-depotmessig pool-mining; og
 (4) Dynamisk komprimeringsskalering, som øker plotgenereringsvanskeligheten i tråd med halveringsplaner for å opprettholde langsiktige sikkerhetsmarginer etter hvert som maskinvare forbedres.
 
-Bitcoin-PoCX opprettholder Bitcoin Cores arkitektur gjennom minimale, feature-flaggede modifikasjoner, og isolerer PoC-logikk fra den eksisterende konsensuskoden. Systemet bevarer Bitcoins pengepolitikk ved å sikte mot et 120-sekunders blokkintervall og justere blokksubsidien til 10 BTC. Den reduserte subsidien oppveier den femdoble økningen i blokkfrekvens, og holder den langsiktige utstedelsesraten på linje med Bitcoins opprinnelige plan og opprettholder den maksimale forsyningen på ~21 millioner.
+Bitcoin-PoCX opprettholder Bitcoin Cores arkitektur gjennom minimale, feature-flaggede modifikasjoner, og isolerer PoC-logikk fra den eksisterende konsensuskoden. Systemet bevarer Bitcoins pengepolitikk ved å sikte mot et 120-sekunders blokkintervall og justere blokksubsidien til 10 BTCX. Den reduserte subsidien oppveier den femdoble økningen i blokkfrekvens, og holder den langsiktige utstedelsesraten på linje med Bitcoins opprinnelige plan og opprettholder den maksimale forsyningen på ~21 millioner.
 
 ---
 
@@ -211,9 +211,9 @@ Beviset innebygger all konsensusrelevant informasjon som trengs av validatorer f
 
 Generasjonssignaturen gir uforutsigbarheten som kreves for sikker Proof of Capacity-mining. Hver blokk utleder sin generasjonssignatur fra forrige blokks signatur og signerer, noe som sikrer at minere ikke kan forutse fremtidige utfordringer eller forhåndsberegne fordelaktige plotregioner:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Dette produserer en sekvens av kryptografisk sterke, miner-avhengige entropiverdier. Fordi en miners offentlige nøkkel er ukjent til forrige blokk er publisert, kan ingen deltaker forutsi fremtidige scoop-valg. Dette forhindrer selektiv forhåndsberegning eller strategisk plotting og sikrer at hver blokk introduserer genuint ferskt miningarbeid.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Dette produserer en sekvens av kryptografisk sterke, miner-avhengige entropiverdier. Fordi en miners offentlige nøkkel er ukjent til forrige blokk er publisert, kan ingen deltaker forutsi fremtidige scoop-valg. Dette forhindrer selektiv forhåndsberegning eller strategisk plotting og sikrer at hver blokk introduserer genuint ferskt miningarbeid.
 
 ### 4.3 Forgingprosess
 
@@ -231,7 +231,7 @@ Proof of Capacity produserer eksponentielt fordelte deadlines. Etter en kort per
 
 Time Bending omformer fordelingen ved å anvende en kubikkrot-transformasjon:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Skalafaktoren bevarer forventet blokktid (120 sekunder) samtidig som variansen reduseres dramatisk. Korte deadlines utvides, noe som forbedrer blokkpropagering og nettverkssikkerhet. Lange deadlines komprimeres, noe som forhindrer outliers fra å forsinke kjeden.
 
@@ -411,12 +411,12 @@ Tabellene nedenfor oppsummerer de resulterende mainnet-, testnett- og regtest-in
 | Parameter | Verdi |
 |-----------|-------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Standardport | 8888 |
+| Standardport | 8338 |
 | Bech32 HRP | `pocx` |
 | Blokktidsmål | 120 sekunder |
-| Initial subsidie | 10 BTC |
+| Initial subsidie | 10 BTCX |
 | Halveringsintervall | 1050000 blokker (~4 år) |
-| Total forsyning | ~21 millioner BTC |
+| Total forsyning | ~21 millioner BTCX |
 | Tildelingsaktivering | 30 blokker |
 | Tildelingsoppheving | 720 blokker |
 | Rullende vindu | 24 blokker |
@@ -425,8 +425,8 @@ Tabellene nedenfor oppsummerer de resulterende mainnet-, testnett- og regtest-in
 
 | Parameter | Verdi |
 |-----------|-------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Standardport | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Standardport | 18338 |
 | Bech32 HRP | `tpocx` |
 | Blokktidsmål | 120 sekunder |
 | Andre parametere | Samme som mainnet |

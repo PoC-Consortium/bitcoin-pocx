@@ -42,7 +42,7 @@ Proof of Capacity (PoC) je konsensuální mechanismus, kde je těžební výkon 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + integrace PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + integrace PoCX
 │   └── src/pocx/        # Implementace PoCX
 ├── pocx/                # PoCX core framework (submodul, pouze pro čtení)
 └── docs/                # Tato dokumentace
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Řešení**: Transformace distribuce z exponenciální na chí-kvadrát pomocí třetí odmocniny: `Y = měřítko × (X^(1/3))`.
 
-**Efekt**: Velmi dobrá řešení jsou vytvářena později (síť má čas prohledat všechny disky, redukuje rychlé bloky), špatná řešení jsou vylepšena. Průměrný čas bloku udržován na 120 sekundách, dlouhé bloky redukovány.
+**Efekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Podrobnosti**: [Kapitola 3: Konsenzus a těžba](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Stejné jako Bitcoin Core**:
 - **CPU**: Moderní x86_64 procesor
 - **Paměť**: 4-8 GB RAM
-- **Úložiště**: Nový řetězec, aktuálně prázdný (může růst ~4× rychleji než Bitcoin kvůli 2minutovým blokům a databázi přiřazení)
+- **Úložiště**: Nový řetězec, aktuálně prázdný (může růst ~5× rychleji než Bitcoin kvůli 2minutovým blokům a databázi přiřazení)
 - **Síť**: Stabilní internetové připojení
 - **Hodiny**: Doporučena NTP synchronizace pro optimální provoz
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Sestavení s povoleným PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Podrobnosti**: Viz `CLAUDE.md` v kořenovém adresáři repozitáře
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Spusťte uzel
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Pro těžbu** (povoluje RPC přístup pro externí těžaře):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # nebo
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Podrobnosti**: [Kapitola 6: Síťové parametry](6-network-parameters.md)

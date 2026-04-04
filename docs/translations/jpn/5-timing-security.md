@@ -32,16 +32,16 @@ PoCXコンセンサスはネットワーク全体で正確な時刻同期を必�
 
 **Bitcoin-PoCX設定:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15秒
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10秒
 ```
 
 ### 検証チェック
 
-**ブロックタイムスタンプ検証** (`src/validation.cpp:4547-4561`):
+**ブロックタイムスタンプ検証** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. 単調チェック: タイムスタンプ >= 前のブロックのタイムスタンプ
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. デッドラインチェック: 経過時間 >= デッドライン
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCXはノードとネットワークピア間の時間オフセット�
 ## 実装参照
 
 **コアファイル**:
-- 時刻検証: `src/validation.cpp:4547-4561`
-- 将来許容定数: `src/chain.h:31`
-- 警告しきい値: `src/node/timeoffsets.h:27`
+- 時刻検証: `src/validation.cpp:ContextualCheckBlockHeader()`
+- 将来許容定数: `src/chain.h`
+- 警告しきい値: `src/node/timeoffsets.h`
 - 時刻オフセット監視: `src/node/timeoffsets.cpp`
 - 防御的フォージング: `src/pocx/mining/scheduler.cpp`
 

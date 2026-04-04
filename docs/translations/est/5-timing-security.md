@@ -32,16 +32,16 @@ PoCX konsensus nõuab täpset ajasünkroniseerimist üle võrgu. See peatükk do
 
 **Bitcoin-PoCX konfiguratsioon:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekundit
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekundit
 ```
 
 ### Valideerimise kontrollid
 
-**Ploki ajatempli valideerimine** (`src/validation.cpp:4547-4561`):
+**Ploki ajatempli valideerimine** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotoonne kontroll: ajatempel >= eelmise ploki ajatempel
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Tähtaja kontroll: möödunud aeg >= tähtaeg
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Teie kaevandamise kõrgus 100, konkurent avaldab ploki 99
 - Valideerimine lõpeb millisekunditega
 
 **Ressursside kasutus:** Minimaalne
-- ~20 rida põhiloogikat
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Taaskasutab olemasolevat valideerimise infrastruktuuri
 - Üks luku haaramine
 
@@ -372,9 +372,9 @@ Sõlm **>15s maas** on katastroofiline:
 ## Implementatsiooni viited
 
 **Põhifailid**:
-- Aja valideerimine: `src/validation.cpp:4547-4561`
-- Tuleviku tolerantsi konstant: `src/chain.h:31`
-- Hoiatuse lävi: `src/node/timeoffsets.h:27`
+- Aja valideerimine: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Tuleviku tolerantsi konstant: `src/chain.h`
+- Hoiatuse lävi: `src/node/timeoffsets.h`
 - Ajanihe jälgimine: `src/node/timeoffsets.cpp`
 - Kaitsev sepistamine: `src/pocx/mining/scheduler.cpp`
 

@@ -32,16 +32,16 @@ PoCX konsensusas reikalauja tikslios laiko sinchronizacijos visame tinkle. Šis 
 
 **Bitcoin-PoCX konfigūracija:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekundžių
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekundžių
 ```
 
 ### Validacijos tikrinimai
 
-**Bloko laiko žymės validacija** (`src/validation.cpp:4547-4561`):
+**Bloko laiko žymės validacija** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotoninė patikra: laiko žymė >= ankstesnio bloko laiko žymė
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Termino patikra: praėjęs laikas >= terminas
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Jūsų kasimo aukštis 100, konkurentas publikuoja bloką 99
 - Validacija baigiasi per milisekundes
 
 **Išteklių naudojimas:** Minimalus
-- ~20 eilučių pagrindinės logikos
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Pakartotinai naudoja esamą validacijos infrastruktūrą
 - Vienas užrakto gavimas
 
@@ -372,9 +372,9 @@ Mazgas **>15s atsiliekantis** yra katastrofiškas:
 ## Įgyvendinimo nuorodos
 
 **Pagrindiniai failai**:
-- Laiko validacija: `src/validation.cpp:4547-4561`
-- Ateities tolerancijos konstanta: `src/chain.h:31`
-- Įspėjimo riba: `src/node/timeoffsets.h:27`
+- Laiko validacija: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Ateities tolerancijos konstanta: `src/chain.h`
+- Įspėjimo riba: `src/node/timeoffsets.h`
 - Laiko poslinkio stebėjimas: `src/node/timeoffsets.cpp`
 - Gynybinis kalimas: `src/pocx/mining/scheduler.cpp`
 

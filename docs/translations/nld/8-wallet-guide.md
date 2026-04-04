@@ -28,7 +28,7 @@ Volledige handleiding voor Bitcoin-PoCX Qt-wallet en forging-toewijzingsbeheer.
 De Bitcoin-PoCX Qt-wallet (`bitcoin-qt`) biedt:
 - Standaard Bitcoin Core-walletfunctionaliteit (verzenden, ontvangen, transactiebeheer)
 - **Forging-toewijzingsmanager**: GUI voor creeren/intrekken van plottoewijzingen
-- **Miningservermodus**: `-miningserver`-vlag schakelt mininggerelateerde functies in
+- **Miningservermodus**: ``-vlag schakelt mininggerelateerde functies in
 - **Transactiegeschiedenis**: Toewijzings- en intrekkingstransactieweergave
 
 ### De wallet starten
@@ -40,18 +40,18 @@ De Bitcoin-PoCX Qt-wallet (`bitcoin-qt`) biedt:
 
 **Met mining** (schakelt toewijzingsdialoog in):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Opdrachtregelalternatief**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Miningvereisten
 
 **Voor miningoperaties**:
-- `-miningserver`-vlag vereist
+- ``-vlag vereist
 - Wallet met P2WPKH-adressen en privesleutels
 - Externe plotter (`pocx_plotter`) voor plotgeneratie
 - Externe miner (`pocx_miner`) voor mining
@@ -83,8 +83,7 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 
 ### Toegang tot de dialoog
 
-**Menu**: `Wallet > Forging-toewijzingen`
-**Werkbalk**: Miningpictogram (alleen zichtbaar met `-miningserver`-vlag)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Venstergrootte**: 600x450 pixels
 
 ### Dialoogmodi
@@ -118,7 +117,7 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- OP_RETURN-uitvoer: `POCX`-markering + plot_address + forging_address (46 bytes)
+- OP_RETURN-uitvoer: `POCX`-markering + plot_address + forging_address (44 bytes)
 - Wisselgelduitvoer: Terug naar wallet
 
 #### Modus 2: Toewijzing intrekken
@@ -146,7 +145,7 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- OP_RETURN-uitvoer: `XCOP`-markering + plot_address (26 bytes)
+- OP_RETURN-uitvoer: `XCOP`-markering + plot_address (24 bytes)
 - Wisselgelduitvoer: Terug naar wallet
 
 #### Modus 3: Toewijzingsstatus controleren
@@ -296,8 +295,8 @@ Intrekking effectief op hoogte: 13020
 ### Validatiefoutmeldingen
 
 **Dialoogfouten**:
-- "Plotadres moet P2WPKH (bech32) zijn"
-- "Forgingadres moet P2WPKH (bech32) zijn"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Ongeldig adresformaat"
 - "Geen munten beschikbaar op het plotadres. Kan eigenaarschap niet bewijzen."
 - "Kan geen transacties creeren met alleen-lezen wallet"
@@ -313,7 +312,6 @@ Intrekking effectief op hoogte: 13020
 **Node-configuratie**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -335,9 +333,8 @@ server=1
    pocx_plotter --account <plot_address_hash160> --seed <32_bytes> --nonces <aantal>
    ```
 
-2. **Start node** met miningserver:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configureer miner**:
@@ -365,7 +362,7 @@ server=1
    - Selecteer plotadres
    - Voer forgingadres van pool in
    - Klik "Toewijzing verzenden"
-   - Wacht op activeringsvertraging (30 blokken testnet)
+   - Wacht op activeringsvertraging (30 blocks mainnet/testnet))
 
 3. **Configureer miner**:
    - Wijs naar **pool**-eindpunt (niet lokale node)
@@ -406,13 +403,13 @@ server=1
 - Importeer privesleutel via `importprivkey` RPC
 - Of gebruik ander plotadres dat wallet bezit
 
-#### "Toewijzing bestaat al voor dit plot"
+#### "Cannot create assignment: plot is in ... state"
 
-**Oorzaak**: Plot al toegewezen aan ander adres
-**Oplossing**:
-1. Trek bestaande toewijzing in
-2. Wacht op intrekkingsvertraging (720 blokken testnet)
-3. Creeer nieuwe toewijzing
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Adresformaat niet ondersteund"
 
@@ -443,15 +440,10 @@ server=1
 2. Wacht op 1 bevestiging
 3. Probeer toewijzingscreatie opnieuw
 
-#### "Kan geen transacties creeren met alleen-lezen wallet"
-
-**Oorzaak**: Wallet importeerde adres zonder privesleutel
-**Oplossing**: Importeer volledige privesleutel, niet alleen adres
-
 #### "Forging-toewijzingstab niet zichtbaar"
 
-**Oorzaak**: Node gestart zonder `-miningserver`-vlag
-**Oplossing**: Herstart met `bitcoin-qt -server -miningserver`
+**Oorzaak**: Node gestart zonder ``-vlag
+**Oplossing**: Herstart met `bitcoin-qt -server`
 
 ### Debug-stappen
 
@@ -525,12 +517,12 @@ server=1
 
 ### Toewijzingsvertragingen
 
-**Activeringsvertraging** (30 blokken testnet):
+**Activeringsvertraging** (30 blocks mainnet/testnet)):
 - Voorkomt snelle hertoewijzing tijdens ketenvorken
 - Staat netwerk toe consensus te bereiken
 - Kan niet worden omzeild
 
-**Intrekkingsvertraging** (720 blokken testnet):
+**Intrekkingsvertraging** (720 blocks mainnet/testnet)):
 - Biedt stabiliteit voor miningpools
 - Voorkomt toewijzings-"griefing"-aanvallen
 - Forgingadres blijft actief tijdens vertraging

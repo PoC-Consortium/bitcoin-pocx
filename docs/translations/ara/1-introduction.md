@@ -42,7 +42,7 @@ Bitcoin-PoCX هو تكامل مع Bitcoin Core يضيف دعم إجماع **ال
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + تكامل PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + تكامل PoCX
 │   └── src/pocx/        # تنفيذ PoCX
 ├── pocx/                # إطار عمل PoCX الأساسي (وحدة فرعية، للقراءة فقط)
 └── docs/                # هذا التوثيق
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **المشكلة**: أوقات كتل PoC التقليدية تتبع توزيعاً أسياً، مما يؤدي إلى كتل طويلة عندما لا يجد أي مُعدّن حلاً جيداً.
 
-**الحل**: تحويل التوزيع من أسي إلى مربع كاي باستخدام الجذر التكعيبي: `Y = scale × (X^(1/3))`.
+**الحل**: تحويل التوزيع من أسي إلى مربع كاي باستخدام الجذر التكعيبي: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**التأثير**: الحلول الجيدة جداً تُصاغ لاحقاً (للشبكة وقت لمسح جميع الأقراص، يقلل الكتل السريعة)، الحلول الضعيفة تتحسن. يُحافظ على متوسط وقت الكتلة عند 120 ثانية، وتُقلل الكتل الطويلة.
+**التأثير**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **التفاصيل**: [الفصل الثالث: الإجماع والتعدين](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **نفس متطلبات Bitcoin Core**:
 - **المعالج**: معالج x86_64 حديث
 - **الذاكرة**: 4-8 جيجابايت RAM
-- **التخزين**: سلسلة جديدة، فارغة حالياً (يمكن أن تنمو ~4× أسرع من Bitcoin بسبب كتل 2 دقيقة وقاعدة بيانات التعيين)
+- **التخزين**: سلسلة جديدة، فارغة حالياً (يمكن أن تنمو ~5× أسرع من Bitcoin بسبب كتل 2 دقيقة وقاعدة بيانات التعيين)
 - **الشبكة**: اتصال إنترنت مستقر
 - **الساعة**: يُوصى بمزامنة NTP للتشغيل الأمثل
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# البناء مع تفعيل PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**التفاصيل**: راجع `CLAUDE.md` في جذر المستودع
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. تشغيل العقدة
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **للتعدين** (يُفعّل وصول RPC للمُعدّنين الخارجيين):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # أو
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **التفاصيل**: [الفصل السادس: معلمات الشبكة](6-network-parameters.md)

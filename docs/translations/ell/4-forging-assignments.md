@@ -39,7 +39,7 @@
   [1]: Ρέστα πίσω στον χρήστη (προαιρετικά, τυπικό P2WPKH)
 ```
 
-**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp`
 
 ### Μορφή Συναλλαγής Ανάκλησης
 
@@ -58,14 +58,14 @@
   [1]: Ρέστα πίσω στον χρήστη (προαιρετικά, τυπικό P2WPKH)
 ```
 
-**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp`
 
 ### Δείκτες
 
 - **Δείκτης Ανάθεσης:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Δείκτης Ανάκλησης:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp`
 
 ### Βασικά Χαρακτηριστικά Συναλλαγής
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Πλήρες ιστορικό: όλες οι αναθέσεις ανά plot με την πάροδο του χρόνου
 ```
 
-**Υλοποίηση:** `src/txdb.cpp:237-348`
+**Υλοποίηση:** `src/txdb.cpp`
 
 ### Δομή ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Υλοποίηση:** `src/coins.h:111-178`
+**Υλοποίηση:** `src/coins.h`
 
 ### Καταστάσεις Ανάθεσης
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Υλοποίηση:** `src/coins.h:98-104`
+**Υλοποίηση:** `src/coins.h`
 
 ### Κλειδιά Βάσης Δεδομένων
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Υλοποίηση:** `src/txdb.cpp:245-262`
+**Υλοποίηση:** `src/txdb.cpp`
 
 ### Παρακολούθηση Ιστορικού
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Έλεγχος κατάστασης plot (πρέπει να είναι UNASSIGNED ή REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Δημιουργία νέας ανάθεσης
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // Το UpdateCoins προχωρά κανονικά (παρακάμπτει αυτόματα τις εξόδους OP_RETURN)
 ```
 
-**Υλοποίηση:** `src/validation.cpp:2775-2878`
+**Υλοποίηση:** `src/validation.cpp:ConnectBlock()`
 
 ### Επαλήθευση Ιδιοκτησίας
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Έλεγχος ότι τουλάχιστον μία είσοδος είναι υπογεγραμμένη από ιδιοκτήτη plot
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Εξαγωγή προορισμού
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Έλεγχος αν είναι P2WPKH στη διεύθυνση plot
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Το Bitcoin Core έχει ήδη επικυρώσει την υπογραφή
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Υλοποίηση:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Καθυστερήσεις Ενεργοποίησης
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // Καθυστέρηση ενεργοπο�
 
 1. **Μέγιστα Ένα POCX OP_RETURN:** Η συναλλαγή δεν μπορεί να περιέχει πολλαπλούς δείκτες POCX/XCOP
 
-**Υλοποίηση:** `src/consensus/tx_check.cpp:63-77`
+**Υλοποίηση:** `src/consensus/tx_check.cpp`
 
 ### Έλεγχοι Αποδοχής Mempool (PreChecks)
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // Καθυστέρηση ενεργοπο�
 2. **Ενεργή Ανάθεση:** Το plot πρέπει να είναι σε κατάσταση ASSIGNED (2) μόνο
 3. **Συγκρούσεις Mempool:** Καμία άλλη ανάκληση για αυτό το plot στο mempool
 
-**Υλοποίηση:** `src/validation.cpp:898-993`
+**Υλοποίηση:** `src/validation.cpp:PreChecks()`
 
 ### Ροή Επικύρωσης
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Συλλογή dirty αναθέσεων
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Κενό - αχρησιμοποίητο
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Εγγραφή στη βάση δεδομένων
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Καθαρισμός παρακολούθησης
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Απελευθέρωση μνήμης
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Υλοποίηση:** `src/coins.cpp:278-315`
+**Υλοποίηση:** `src/coins.cpp:Flush()`
 
 ### Batch Write Βάσης Δεδομένων
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Αναθέσεις γράφονται ξεχωριστά αλλά στο ίδιο context συναλλαγής βάσης δεδομένων
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Αχρησιμοποίητη παράμετρος (κρατείται για συμβατότητα API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Νέο batch, αλλά ίδια βάση δεδομένων
+    CDBBatch batch(*m_db);
 
-    // Εγγραφή ιστορικού ανάθεσης
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Διαγραφή διαγραμμένων αναθέσεων από ιστορικό
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ΑΤΟΜΙΚΗ ΔΕΣΜΕΥΣΗ
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Υλοποίηση:** `src/txdb.cpp:332-348`
+**Υλοποίηση:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Εγγυήσεις Ατομικότητας
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Υλοποίηση:** `src/undo.h:63-105`
+**Υλοποίηση:** `src/undo.h`
 
 ### Διαδικασία DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Υλοποίηση:** `src/validation.cpp:2381-2415`
+**Υλοποίηση:** `src/validation.cpp:DisconnectBlock()`
 
 ### Διαχείριση Cache Κατά τη Διάρκεια Reorg
 
@@ -556,7 +562,7 @@ private:
     // Caches ανάθεσης
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Παρακολούθηση τροποποιημένων plots
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Παρακολούθηση διαγραφών
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Παρακολούθηση διαγραφών
     mutable size_t cachedAssignmentsUsage{0};  // Παρακολούθηση μνήμης
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Υλοποίηση:** `src/coins.cpp:494-565`
+**Υλοποίηση:** `src/coins.cpp`
 
 ## Διεπαφή RPC
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**Υλοποίηση:** `src/pocx/rpc/assignments.cpp:31-126`
+**Υλοποίηση:** `src/pocx/rpc/assignments.cpp`
 
 ### Εντολές Πορτοφολιού (Απαιτείται Πορτοφόλι)
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - Υπογράφει με το κλειδί του ιδιοκτήτη plot
 - Μεταδίδει στο δίκτυο
 
-**Υλοποίηση:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Υλοποίηση:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - Υπογράφει με το κλειδί του ιδιοκτήτη plot
 - Μεταδίδει στο δίκτυο
 
-**Υλοποίηση:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Υλοποίηση:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Δημιουργία Συναλλαγής Πορτοφολιού
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **Βασική γνώση:** Το πορτοφόλι πρέπει να δαπανήσει από τη διεύθυνση plot για απόδειξη ιδιοκτησίας, οπότε αναγκάζει αυτόματα την επιλογή coin από αυτή τη διεύθυνση.
 
-**Υλοποίηση:** `src/pocx/assignments/transactions.cpp:38-263`
+**Υλοποίηση:** `src/pocx/assignments/transactions.cpp`
 
 ## Δομή Αρχείων
 

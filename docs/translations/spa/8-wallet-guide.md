@@ -28,7 +28,7 @@ Guía completa para la cartera Qt de Bitcoin-PoCX y gestión de asignaciones de 
 La cartera Qt de Bitcoin-PoCX (`bitcoin-qt`) proporciona:
 - Funcionalidad estándar de cartera de Bitcoin Core (enviar, recibir, gestión de transacciones)
 - **Gestor de asignaciones de forjado**: GUI para crear/revocar asignaciones de parcelas
-- **Modo servidor de minería**: La bandera `-miningserver` habilita características relacionadas con minería
+- **Start Node** with RPC enabled: La bandera `` habilita características relacionadas con minería
 - **Historial de transacciones**: Visualización de transacciones de asignación y revocación
 
 ### Iniciar la cartera
@@ -38,20 +38,20 @@ La cartera Qt de Bitcoin-PoCX (`bitcoin-qt`) proporciona:
 ./build/bin/bitcoin-qt
 ```
 
-**Con minería** (habilita diálogo de asignación):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternativa de línea de comandos**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Requisitos de minería
 
 **Para operaciones de minería**:
-- Bandera `-miningserver` requerida
+- Bandera `` requerida
 - Cartera con direcciones P2WPKH y claves privadas
 - Graficador externo (`pocx_plotter`) para generación de parcelas
 - Minero externo (`pocx_miner`) para minería
@@ -84,7 +84,7 @@ Bitcoin-PoCX usa la unidad de moneda **BTCX** (no BTC):
 ### Acceso al diálogo
 
 **Menú**: `Cartera → Asignaciones de forjado`
-**Barra de herramientas**: Icono de minería (visible solo con bandera `-miningserver`)
+**Barra de herramientas**: Icono de minería (visible solo con bandera ``)
 **Tamaño de ventana**: 600×450 píxeles
 
 ### Modos del diálogo
@@ -118,7 +118,7 @@ Bitcoin-PoCX usa la unidad de moneda **BTCX** (no BTC):
 
 **Estructura de transacción**:
 - Entrada: UTXO de la dirección de parcela (demuestra propiedad)
-- Salida OP_RETURN: marcador `POCX` + plot_address + forging_address (46 bytes)
+- Salida OP_RETURN: marcador `POCX` + plot_address + forging_address (44 bytes)
 - Salida de cambio: Devuelto a la cartera
 
 #### Modo 2: Revocar asignación
@@ -146,7 +146,7 @@ Bitcoin-PoCX usa la unidad de moneda **BTCX** (no BTC):
 
 **Estructura de transacción**:
 - Entrada: UTXO de la dirección de parcela (demuestra propiedad)
-- Salida OP_RETURN: marcador `XCOP` + plot_address (26 bytes)
+- Salida OP_RETURN: marcador `XCOP` + plot_address (24 bytes)
 - Salida de cambio: Devuelto a la cartera
 
 #### Modo 3: Verificar estado de asignación
@@ -296,7 +296,7 @@ Revocación efectiva en altura: 13020
 ### Mensajes de error de validación
 
 **Errores del diálogo**:
-- "La dirección de parcela debe ser P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
 - "La dirección de forjado debe ser P2WPKH (bech32)"
 - "Formato de dirección inválido"
 - "No hay monedas disponibles en la dirección de parcela. No se puede demostrar propiedad."
@@ -313,7 +313,6 @@ Revocación efectiva en altura: 13020
 **Configuración del nodo**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Iniciar nodo** con servidor de minería:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configurar minero**:
@@ -450,8 +449,8 @@ server=1
 
 #### "Pestaña de asignación de forjado no visible"
 
-**Causa**: El nodo se inició sin la bandera `-miningserver`
-**Solución**: Reiniciar con `bitcoin-qt -server -miningserver`
+**Causa**: El nodo se inició sin la bandera ``
+**Solución**: Reiniciar con `bitcoin-qt -server`
 
 ### Pasos de depuración
 

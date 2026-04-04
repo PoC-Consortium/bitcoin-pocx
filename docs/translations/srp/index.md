@@ -1,7 +1,7 @@
 # Техничка документација за Bitcoin-PoCX
 
 **Верзија**: 1.0
-**Основа Bitcoin Core**: v30.0
+**Основа Bitcoin Core**: v30.2
 **Статус**: Фаза тестне мреже
 **Последње ажурирање**: 2025-12-25
 
@@ -114,8 +114,8 @@
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Конфигуришите са омогућеним PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Компајлирајте
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Варијанте компајлирања**:
 ```bash
 # Са Qt графичким интерфејсом
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug верзија
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Зависности**: Стандардне зависности за компајлирање Bitcoin Core. Погледајте [документацију за компајлирање Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) за захтеве специфичне за платформу.
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## Лиценца
 
-Bitcoin-PoCX наслеђује MIT лиценцу од Bitcoin Core. Погледајте `COPYING` у коренском директоријуму репозиторијума.
+Bitcoin-PoCX наслеђује MIT лиценцу од Bitcoin Core. Погледајте `bitcoin/COPYING` у коренском директоријуму репозиторијума.
 
 Атрибуција PoCX core framework документована је у [Поглавље 2: Формат плотова](2-plot-format.md).
 

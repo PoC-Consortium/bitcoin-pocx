@@ -28,7 +28,7 @@ Vollständige Anleitung zum Bitcoin-PoCX Qt-Wallet und zur Forging-Zuweisungsver
 Das Bitcoin-PoCX Qt-Wallet (`bitcoin-qt`) bietet:
 - Standard Bitcoin Core Wallet-Funktionalität (Senden, Empfangen, Transaktionsverwaltung)
 - **Forging-Zuweisungsmanager**: GUI zum Erstellen/Widerrufen von Plot-Zuweisungen
-- **Mining-Server-Modus**: `-miningserver` Flag aktiviert Mining-bezogene Funktionen
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Transaktionsverlauf**: Anzeige von Zuweisungs- und Widerrufstransaktionen
 
 ### Starten des Wallets
@@ -38,20 +38,20 @@ Das Bitcoin-PoCX Qt-Wallet (`bitcoin-qt`) bietet:
 ./build/bin/bitcoin-qt
 ```
 
-**Mit Mining** (aktiviert Zuweisungsdialog):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Kommandozeilen-Alternative**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Mining-Anforderungen
 
 **Für Mining-Operationen**:
-- `-miningserver` Flag erforderlich
+- `` Flag erforderlich
 - Wallet mit P2WPKH-Adressen und privaten Schlüsseln
 - Externer Plotter (`pocx_plotter`) für Plot-Generierung
 - Externer Miner (`pocx_miner`) für Mining
@@ -84,7 +84,7 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 ### Zugriff auf den Dialog
 
 **Menü**: `Wallet → Forging-Zuweisungen`
-**Symbolleiste**: Mining-Symbol (nur sichtbar mit `-miningserver` Flag)
+**Symbolleiste**: Mining-Symbol (nur sichtbar mit `` Flag)
 **Fenstergröße**: 600×450 Pixel
 
 ### Dialog-Modi
@@ -118,7 +118,7 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- OP_RETURN-Ausgabe: `POCX`-Marker + plot_address + forging_address (46 Bytes)
+- OP_RETURN-Ausgabe: `POCX`-Marker + plot_address + forging_address (44 Bytes)
 - Wechselgeld-Ausgabe: Zurück ans Wallet
 
 #### Modus 2: Zuweisung widerrufen
@@ -146,7 +146,7 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- OP_RETURN-Ausgabe: `XCOP`-Marker + plot_address (26 Bytes)
+- OP_RETURN-Ausgabe: `XCOP`-Marker + plot_address (24 Bytes)
 - Wechselgeld-Ausgabe: Zurück ans Wallet
 
 #### Modus 3: Zuweisungsstatus prüfen
@@ -296,8 +296,8 @@ Widerruf wirksam bei Höhe: 13020
 ### Validierungsfehlermeldungen
 
 **Dialogfehler**:
-- "Plot-Adresse muss P2WPKH (bech32) sein"
-- "Forging-Adresse muss P2WPKH (bech32) sein"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Ungültiges Adressformat"
 - "Keine Coins an der Plot-Adresse verfügbar. Eigentum kann nicht bewiesen werden."
 - "Kann keine Transaktionen mit Watch-Only-Wallet erstellen"
@@ -313,7 +313,6 @@ Widerruf wirksam bei Höhe: 13020
 **Node-Konfiguration**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Node starten** mit Mining-Server:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Miner konfigurieren**:
@@ -365,7 +364,7 @@ server=1
    - Plot-Adresse auswählen
    - Forging-Adresse des Pools eingeben
    - "Zuweisung senden" klicken
-   - Auf Aktivierungsverzögerung warten (30 Blöcke Testnet)
+   - Auf Aktivierungsverzögerung warten (30 blocks mainnet/testnet))
 
 3. **Miner konfigurieren**:
    - Auf **Pool**-Endpunkt zeigen (nicht lokaler Node)
@@ -399,19 +398,14 @@ server=1
 
 ### Häufige Probleme
 
-#### "Wallet hat keinen privaten Schlüssel für Plot-Adresse"
-
-**Ursache**: Wallet besitzt die Adresse nicht
-**Lösung**:
-- Privaten Schlüssel via `importprivkey` RPC importieren
-- Oder andere dem Wallet gehörende Plot-Adresse verwenden
+- Or use different plot address owned by wallet
 
 #### "Zuweisung existiert bereits für diesen Plot"
 
 **Ursache**: Plot bereits an andere Adresse zugewiesen
 **Lösung**:
 1. Bestehende Zuweisung widerrufen
-2. Auf Widerrufsverzögerung warten (720 Blöcke Testnet)
+2. Auf Widerrufsverzögerung warten (720 blocks mainnet/testnet))
 3. Neue Zuweisung erstellen
 
 #### "Adressformat wird nicht unterstützt"
@@ -442,16 +436,6 @@ server=1
 1. Guthaben an Plot-Adresse senden
 2. Auf 1 Bestätigung warten
 3. Zuweisungserstellung erneut versuchen
-
-#### "Kann keine Transaktionen mit Watch-Only-Wallet erstellen"
-
-**Ursache**: Wallet hat Adresse ohne privaten Schlüssel importiert
-**Lösung**: Vollständigen privaten Schlüssel importieren, nicht nur Adresse
-
-#### "Forging-Zuweisungs-Tab nicht sichtbar"
-
-**Ursache**: Node ohne `-miningserver` Flag gestartet
-**Lösung**: Neustart mit `bitcoin-qt -server -miningserver`
 
 ### Debug-Schritte
 
@@ -525,12 +509,12 @@ server=1
 
 ### Zuweisungsverzögerungen
 
-**Aktivierungsverzögerung** (30 Blöcke Testnet):
+**Aktivierungsverzögerung** (30 blocks mainnet/testnet)):
 - Verhindert schnelle Neuzuweisung bei Chain-Forks
 - Ermöglicht Netzwerkkonsens
 - Kann nicht umgangen werden
 
-**Widerrufsverzögerung** (720 Blöcke Testnet):
+**Widerrufsverzögerung** (720 blocks mainnet/testnet)):
 - Bietet Stabilität für Mining-Pools
 - Verhindert "Zuweisungs-Hopping"-Angriffe
 - Forging-Adresse bleibt während Verzögerung aktiv

@@ -77,12 +77,12 @@ Alle Plot-Metadaten sind im Dateinamen in diesem exakten Format kodiert:
 1. **ACCOUNT_PAYLOAD** (40 Hex-Zeichen)
    - Rohe 20-Byte-Konto-Nutzlast als Großbuchstaben-Hex
    - Netzwerkunabhängig (keine Netzwerk-ID oder Prüfsumme)
-   - Beispiel: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Beispiel: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 Hex-Zeichen)
-   - 32-Byte-Seed-Wert als Kleinbuchstaben-Hex
+   - 32-Byte-Seed-Wert als Großbuchstaben-Hex
    - **Neu bei PoCX**: Zufälliger 32-Byte-Seed im Dateinamen ersetzt aufeinanderfolgende Nonce-Nummerierung – verhindert Plot-Überlappungen
-   - Beispiel: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Beispiel: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (Dezimalzahl)
    - **NEUE Größeneinheit bei PoCX**: Ersetzt Nonce-basierte Größenangabe von POC1/POC2
@@ -97,8 +97,8 @@ Alle Plot-Metadaten sind im Dateinamen in diesem exakten Format kodiert:
 
 ### Beispiel-Dateinamen
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

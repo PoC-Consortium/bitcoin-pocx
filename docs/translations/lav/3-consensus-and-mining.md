@@ -49,7 +49,7 @@ PoCX bloki paplašina Bitcoin bloka struktūru ar papildu konsensa laukiem:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plotfaila sēkla (32 baiti)
     std::array<uint8_t, 20> account_id;       // Plotfaila adrese (20 baitu hash160)
-    uint32_t compression;                     // Mērogošanas līmenis (1-255)
+    uint32_t compression;                     // Mērogošanas līmenis (1-6)
     uint64_t nonce;                           // Kalnrūpniecības nonce (64 biti)
     uint64_t quality;                         // Deklarētā kvalitāte (PoC jaucējvērtības izvade)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **Aprēķins:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Ģenēzes bloks:** Izmanto cieti kodētu sākotnējo ģenerēšanas parakstu
 
-**Implementācija:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementācija:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Bāzes mērķis (grūtība)
 
@@ -113,8 +113,8 @@ PoCX atbalsta mērogojamu darba pierādījumu plotfailos caur mērogošanas līm
 **Dinamiskas robežas:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimālais pieņemtais līmenis
-    uint8_t nPoCXTargetCompression;  // Ieteicamais līmenis
+    uint32_t nPoCXMinCompression;     // Minimālais pieņemtais līmenis
+    uint32_t nPoCXTargetCompression;  // Ieteicamais līmenis
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Uztur drošības rezervi starp plotfailu izveides un meklēšanas izmaksām
 - Maksimālais mērogošanas līmenis: 255
 
-**Implementācija:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementācija:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -231,10 +231,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 baiti
     block_height,
     nonce,
-    seed,                // 32 baiti
-    min_compression,
-    max_compression,
-    &result             // Izvade: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +243,7 @@ bool success = pocx_validate_block(
 3. Validēt, ka kvalitāte atbilst grūtības prasībām
 4. Atgriezt neapstrādātu kvalitātes vērtību
 
-**Implementācija:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementācija:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### 6. solis: Laika līkumo aprēķins
 ```cpp
@@ -276,9 +275,9 @@ g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // NAV termiņš - pārrēķināts kalšanā
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,7 +323,7 @@ while (!shutdown) {
    - Ģenerēšanas paraksta nesakritība → atmest
    - Virsotnes bloka jaucējvērtība mainījusies (reorg) → atiestatīt kalšanas stāvokli
 
-3. Kvalitātes salīdzināšana:
+3. Quality comparison (lower = better):
    - Ja quality >= current_best → atmest
 
 4. Aprēķināt laika līkumo termiņu:
@@ -397,6 +396,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Oriģinālā plotfaila adrese
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Pārrēķināt merkle sakni:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +421,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementācija:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementācija:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Galvenie dizaina lēmumi:**
 - Coinbase maksā efektīvajam parakstītājam (respektē piešķīrumus)
@@ -450,25 +450,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX validācija (kad definēts ENABLE_POCX):**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // Pamata paraksta validācija (vēl nav piešķīrumu atbalsta)
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**Pamata paraksta validācija:**
-1. Pārbaudīt publiskās atslēgas un paraksta lauku klātbūtni
-2. Validēt publiskās atslēgas izmēru (33 baiti kompresēti)
-3. Validēt paraksta izmēru (65 baiti kompakti)
-4. Atgūt publisko atslēgu no paraksta: `pubkey.RecoverCompact(hash, signature)`
-5. Verificēt, ka atgūtā publiskā atslēga sakrīt ar saglabāto publisko atslēgu
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**Implementācija:** `src/validation.cpp:CheckBlockHeader()`
-**Paraksta loģika:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### 2. posms: Bloka validācija (CheckBlock)
 
@@ -487,49 +476,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // 1. solis: Validēt ģenerēšanas parakstu
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // 2. solis: Validēt bāzes mērķi
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // 3. solis: Validēt jaudas pierādījumu
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // 4. solis: Verificēt termiņa laiku
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Validācijas soļi:**
-1. **Ģenerēšanas paraksts:** Jāsakrīt ar aprēķināto vērtību no iepriekšējā bloka
-2. **Bāzes mērķis:** Jāsakrīt ar grūtības pielāgošanas aprēķinu
-3. **Mērogošanas līmenis:** Jāatbilst tīkla minimumam (`compression >= min_compression`)
-4. **Kvalitātes pretenzija:** Iesniegtajai kvalitātei jāsakrīt ar aprēķināto kvalitāti no pierādījuma
-5. **Jaudas pierādījums:** Kriptogrāfiskā pierādījuma validācija (SIMD optimizēta)
-6. **Termiņa laiks:** Laika līkumo termiņam (`poc_time`) jābūt ≤ pagājušajam laikam
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementācija:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +549,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementācija:**
 - Savienošana: `src/validation.cpp:ConnectBlock()`
-- Paplašināta validācija: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Piešķīrumu loģika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Paplašināta validācija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Piešķīrumu loģika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### 5. posms: Ķēdes aktivizācija
 
@@ -599,7 +575,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Saņemt bloku
     ↓
-CheckBlockHeader (pamata paraksts)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (darījumi, merkle)
     ↓
@@ -668,7 +644,7 @@ Transaction {
 - Kļūst ASSIGNED pēc aizkaves perioda (4 bloki regtest, 30 bloki mainnet)
 - Aizkave novērš ātru pārpiešķiršanu bloku sacensību laikā
 
-**Implementācija:** `src/script/forging_assignment.h`, validācija ConnectBlock
+**Implementācija:** `src/pocx/assignments/opcodes.h`, validācija ConnectBlock
 
 ### Piešķīrumu atsaukšana
 
@@ -683,9 +659,10 @@ Transaction {
 ```
 
 **Efekts:**
-- Tūlītēja stāvokļa pāreja uz REVOKED
-- Plotfaila īpašnieks var kalst nekavējoties
-- Var izveidot jaunu piešķīrumu pēc tam
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Piešķīrumu validācija kalnrūpniecības laikā
 
@@ -826,12 +803,15 @@ Pavediens B: cs_wallet → cs_main
 
 **Ģenerēšanas paraksts:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Bloka paraksta jaucējvērtība:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompakta paraksta formāts:**
@@ -863,12 +843,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Pamata implementācijas:**
 - RPC saskarne: `src/pocx/rpc/mining.cpp`
 - Kalšanas rinda: `src/pocx/mining/scheduler.cpp`
-- Konsensa validācija: `src/pocx/consensus/validation.cpp`
-- Pierādījuma validācija: `src/pocx/consensus/pocx.cpp`
+- Konsensa validācija: `src/pocx/consensus/proof.cpp`
+- Pierādījuma validācija: `src/pocx/consensus/signature.cpp`
 - Laika līkumo: `src/pocx/algorithms/time_bending.cpp`
 - Bloka validācija: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Piešķīrumu loģika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Konteksta pārvaldība: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Piešķīrumu loģika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Konteksta pārvaldība: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Datu struktūras:**
 - Bloka formāts: `src/primitives/block.h`
@@ -902,7 +882,7 @@ kur:
 **Process:**
 1. Ģenerēt scoopu no ģenerēšanas paraksta un augstuma
 2. Lasīt plotfaila datus aprēķinātajam scoopam
-3. Jaukšana: `SHABAL256(generation_signature || scoop_data)`
+3. Jaukšana: `Shabal256Lite(scoop_data, generation_signature)`
 4. Testēt mērogošanas līmeņus no min līdz max
 5. Atgriezt labāko atrasto kvalitāti
 
@@ -925,7 +905,7 @@ kur:
 avg_base_target = moving_average(nesenie bāzes mērķi)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

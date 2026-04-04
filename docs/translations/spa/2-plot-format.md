@@ -77,12 +77,12 @@ Todos los metadatos de parcela se codifican en el nombre de archivo usando este 
 1. **CARGA_CUENTA** (40 caracteres hexadecimales)
    - Carga de cuenta cruda de 20 bytes como hexadecimal mayúscula
    - Independiente de la red (sin ID de red ni suma de verificación)
-   - Ejemplo: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Ejemplo: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEMILLA** (64 caracteres hexadecimales)
    - Valor de semilla de 32 bytes como hexadecimal minúscula
    - **Nuevo en PoCX**: Semilla aleatoria de 32 bytes en el nombre de archivo reemplaza la numeración consecutiva de nonces, previniendo superposiciones de parcelas
-   - Ejemplo: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Ejemplo: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (número decimal)
    - **Nueva unidad de tamaño en PoCX**: Reemplaza el dimensionamiento basado en nonces de POC1/POC2
@@ -97,8 +97,8 @@ Todos los metadatos de parcela se codifican en el nombre de archivo usando este 
 
 ### Ejemplos de nombres de archivo
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

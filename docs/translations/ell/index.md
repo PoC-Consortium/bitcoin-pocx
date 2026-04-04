@@ -1,7 +1,7 @@
 # Τεχνική Τεκμηρίωση Bitcoin-PoCX
 
 **Έκδοση**: 1.0
-**Βάση Bitcoin Core**: v30.0
+**Βάση Bitcoin Core**: v30.2
 **Κατάσταση**: Φάση Testnet
 **Τελευταία Ενημέρωση**: 25-12-2025
 
@@ -116,8 +116,8 @@
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Διαμόρφωση με ενεργοποιημένο το PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Μεταγλώττιση
 cmake --build build -j$(nproc)
@@ -126,10 +126,10 @@ cmake --build build -j$(nproc)
 **Παραλλαγές Μεταγλώττισης**:
 ```bash
 # Με Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Έκδοση Debug
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Εξαρτήσεις**: Τυπικές εξαρτήσεις μεταγλώττισης Bitcoin Core. Δείτε την [τεκμηρίωση μεταγλώττισης Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) για απαιτήσεις ανά πλατφόρμα.
@@ -186,7 +186,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## Άδεια Χρήσης
 
-Το Bitcoin-PoCX κληρονομεί την άδεια MIT του Bitcoin Core. Δείτε `COPYING` στη ρίζα του αποθετηρίου.
+Το Bitcoin-PoCX κληρονομεί την άδεια MIT του Bitcoin Core. Δείτε `bitcoin/COPYING` στη ρίζα του αποθετηρίου.
 
 Απόδοση του πλαισίου PoCX core τεκμηριώνεται στο [Κεφάλαιο 2: Μορφή Plot](2-plot-format.md).
 

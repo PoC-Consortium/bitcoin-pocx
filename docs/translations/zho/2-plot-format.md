@@ -77,12 +77,12 @@ XOR 转置将每个 scoop 与底层 X0 数据的整行和整列相互关联。�
 1. **ACCOUNT_PAYLOAD**（40 个十六进制字符）
    - 原始 20 字节账户载荷的大写十六进制
    - 与网络无关（无网络 ID 或校验和）
-   - 示例：`DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - 示例：`DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED**（64 个十六进制字符）
-   - 32 字节种子值的小写十六进制
+   - 32 字节种子值的大写十六进制
    - **PoCX 新增**：文件名中的随机 32 字节种子替代连续 nonce 编号——防止绘图重叠
-   - 示例：`c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - 示例：`C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS**（十进制数字）
    - **PoCX 新增的大小单位**：替代 POC1/POC2 的基于 nonce 的大小
@@ -97,8 +97,8 @@ XOR 转置将每个 scoop 与底层 X0 数据的整行和整列相互关联。�
 
 ### 文件名示例
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

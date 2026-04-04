@@ -23,7 +23,7 @@ Fullständig referens för Bitcoin-PoCX RPC-kommandon, inklusive mining-RPC:er, 
 
 ### Miningserverläge
 
-**Flagga**: `-miningserver`
+**Flagga**: ``
 
 **Syfte**: Aktiverar RPC-åtkomst för externa miners att anropa miningspecifika RPC:er
 
@@ -34,10 +34,9 @@ Fullständig referens för Bitcoin-PoCX RPC-kommandon, inklusive mining-RPC:er, 
 **Användning**:
 ```bash
 # Kommandorad
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Säkerhetsöverväganden**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Kategori**: mining
-**Kräver miningserver**: Nej
 **Kräver plånbok**: Nej
 
 **Syfte**: Returnerar aktuella miningparametrar som behövs för externa miners att skanna plotfiler och beräkna deadlines.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 tecken
-  "base_target": 36650387593,                // numerisk
+  "base_target": 36650387592,                // numerisk
   "height": 12345,                           // numerisk, nästa blockhöjd
   "block_hash": "def456...",                 // hex, föregående block
   "target_quality": 18446744073709551615,    // uint64_max (alla lösningar accepteras)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategori**: mining
-**Kräver miningserver**: Ja
 **Kräver plånbok**: Ja (för privata nycklar)
 
 **Syfte**: Skicka en PoCX-mininglösning. Validerar bevis, köar för tidsböjd forgning och skapar automatiskt block vid schemalagd tid.
 
-**Parametrar**:
-1. `height` (numerisk, obligatorisk) - Blockhöjd
-2. `generation_signature` (sträng hex, obligatorisk) - Generationssignatur (64 tecken)
-3. `account_id` (sträng, obligatorisk) - Plotkonto-ID (40 hextecken = 20 bytes)
-4. `seed` (sträng, obligatorisk) - Plotseed (64 hextecken = 32 bytes)
-5. `nonce` (numerisk, obligatorisk) - Miningnonce
-6. `compression` (numerisk, obligatorisk) - Skalnings-/kompressionsnivå använd (1-255)
-7. `quality` (numerisk, valfri) - Kvalitetsvärde (omberäknas om utelämnad)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Returvärden** (framgång):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // svårighetsjusterad deadline i sekunder
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // tidsböjd forgningstid i sekunder
 }
 ```
@@ -134,8 +133,10 @@ bitcoin-cli get_mining_info
    - Konto-ID: exakt 40 hextecken
    - Seed: exakt 64 hextecken
 2. **Kontextvalidering**:
+   - Block hash must match current tip
    - Höjd måste matcha aktuell tipp + 1
    - Generationssignatur måste matcha aktuell
+   - Base target must match current
 3. **Plånboksverifiering**:
    - Bestäm effektiv signerare (kontrollera aktiva tilldelningar)
    - Verifiera att plånbok har privat nyckel för effektiv signerare
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **Exempel**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Noteringar**:
@@ -186,7 +191,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategori**: mining
-**Kräver miningserver**: Nej
 **Kräver plånbok**: Nej
 
 **Syfte**: Fråga forgingstilldelningsstatus för en plotadress. Skrivskyddad, ingen plånbok krävs.
@@ -260,7 +264,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategori**: wallet
-**Kräver miningserver**: Nej
 **Kräver plånbok**: Ja (måste vara laddad och upplåst)
 
 **Syfte**: Skapa forgingstilldelningsstransaktion för att delegera forgingsrättigheter till annan adress (t.ex. miningpool).
@@ -294,7 +297,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktivering**:
 - Tilldelning blir ASSIGNING vid bekräftelse
-- Blir ACTIVE efter `nForgingAssignmentDelay` block
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Fördröjning förhindrar snabb omtilldelning under kedjeforks
 
 **Felkoder**:
@@ -316,7 +319,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategori**: wallet
-**Kräver miningserver**: Nej
 **Kräver plånbok**: Ja (måste vara laddad och upplåst)
 
 **Syfte**: Återkalla befintlig forgingstilldelning och returnera forgingsrättigheter till plotägare.
@@ -377,7 +379,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX-modifieringar**:
 - **Beräkning**: `reference_base_target / current_base_target`
-- **Referens**: 1 TiB nätverkskapacitet (base_target = 36650387593)
+- **Referens**: 1 TiB nätverkskapacitet (base_target = 36650387592)
 - **Tolkning**: Uppskattad nätverkslagringskapacitet i TiB
   - Exempel: `1.0` = ~1 TiB
   - Exempel: `1024.0` = ~1 PiB
@@ -464,7 +466,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numerisk) - För poolmining
 
 **PoCX-borttagna fält**:
-- `target` - Borttagen (PoW-specifik)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Borttagen (PoW-specifik)
 - `bits` - Borttagen (PoW-specifik)
 
@@ -494,10 +496,11 @@ Följande PoW-specifika RPC:er är **inaktiverade** i PoCX-läge:
 - **Alternativ**: Använd `get_mining_info` (PoCX-specifik)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Orsak**: CPU-mining inte tillämpligt för PoCX (kräver förgenererade plottar)
-- **Alternativ**: Använd extern plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementation**: `src/rpc/mining.cpp` (RPC:er returnerar fel när ENABLE_POCX definierad)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +533,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skanna plotfiler (extern implementation)
@@ -538,11 +541,15 @@ while True:
 
     # 3. Skicka bästa lösning
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +669,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mining-RPC:er**: `src/pocx/rpc/mining.cpp`
 **Tilldelnings-RPC:er**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain-RPC:er**: `src/rpc/blockchain.cpp`
-**Bevisvalidering**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Bevisvalidering**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Tilldelningsstatus**: `src/pocx/assignments/assignment_state.cpp`
 **Transaktionsskapande**: `src/pocx/assignments/transactions.cpp`
 

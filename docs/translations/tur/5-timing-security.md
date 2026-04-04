@@ -32,16 +32,16 @@ PoCX konsensüsü, ağ genelinde hassas zaman senkronizasyonu gerektirir. Bu bö
 
 **Bitcoin-PoCX Yapılandırması:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 saniye
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 saniye
 ```
 
 ### Doğrulama Kontrolleri
 
-**Blok Zaman Damgası Doğrulaması** (`src/validation.cpp:4547-4561`):
+**Blok Zaman Damgası Doğrulaması** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monoton kontrol: zaman damgası >= önceki blok zaman damgası
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Son tarih kontrolü: geçen süre >= son tarih
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Madencilik yüksekliğiniz 100, rakip blok 99 yayınlıyor
 - Doğrulama milisaniyeler içinde tamamlanır
 
 **Kaynak Kullanımı:** Minimum
-- ~20 satır çekirdek mantık
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Mevcut doğrulama altyapısını yeniden kullanır
 - Tek kilit edinimi
 
@@ -372,9 +372,9 @@ Avantaj 14.9 saniye ile sınırlıdır (önemli PoC işini atlamak için yeterli
 ## Uygulama Referansları
 
 **Çekirdek Dosyalar**:
-- Zaman doğrulaması: `src/validation.cpp:4547-4561`
-- Gelecek toleransı sabiti: `src/chain.h:31`
-- Uyarı eşiği: `src/node/timeoffsets.h:27`
+- Zaman doğrulaması: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Gelecek toleransı sabiti: `src/chain.h`
+- Uyarı eşiği: `src/node/timeoffsets.h`
 - Zaman ofseti izleme: `src/node/timeoffsets.cpp`
 - Savunmacı dövme: `src/pocx/mining/scheduler.cpp`
 

@@ -28,7 +28,7 @@ Komplet vejledning til Bitcoin-PoCX Qt-wallet og forging assignment-styring.
 Bitcoin-PoCX Qt-wallet (`bitcoin-qt`) giver:
 - Standard Bitcoin Core wallet-funktionalitet (send, modtag, transaktionsstyring)
 - **Forging Assignment Manager**: GUI til oprettelse/tilbagekaldelse af plotassignments
-- **Miningservertilstand**: `-miningserver`-flag aktiverer miningrelaterede funktioner
+- **Miningservertilstand**: ``-flag aktiverer miningrelaterede funktioner
 - **Transaktionshistorik**: Visning af assignment- og tilbagekaldelsestransaktioner
 
 ### Start af wallet
@@ -38,20 +38,20 @@ Bitcoin-PoCX Qt-wallet (`bitcoin-qt`) giver:
 ./build/bin/bitcoin-qt
 ```
 
-**Med mining** (aktiverer assignment-dialog):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Kommandolinjealternativ**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Miningkrav
 
 **Til miningoperationer**:
-- `-miningserver`-flag kraevet
+- ``-flag kraevet
 - Wallet med P2WPKH-adresser og private nogler
 - Ekstern plotter (`pocx_plotter`) til plotgenerering
 - Ekstern miner (`pocx_miner`) til mining
@@ -84,7 +84,7 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 ### Adgang til dialogen
 
 **Menu**: `Wallet -> Forging Assignments`
-**Vaerktoejslinje**: Miningikon (kun synligt med `-miningserver`-flag)
+**Vaerktoejslinje**: Miningikon (kun synligt med ``-flag)
 **Vinduesstorrelse**: 600x450 pixels
 
 ### Dialogtilstande
@@ -118,7 +118,7 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- OP_RETURN-output: `POCX`-markor + plot_address + forging_address (46 bytes)
+- OP_RETURN-output: `POCX`-markor + plot_address + forging_address (44 bytes)
 - Byttepenge-output: Returneret til wallet
 
 #### Tilstand 2: Tilbagekald assignment
@@ -146,7 +146,7 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- OP_RETURN-output: `XCOP`-markor + plot_address (26 bytes)
+- OP_RETURN-output: `XCOP`-markor + plot_address (24 bytes)
 - Byttepenge-output: Returneret til wallet
 
 #### Tilstand 3: Kontroller assignment-status
@@ -251,16 +251,12 @@ Tilbagekaldelse tradte i kraft ved hojde: 13020
 - Sog efter transaktions-ID
 - Sog efter etiket (hvis adresse er maerket)
 
-**Bemaaerkning**: Assignment-/tilbagekaldelsestransaktioner vises i oejeblikket under "Alle"-filter. Dedikeret typefilter er endnu ikke implementeret.
-
-### Transaktionssortering
-
-**Sorteringsraekkefolge** (efter type):
-- Genereret (type 0)
-- Modtaget (type 1-3)
-- Assignment (type 4)
-- Tilbagekaldelse (type 5)
-- Sendt (type 6+)
+**Bemaaerkning**Sort Order** (by UI sort key):
+- Sent (SendToAddress, SendToOther)
+- Received (RecvWithAddress, RecvFromOther)
+- Assignment (PoCXAssignment)
+- Revocation (PoCXRevocation)
+- Other / Generated
 
 ---
 
@@ -296,8 +292,8 @@ Tilbagekaldelse tradte i kraft ved hojde: 13020
 ### Valideringsfejlmeddelelser
 
 **Dialogfejl**:
-- "Plotadresse skal vaere P2WPKH (bech32)"
-- "Forging-adresse skal vaere P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Ugyldigt adresseformat"
 - "Ingen midler tilgaengelige pa plotadressen. Kan ikke bevise ejerskab."
 - "Kan ikke oprette transaktioner med watch-only wallet"
@@ -313,7 +309,6 @@ Tilbagekaldelse tradte i kraft ved hojde: 13020
 **Node-konfiguration**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -335,9 +330,8 @@ server=1
    pocx_plotter --account <plot_address_hash160> --seed <32_bytes> --nonces <antal>
    ```
 
-2. **Start node** med miningserver:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigurer miner**:
@@ -365,7 +359,7 @@ server=1
    - Vaelg plotadresse
    - Indtast pools forging-adresse
    - Klik "Send assignment"
-   - Vent pa aktiveringsforsinkelse (30 blokke testnet)
+   - Vent pa aktiveringsforsinkelse (30 blocks mainnet/testnet))
 
 3. **Konfigurer miner**:
    - Peg mod **pool**-endpoint (ikke lokal node)
@@ -411,7 +405,7 @@ server=1
 **Arsag**: Plot allerede tildelt til anden adresse
 **Losning**:
 1. Tilbagekald eksisterende assignment
-2. Vent pa tilbagekaldelsesforsinkelse (720 blokke testnet)
+2. Vent pa tilbagekaldelsesforsinkelse (720 blocks mainnet/testnet))
 3. Opret ny assignment
 
 #### "Adresseformat ikke understottet"
@@ -442,16 +436,6 @@ server=1
 1. Send midler til plotadresse
 2. Vent pa 1 bekraeftelse
 3. Forsog assignment-oprettelse igen
-
-#### "Kan ikke oprette transaktioner med watch-only wallet"
-
-**Arsag**: Wallet importerede adresse uden privat nogle
-**Losning**: Importer fuld privat nogle, ikke kun adresse
-
-#### "Forging Assignment-fane ikke synlig"
-
-**Arsag**: Node startet uden `-miningserver`-flag
-**Losning**: Genstart med `bitcoin-qt -server -miningserver`
 
 ### Fejlfindingstrin
 
@@ -525,12 +509,12 @@ server=1
 
 ### Assignment-forsinkelser
 
-**Aktiveringsforsinkelse** (30 blokke testnet):
+**Aktiveringsforsinkelse** (30 blocks mainnet/testnet)):
 - Forebygger hurtig omtildeling under kaedegafler
 - Tillader netvaerk at na konsensus
 - Kan ikke omgas
 
-**Tilbagekaldelsesforsinkelse** (720 blokke testnet):
+**Tilbagekaldelsesforsinkelse** (720 blocks mainnet/testnet)):
 - Giver stabilitet til miningpools
 - Forebygger assignment-"griefing"-angreb
 - Forging-adresse forbliver aktiv i forsinkelsen

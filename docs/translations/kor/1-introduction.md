@@ -42,7 +42,7 @@ Bitcoin-PoCX는 **차세대 용량 증명(Proof of Capacity neXt generation, PoC
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX 통합
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX 통합
 │   └── src/pocx/        # PoCX 구현
 ├── pocx/                # PoCX 코어 프레임워크 (서브모듈, 읽기 전용)
 └── docs/                # 이 문서
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **문제**: 전통적인 PoC 블록 시간은 지수 분포를 따르며, 채굴자가 좋은 솔루션을 찾지 못할 때 긴 블록이 발생합니다.
 
-**해결책**: 세제곱근을 사용하여 지수 분포를 카이제곱 분포로 변환: `Y = scale × (X^(1/3))`.
+**해결책**: 세제곱근을 사용하여 지수 분포를 카이제곱 분포로 변환: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**효과**: 매우 좋은 솔루션은 나중에 포징됩니다(네트워크가 모든 디스크를 스캔할 시간 확보, 빠른 블록 감소). 나쁜 솔루션은 개선됩니다. 평균 블록 시간은 120초로 유지되며, 긴 블록이 줄어듭니다.
+**효과**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **세부사항**: [3장: 합의 및 채굴](3-consensus-and-mining.md)
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX 활성화하여 빌드
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**세부사항**: 저장소 루트의 `CLAUDE.md` 참조
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. 노드 실행
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **채굴용** (외부 마이너를 위한 RPC 접근 활성화):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # 또는
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **세부사항**: [6장: 네트워크 매개변수](6-network-parameters.md)

@@ -1,7 +1,7 @@
 # Bitcoin-PoCX 技术文档
 
 **版本**：1.0
-**Bitcoin Core 基础版本**：v30.0
+**Bitcoin Core 基础版本**：v30.2
 **状态**：测试网阶段
 **最后更新**：2025-12-25
 
@@ -114,8 +114,8 @@ Bitcoin-PoCX Qt 钱包用户指南：锻造权委派对话框、交易历史、�
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# 启用 PoCX 配置
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # 构建
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **构建变体**：
 ```bash
 # 包含 Qt 图形界面
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # 调试构建
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **依赖项**：标准 Bitcoin Core 构建依赖项。参见 [Bitcoin Core 构建文档](https://github.com/bitcoin/bitcoin/tree/master/doc#building) 了解特定平台要求。
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## 许可证
 
-Bitcoin-PoCX 继承 Bitcoin Core 的 MIT 许可证。参见仓库根目录下的 `COPYING` 文件。
+Bitcoin-PoCX 继承 Bitcoin Core 的 MIT 许可证。参见仓库根目录下的 `bitcoin/COPYING` 文件。
 
 PoCX 核心框架的归属信息记录在[第2章：绘图格式](2-plot-format.md)中。
 

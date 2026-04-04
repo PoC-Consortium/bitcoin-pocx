@@ -39,12 +39,7 @@ Tham chiếu đầy đủ cho cấu hình mạng Bitcoin-PoCX trên tất cả c
 
 ### Thông điệp Genesis
 
-Tất cả mạng chia sẻ thông điệp genesis Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Triển khai**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Tất cả mạng chia sẻ thông điệp genesis Bitcoin:
 
 **Danh tính Mạng**:
 - **Magic Bytes**: `0xa7 0x3c 0x91 0x5e`
-- **Cổng Mặc định**: `8888`
+- **Cổng Mặc định**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Tiền tố Địa chỉ** (Base58):
@@ -84,14 +79,14 @@ Tất cả mạng chia sẻ thông điệp genesis Bitcoin:
 ### Tham số Testnet
 
 **Danh tính Mạng**:
-- **Magic Bytes**: `0x6d 0xf2 0x48 0xb3`
-- **Cổng Mặc định**: `18888`
+- **Magic Bytes**: `0x6d 0xf2 0x48 0xb4`
+- **Cổng Mặc định**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Tiền tố Địa chỉ** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Timing Khối**:
 - **Mục tiêu Thời gian Khối**: `120` giây
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Triển khai**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Triển khai**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Cấu trúc**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Cấp độ tối thiểu được chấp nhận
-    uint8_t nPoCXTargetCompression;  // Cấp độ khuyến nghị
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Cấp độ tối thiểu được chấp nhận
+    uint32_t nPoCXTargetCompression;  // Cấp độ khuyến nghị
 };
 ```
 
@@ -313,7 +308,7 @@ Các cấp độ mở rộng tăng theo **lịch trình mũ** dựa trên khoả
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Triển khai**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Triển khai**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Phiên bản Giao thức
 
-**Cơ sở**: Giao thức Bitcoin Core v30.0
+**Cơ sở**: Giao thức Bitcoin Core v30.2
 - **Phiên bản Giao thức**: Kế thừa từ Bitcoin Core
 - **Bit Dịch vụ**: Dịch vụ Bitcoin tiêu chuẩn
 - **Loại Thông điệp**: Thông điệp P2P Bitcoin tiêu chuẩn
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Server đào PoCX (yêu cầu cho thợ đào bên ngoài)
-miningserver=1
 
 # Cài đặt RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Cài đặt kết nối
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Mục tiêu thời gian khối (thông tin, thực thi bởi đồng thuận)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Tham số Đồng thuận**: `src/consensus/params.h`
-**Giới hạn Nén**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Giới hạn Nén**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Tính toán Base Target Genesis**: `src/pocx/consensus/params.cpp`
-**Logic Thanh toán Coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Logic Thanh toán Coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Lưu trữ Trạng thái Ủy quyền**: `src/coins.h`, `src/coins.cpp` (mở rộng CCoinsViewCache)
 
 ---

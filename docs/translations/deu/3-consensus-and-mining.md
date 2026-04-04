@@ -49,7 +49,7 @@ PoCX-Blöcke erweitern Bitcoins Blockstruktur mit zusätzlichen Konsensfeldern:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plot-Seed (32 Bytes)
     std::array<uint8_t, 20> account_id;       // Plot-Adresse (20-Byte hash160)
-    uint32_t compression;                     // Skalierungsstufe (1-255)
+    uint32_t compression;                     // Skalierungsstufe (1-6)
     uint64_t nonce;                           // Mining-Nonce (64-bit)
     uint64_t quality;                         // Beanspruchte Qualität (PoC-Hash-Ausgabe)
 };
@@ -92,7 +92,7 @@ generationSignature = SHA256(vorherige_generationSignature || vorheriger_miner_p
 
 **Genesis-Block:** Verwendet eine fest kodierte initiale Generierungssignatur
 
-**Implementierung:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementierung:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Basisziel (Schwierigkeit)
 
@@ -113,8 +113,8 @@ PoCX unterstützt skalierbares Proof-of-Work in Plotdateien durch Skalierungsstu
 **Dynamische Grenzen:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimal akzeptierte Stufe
-    uint8_t nPoCXTargetCompression;  // Empfohlene Stufe
+    uint32_t nPoCXMinCompression;     // Minimal akzeptierte Stufe
+    uint32_t nPoCXTargetCompression;  // Empfohlene Stufe
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - Minimale Skalierungsstufe erhöht sich um 1
 - Ziel-Skalierungsstufe erhöht sich um 1
 - Erhält Sicherheitsmarge zwischen Plot-Erstellungs- und Lookup-Kosten
-- Maximale Skalierungsstufe: 255
+- Maximale Skalierungsstufe: 7 (target = min + 1, with min capping at 6)
 
-**Implementierung:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementierung:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -181,7 +181,7 @@ struct CompressionBounds {
 
 **Parameter:**
 ```
-height, generation_signature, account_id, seed, nonce, quality (optional)
+block_hash, height, generation_signature, base_target, account_id, seed, nonce, compression, raw_quality
 ```
 
 **Validierungsablauf (optimierte Reihenfolge):**
@@ -223,30 +223,36 @@ if (!HaveAccountKey(effective_signer, wallet)) ablehnen;
 
 **Zuweisungsunterstützung:** Plotbesitzer kann Forging-Rechte an eine andere Adresse zuweisen. Wallet muss Schlüssel für den effektiven Unterzeichner haben, nicht unbedingt den Plotbesitzer.
 
-#### Schritt 5: Beweisvalidierung
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20 Bytes
     block_height,
     nonce,
-    seed,                // 32 Bytes
-    min_compression,
-    max_compression,
-    &result             // Ausgabe: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**Algorithmus:**
-1. Generierungssignatur aus Hex dekodieren
-2. Beste Qualität im Kompressionsbereich mit SIMD-optimierten Algorithmen berechnen
-3. Validieren, dass Qualität Schwierigkeitsanforderungen erfüllt
-4. Rohen Qualitätswert zurückgeben
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**Implementierung:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
-#### Schritt 6: Time-Bending-Berechnung
+#### Step 7: Time Bending-Bending-Berechnung
 ```cpp
 // Roh schwierigkeitsangepasste Deadline (Sekunden)
 uint64_t deadline_seconds = quality / base_target;
@@ -270,20 +276,20 @@ wobei:
 
 **Implementierung:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Schritt 7: Forger-Übermittlung
+#### Step 8: Forger Submission-Übermittlung
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // NICHT Deadline - wird im Forger neu berechnet
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **Warteschlangen-basiertes Design:**
-- Übermittlung ist immer erfolgreich (zur Warteschlange hinzugefügt)
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPC kehrt sofort zurück
 - Worker-Thread verarbeitet asynchron
 
@@ -319,12 +325,10 @@ while (!shutdown) {
 ```cpp
 1. Frischen Kontext holen: GetNewBlockContext(*chainman)
 
-2. Veraltungsprüfungen (stilles Verwerfen):
-   - Höhenabweichung → verwerfen
-   - Generierungssignaturabweichung → verwerfen
-   - Tip-Block-Hash geändert (Reorg) → Forging-Zustand zurücksetzen
+2. Staleness check (silent discard):
+   - block_hash mismatch → discard (covers height, gen_sig, and reorgs)
 
-3. Qualitätsvergleich:
+3. Quality comparison (lower = better):
    - Falls quality >= current_best → verwerfen
 
 4. Time-Bended Deadline berechnen:
@@ -397,6 +401,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Ursprüngliche Plot-Adresse
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Merkle-Root neu berechnen:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +426,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementierung:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementierung:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Wichtige Designentscheidungen:**
 - Coinbase zahlt an effektiven Unterzeichner (respektiert Zuweisungen)
@@ -450,25 +455,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX-Validierung (wenn ENABLE_POCX definiert):**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // Basis-Signaturvalidierung (noch keine Zuweisungsunterstützung)
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**Basis-Signaturvalidierung:**
-1. Vorhandensein von Pubkey- und Signaturfeldern prüfen
-2. Pubkey-Größe validieren (33 Bytes komprimiert)
-3. Signaturgröße validieren (65 Bytes kompakt)
-4. Pubkey aus Signatur wiederherstellen: `pubkey.RecoverCompact(hash, signature)`
-5. Verifizieren, dass wiederhergestellter Pubkey mit gespeichertem Pubkey übereinstimmt
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**Implementierung:** `src/validation.cpp:CheckBlockHeader()`
-**Signaturlogik:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### Stufe 2: Block-Validierung (CheckBlock)
 
@@ -487,49 +481,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Schritt 1: Generierungssignatur validieren
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Schritt 2: Basisziel validieren
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Schritt 3: Proof of Capacity validieren
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Schritt 4: Deadline-Timing verifizieren
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Validierungsschritte:**
-1. **Generierungssignatur:** Muss mit berechnetem Wert vom vorherigen Block übereinstimmen
-2. **Basisziel:** Muss mit Schwierigkeitsanpassungsberechnung übereinstimmen
-3. **Skalierungsstufe:** Muss Netzwerk-Minimum erfüllen (`compression >= min_compression`)
-4. **Qualitätsanspruch:** Übermittelte Qualität muss mit berechneter Qualität aus Beweis übereinstimmen
-5. **Proof of Capacity:** Kryptografische Beweisvalidierung (SIMD-optimiert)
-6. **Deadline-Timing:** Time-Bended Deadline (`poc_time`) muss ≤ verstrichene Zeit sein
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementierung:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +554,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementierung:**
 - Verbindung: `src/validation.cpp:ConnectBlock()`
-- Erweiterte Validierung: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Zuweisungslogik: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Erweiterte Validierung: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Zuweisungslogik: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Stufe 5: Chain-Aktivierung
 
@@ -599,11 +580,11 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Block empfangen
     ↓
-CheckBlockHeader (Basis-Signatur)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (Transaktionen, Merkle)
     ↓
-ContextualCheckBlockHeader (Gen-Sig, Basisziel, PoC-Beweis, Deadline)
+ContextualCheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 ConnectBlock (Erweiterte Signatur mit Zuweisungen, Zustandsübergänge)
     ↓
@@ -668,7 +649,7 @@ Transaction {
 - Wird ASSIGNED nach Verzögerungsperiode (4 Blöcke Regtest, 30 Blöcke Mainnet)
 - Verzögerung verhindert schnelle Neuzuweisungen während Block-Races
 
-**Implementierung:** `src/script/forging_assignment.h`, Validierung in ConnectBlock
+**Implementierung:** `src/pocx/assignments/opcodes.h`, Validierung in ConnectBlock
 
 ### Zuweisungen widerrufen
 
@@ -683,9 +664,10 @@ Transaction {
 ```
 
 **Effekt:**
-- Sofortiger Zustandsübergang zu REVOKED
-- Plotbesitzer kann sofort schmieden
-- Kann danach neue Zuweisung erstellen
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Zuweisungsvalidierung beim Mining
 
@@ -776,7 +758,7 @@ Thread B: cs_wallet → cs_main
    - Alle Validierung vor Forger-Übermittlung
 
 2. **Forger:** Warteschlangen-basierte Architektur
-   - Einzelner Worker-Thread (keine Thread-Joins)
+   - Single worker thread (joined on shutdown)
    - Frischer Kontext bei jedem Zugriff
    - Keine verschachtelten Sperren
 
@@ -831,7 +813,10 @@ SHA256(vorherige_generation_signature || vorheriger_miner_pubkey_33bytes)
 
 **Block-Signatur-Hash:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompaktes Signaturformat:**
@@ -863,12 +848,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Kernimplementierungen:**
 - RPC-Schnittstelle: `src/pocx/rpc/mining.cpp`
 - Forger-Warteschlange: `src/pocx/mining/scheduler.cpp`
-- Konsensvalidierung: `src/pocx/consensus/validation.cpp`
-- Beweisvalidierung: `src/pocx/consensus/pocx.cpp`
+- Konsensvalidierung: `src/pocx/consensus/proof.cpp`
+- Beweisvalidierung: `src/pocx/consensus/signature.cpp`
 - Time-Bending: `src/pocx/algorithms/time_bending.cpp`
 - Blockvalidierung: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Zuweisungslogik: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Kontextverwaltung: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Zuweisungslogik: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Kontextverwaltung: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Datenstrukturen:**
 - Blockformat: `src/primitives/block.h`
@@ -902,7 +887,7 @@ wobei:
 **Prozess:**
 1. Scoop aus Generierungssignatur und Höhe generieren
 2. Plotdaten für berechneten Scoop lesen
-3. Hashen: `SHABAL256(generation_signature || scoop_data)`
+3. Hashen: `Shabal256Lite(scoop_data, generation_signature)`
 4. Skalierungsstufen von min bis max testen
 5. Beste gefundene Qualität zurückgeben
 
@@ -925,7 +910,7 @@ wobei:
 avg_base_target = gleitender_durchschnitt(letzte Basisziele)
 adjustment_factor = tatsächliche_zeitspanne / ziel_zeitspanne
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

@@ -16,7 +16,7 @@ Toteutuksemme esittelee useita keskeisiä innovaatioita:
 (3) OP_RETURN-pohjainen forging-delegointimekanismi, joka mahdollistaa ei-säilytysperusteisen poolilouhinnan; ja
 (4) Dynaaminen pakkausskaalaus, joka kasvattaa plotin generoinnin vaikeutta puolittumisaikataulujen mukaisesti pitkäaikaisten turvamarginaalien ylläpitämiseksi laitteiston parantuessa.
 
-Bitcoin-PoCX säilyttää Bitcoin Coren arkkitehtuurin minimaalisilla, feature-lipuitetuilla muutoksilla eristäen PoC-logiikan olemassa olevasta konsensuskoodista. Järjestelmä säilyttää Bitcoinin rahapolitiikan tähtäämällä 120 sekunnin lohkoväliin ja säätämällä lohkopalkkion 10 BTC:hen. Pienennetty palkkio kompensoi viisinkertaisen lohkotiheyden kasvun pitäen pitkän aikavälin liikkeellelaskuasteen linjassa Bitcoinin alkuperäisen aikataulun kanssa ja säilyttäen ~21 miljoonan maksimitarjonnan.
+Bitcoin-PoCX säilyttää Bitcoin Coren arkkitehtuurin minimaalisilla, feature-lipuitetuilla muutoksilla eristäen PoC-logiikan olemassa olevasta konsensuskoodista. Järjestelmä säilyttää Bitcoinin rahapolitiikan tähtäämällä 120 sekunnin lohkoväliin ja säätämällä lohkopalkkion 10 BTCX:hen. Pienennetty palkkio kompensoi viisinkertaisen lohkotiheyden kasvun pitäen pitkän aikavälin liikkeellelaskuasteen linjassa Bitcoinin alkuperäisen aikataulun kanssa ja säilyttäen ~21 miljoonan maksimitarjonnan.
 
 ---
 
@@ -211,9 +211,9 @@ Todiste upottaa kaiken konsenssin kannalta oleellisen tiedon, jota validoijat ta
 
 Generoinnin allekirjoitus tarjoaa ennustamattomuuden, jota turvallinen Proof of Capacity -louhinta vaatii. Jokainen lohko johtaa generoinnin allekirjoituksensa edellisen lohkon allekirjoituksesta ja allekirjoittajasta varmistaen, että louhijat eivät voi ennakoida tulevia haasteita tai esigeneroida edullisia plottialueita:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Tämä tuottaa sarjan kryptografisesti vahvoja, louhijariippuvaisia entropia-arvoja. Koska louhijan julkinen avain on tuntematon kunnes edellinen lohko julkaistaan, kukaan osallistuja ei voi ennustaa tulevia scoop-valintoja. Tämä estää valikoivan esigeneroinnin tai strategisen plottauksen ja varmistaa, että jokainen lohko tuo aidosti tuoretta louhintatyötä.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Tämä tuottaa sarjan kryptografisesti vahvoja, louhijariippuvaisia entropia-arvoja. Koska louhijan account ID on tuntematon kunnes edellinen lohko julkaistaan, kukaan osallistuja ei voi ennustaa tulevia scoop-valintoja. Tämä estää valikoivan esigeneroinnin tai strategisen plottauksen ja varmistaa, että jokainen lohko tuo aidosti tuoretta louhintatyötä.
 
 ### 4.3 Forging-prosessi
 
@@ -231,7 +231,7 @@ Proof of Capacity tuottaa eksponentiaalisesti jakautuneita deadlineja. Lyhyen aj
 
 Time Bending muokkaa jakauman soveltamalla kuutiojuurimuunnosta:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Skaalauskerroin säilyttää odotetun lohkoajan (120 sekuntia) samalla vähentäen varianssia dramaattisesti. Lyhyet deadlinet pidennetään parantaen lohkon propagaatiota ja verkon turvallisuutta. Pitkät deadlinet pakataan estäen poikkeamien viivästyttämästä ketjua.
 
@@ -411,12 +411,12 @@ Alla olevat taulukot tiivistävät tuloksena olevat mainnet-, testnet- ja regtes
 | Parametri | Arvo |
 |-----------|-------|
 | Magiikkatavut | `0xa7 0x3c 0x91 0x5e` |
-| Oletusportti | 8888 |
+| Oletusportti | 8338 |
 | Bech32 HRP | `pocx` |
 | Lohkoajan tavoite | 120 sekuntia |
-| Alkuperäinen palkkio | 10 BTC |
+| Alkuperäinen palkkio | 10 BTCX |
 | Puolittumisväli | 1050000 lohkoa (~4 vuotta) |
-| Kokonaistarjonta | ~21 miljoonaa BTC |
+| Kokonaistarjonta | ~21 miljoonaa BTCX |
 | Delegoinnin aktivointi | 30 lohkoa |
 | Delegoinnin peruutus | 720 lohkoa |
 | Liukuva ikkuna | 24 lohkoa |
@@ -425,8 +425,8 @@ Alla olevat taulukot tiivistävät tuloksena olevat mainnet-, testnet- ja regtes
 
 | Parametri | Arvo |
 |-----------|-------|
-| Magiikkatavut | `0x6d 0xf2 0x48 0xb3` |
-| Oletusportti | 18888 |
+| Magiikkatavut | `0x6d 0xf2 0x48 0xb4` |
+| Oletusportti | 18338 |
 | Bech32 HRP | `tpocx` |
 | Lohkoajan tavoite | 120 sekuntia |
 | Muut parametrit | Samat kuin mainnet |

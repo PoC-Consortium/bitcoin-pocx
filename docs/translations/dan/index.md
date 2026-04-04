@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Teknisk Dokumentation
 
 **Version**: 1.0
-**Bitcoin Core-base**: v30.0
+**Bitcoin Core-base**: v30.2
 **Status**: Testnet-fase
 **Senest opdateret**: 2025-12-25
 
@@ -118,8 +118,8 @@ Brugervejledning til Bitcoin-PoCX Qt-wallet: forging assignment-dialog, transakt
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfigurer med PoCX aktiveret
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Byg
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Byggevarianter**:
 ```bash
 # Med Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug-bygning
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Afhaengigheder**: Standard Bitcoin Core-byggeafhaengigheder. Se [Bitcoin Core-byggedokumentation](https://github.com/bitcoin/bitcoin/tree/master/doc#building) for platformsspecifikke krav.
@@ -188,7 +188,7 @@ Bidrag til dokumentationen modtages gerne. Overhold venligst folgende:
 
 ## Licens
 
-Bitcoin-PoCX arver Bitcoin Cores MIT-licens. Se `COPYING` i repository-roden.
+Bitcoin-PoCX arver Bitcoin Cores MIT-licens. Se `bitcoin/COPYING` i repository-roden.
 
 PoCX core framework-tilskrivning dokumenteret i [Kapitel 2: Plotformat](2-plot-format.md).
 

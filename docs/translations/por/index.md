@@ -1,7 +1,7 @@
 # Documentação Técnica do Bitcoin-PoCX
 
 **Versão**: 1.0
-**Base do Bitcoin Core**: v30.0
+**Base do Bitcoin Core**: v30.2
 **Status**: Fase de Testnet
 **Última Atualização**: 25/12/2025
 
@@ -114,8 +114,8 @@ Guia do usuário para a carteira Qt do Bitcoin-PoCX: diálogo de atribuição de
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Configure com PoCX habilitado
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Compile
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Variantes de Build**:
 ```bash
 # Com interface gráfica Qt
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Build de depuração
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Dependências**: Dependências padrão de build do Bitcoin Core. Consulte a [documentação de build do Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) para requisitos específicos de cada plataforma.
@@ -184,7 +184,7 @@ Contribuições para a documentação são bem-vindas. Por favor, mantenha:
 
 ## Licença
 
-Bitcoin-PoCX herda a licença MIT do Bitcoin Core. Veja `COPYING` na raiz do repositório.
+Bitcoin-PoCX herda a licença MIT do Bitcoin Core. Veja `bitcoin/COPYING` na raiz do repositório.
 
 Atribuição do framework core do PoCX documentada no [Capítulo 2: Formato de Plot](2-plot-format.md).
 

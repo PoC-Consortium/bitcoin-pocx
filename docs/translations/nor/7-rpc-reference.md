@@ -21,35 +21,11 @@ Fullstendig referanse for Bitcoin-PoCX RPC-kommandoer, inkludert mining-RPC-er, 
 
 ## Konfigurasjon
 
-### Mining-servermodus
+### Mining RPCs
 
-**Flagg**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Formål**: Aktiverer RPC-tilgang for eksterne minere til å kalle mining-spesifikke RPC-er
-
-**Krav**:
-- Påkrevd for at `submit_nonce` skal fungere
-- Påkrevd for synlighet av forging assignment-dialogen i Qt-lommebok
-
-**Bruk**:
-```bash
-# Kommandolinje
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Sikkerhetshensyn**:
-- Ingen ekstra autentisering utover standard RPC-legitimasjon
-- Mining-RPC-er er hastighetsbegrenset av køkapasitet
-- Standard RPC-autentisering fortsatt påkrevd
-
-**Implementasjon**: `src/pocx/rpc/mining.cpp`
-
----
-
-## PoCX mining-RPC-er
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
@@ -65,7 +41,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 tegn
-  "base_target": 36650387593,                // numerisk
+  "base_target": 36650387592,                // numerisk
   "height": 12345,                           // numerisk, neste blokkhøyde
   "block_hash": "def456...",                 // hex, forrige blokk
   "target_quality": 18446744073709551615,    // uint64_max (alle løsninger akseptert)
@@ -98,19 +74,20 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategori**: mining
-**Krever mining-server**: Ja
 **Krever lommebok**: Ja (for private nøkler)
 
 **Formål**: Send inn en PoCX mining-løsning. Validerer bevis, køer for time-bended forging og oppretter automatisk blokk ved planlagt tidspunkt.
 
-**Parametere**:
-1. `height` (numerisk, påkrevd) - Blokkhøyde
-2. `generation_signature` (streng hex, påkrevd) - Generasjonssignatur (64 tegn)
-3. `account_id` (streng, påkrevd) - Plot-konto-ID (40 hex-tegn = 20 bytes)
-4. `seed` (streng, påkrevd) - Plot-seed (64 hex-tegn = 32 bytes)
-5. `nonce` (numerisk, påkrevd) - Mining-nonce
-6. `compression` (numerisk, påkrevd) - Skalerings-/komprimeringsnivå brukt (1-255)
-7. `quality` (numerisk, valgfritt) - Kvalitetsverdi (beregnes på nytt hvis utelatt)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Returverdier** (suksess):
 ```json
@@ -163,12 +140,16 @@ bitcoin-cli get_mining_info
 
 **Eksempel**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Merknader**:
@@ -294,7 +275,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktivering**:
 - Tildeling blir ASSIGNING ved bekreftelse
-- Blir ACTIVE etter `nForgingAssignmentDelay` blokker
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Forsinkelse forhindrer rask omtildeling under kjedegafler
 
 **Feilkoder**:
@@ -377,7 +358,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX-modifikasjoner**:
 - **Beregning**: `reference_base_target / current_base_target`
-- **Referanse**: 1 TiB nettverkskapasitet (base_target = 36650387593)
+- **Referanse**: 1 TiB nettverkskapasitet (base_target = 36650387592)
 - **Tolkning**: Estimert nettverkslagringskapasitet i TiB
   - Eksempel: `1.0` = ~1 TiB
   - Eksempel: `1024.0` = ~1 PiB
@@ -401,7 +382,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numerisk) - PoCX-vanskelighets base target
 - `generation_signature` (streng hex) - Generasjonssignatur
 - `pocx_proof` (objekt):
-  - `account_id` (streng hex) - Plot-konto-ID (20 bytes)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (streng hex) - Plot-seed (32 bytes)
   - `nonce` (numerisk) - Mining-nonce
   - `compression` (numerisk) - Skaleringsnivå brukt
@@ -464,7 +445,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (numerisk) - For pool-mining
 
 **PoCX-fjernede felt**:
-- `target` - Fjernet (PoW-spesifikk)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Fjernet (PoW-spesifikk)
 - `bits` - Fjernet (PoW-spesifikk)
 
@@ -494,10 +475,11 @@ Følgende PoW-spesifikke RPC-er er **deaktivert** i PoCX-modus:
 - **Alternativ**: Bruk `get_mining_info` (PoCX-spesifikk)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Årsak**: CPU-mining ikke anvendelig for PoCX (krever forhåndsgenererte plotter)
-- **Alternativ**: Bruk ekstern plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementasjon**: `src/rpc/mining.cpp` (RPC-er returnerer feil når ENABLE_POCX er definert)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +512,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skann plotfiler (ekstern implementasjon)
@@ -538,11 +520,15 @@ while True:
 
     # 3. Send inn beste løsning
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +648,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mining-RPC-er**: `src/pocx/rpc/mining.cpp`
 **Tildelings-RPC-er**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain-RPC-er**: `src/rpc/blockchain.cpp`
-**Bevisvalidering**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Bevisvalidering**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Tildelingstilstand**: `src/pocx/assignments/assignment_state.cpp`
 **Transaksjonsoppretting**: `src/pocx/assignments/transactions.cpp`
 

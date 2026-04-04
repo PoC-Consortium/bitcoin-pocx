@@ -49,7 +49,7 @@ PoCX 블록은 추가 합의 필드로 Bitcoin의 블록 구조를 확장합니�
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // 플롯 시드 (32 바이트)
     std::array<uint8_t, 20> account_id;       // 플롯 주소 (20바이트 hash160)
-    uint32_t compression;                     // 스케일링 레벨 (1-255)
+    uint32_t compression;                     // 스케일링 레벨 (1-6)
     uint64_t nonce;                           // 채굴 논스 (64비트)
     uint64_t quality;                         // 주장된 품질 (PoC 해시 출력)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **계산:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **제네시스 블록:** 하드코딩된 초기 생성 서명 사용
 
-**구현:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**구현:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### 기본 목표 (난이도)
 
@@ -113,8 +113,8 @@ PoCX는 스케일링 레벨(Xn)을 통해 플롯 파일에서 확장 가능한 �
 **동적 범위:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 허용되는 최소 레벨
-    uint8_t nPoCXTargetCompression;  // 권장 레벨
+    uint32_t nPoCXMinCompression;     // 허용되는 최소 레벨
+    uint32_t nPoCXTargetCompression;  // 권장 레벨
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - 플롯 생성과 조회 비용 간 안전 마진 유지
 - 최대 스케일링 레벨: 255
 
-**구현:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**구현:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,28 +223,34 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **할당 지원:** 플롯 소유자가 다른 주소에 포징 권한을 할당할 수 있습니다. 지갑은 플롯 소유자가 아닌 유효 서명자의 키를 가지고 있어야 합니다.
 
-#### 단계 5: 증명 검증
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20 바이트
     block_height,
     nonce,
-    seed,                // 32 바이트
-    min_compression,
-    max_compression,
-    &result             // 출력: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**알고리즘:**
-1. 16진수에서 생성 서명 디코딩
-2. SIMD 최적화 알고리즘을 사용하여 압축 범위 내 최적 품질 계산
-3. 품질이 난이도 요구사항을 충족하는지 검증
-4. 원시 품질 값 반환
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**구현:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### 단계 6: 시간 왜곡 계산
 ```cpp
@@ -270,20 +276,20 @@ Y = scale * (X^(1/3))
 
 **구현:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### 단계 7: 포저 제출
+#### Step 8: Forger Submission 제출
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // 데드라인이 아님 - 포저에서 재계산됨
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **큐 기반 설계:**
-- 제출이 항상 성공함 (큐에 추가됨)
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPC가 즉시 반환
 - 워커 스레드가 비동기적으로 처리
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - 생성 서명 불일치 -> 폐기
    - 팁 블록 해시 변경 (재구성) -> 포징 상태 재설정
 
-3. 품질 비교:
+3. Quality comparison (lower = better):
    - quality >= current_best인 경우 -> 폐기
 
 4. 시간 왜곡 데드라인 계산:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // 원래 플롯 주소
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. 머클 루트 재계산:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**구현:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**구현:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **핵심 설계 결정:**
 - 코인베이스가 유효 서명자에게 지급 (할당 준수)
@@ -450,25 +457,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX 검증 (ENABLE_POCX 정의 시):**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // 기본 서명 검증 (아직 할당 지원 없음)
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**기본 서명 검증:**
-1. 공개키와 서명 필드 존재 확인
-2. 공개키 크기 검증 (33 바이트 압축)
-3. 서명 크기 검증 (65 바이트 컴팩트)
-4. 서명에서 공개키 복구: `pubkey.RecoverCompact(hash, signature)`
-5. 복구된 공개키가 저장된 공개키와 일치하는지 검증
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**구현:** `src/validation.cpp:CheckBlockHeader()`
-**서명 로직:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### 2단계: 블록 검증 (CheckBlock)
 
@@ -487,49 +483,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // 단계 1: 생성 서명 검증
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // 단계 2: 기본 목표 검증
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // 단계 3: 용량 증명 검증
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // 단계 4: 데드라인 타이밍 검증
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**검증 단계:**
-1. **생성 서명:** 이전 블록에서 계산된 값과 일치해야 함
-2. **기본 목표:** 난이도 조정 계산과 일치해야 함
-3. **스케일링 레벨:** 네트워크 최소값 충족해야 함 (`compression >= min_compression`)
-4. **품질 주장:** 제출된 품질이 증명에서 계산된 품질과 일치해야 함
-5. **용량 증명:** 암호화 증명 검증 (SIMD 최적화)
-6. **데드라인 타이밍:** 시간 왜곡 데드라인(`poc_time`)이 경과 시간 이하여야 함
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **구현:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +556,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **구현:**
 - 연결: `src/validation.cpp:ConnectBlock()`
-- 확장 검증: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- 할당 로직: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- 확장 검증: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- 할당 로직: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### 5단계: 체인 활성화
 
@@ -599,11 +582,11 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 블록 수신
     ↓
-CheckBlockHeader (기본 서명)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (트랜잭션, 머클)
     ↓
-ContextualCheckBlockHeader (생성 서명, 기본 목표, PoC 증명, 데드라인)
+ContextualCheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 ConnectBlock (할당 포함 확장 서명, 상태 전환)
     ↓
@@ -668,7 +651,7 @@ Transaction {
 - 지연 기간 후 ASSIGNED 상태가 됨 (4 블록 regtest, 30 블록 메인넷)
 - 지연은 블록 경쟁 중 빠른 재할당 방지
 
-**구현:** `src/script/forging_assignment.h`, ConnectBlock에서 검증
+**구현:** `src/pocx/assignments/opcodes.h`, ConnectBlock에서 검증
 
 ### 할당 취소
 
@@ -776,7 +759,7 @@ if (current_tip_hash != stored_tip_hash) {
    - 포저 제출 전 모든 검증
 
 2. **포저:** 큐 기반 아키텍처
-   - 단일 워커 스레드 (스레드 조인 없음)
+   - Single worker thread (joined on shutdown)
    - 모든 접근에서 새 컨텍스트
    - 중첩 잠금 없음
 
@@ -826,12 +809,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **생성 서명:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **블록 서명 해시:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **컴팩트 서명 형식:**
@@ -863,12 +849,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **핵심 구현:**
 - RPC 인터페이스: `src/pocx/rpc/mining.cpp`
 - 포저 큐: `src/pocx/mining/scheduler.cpp`
-- 합의 검증: `src/pocx/consensus/validation.cpp`
-- 증명 검증: `src/pocx/consensus/pocx.cpp`
+- 합의 검증: `src/pocx/consensus/proof.cpp`
+- 증명 검증: `src/pocx/consensus/signature.cpp`
 - 시간 왜곡: `src/pocx/algorithms/time_bending.cpp`
 - 블록 검증: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- 할당 로직: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- 컨텍스트 관리: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- 할당 로직: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- 컨텍스트 관리: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **데이터 구조:**
 - 블록 형식: `src/primitives/block.h`
@@ -902,7 +888,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **과정:**
 1. 생성 서명과 높이에서 스쿱 생성
 2. 계산된 스쿱에 대한 플롯 데이터 읽기
-3. 해시: `SHABAL256(generation_signature || scoop_data)`
+3. 해시: `Shabal256Lite(scoop_data, generation_signature)`
 4. 최소에서 최대까지 스케일링 레벨 테스트
 5. 찾은 최적 품질 반환
 
@@ -925,7 +911,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(최근 기본 목표)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

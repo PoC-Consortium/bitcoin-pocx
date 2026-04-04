@@ -32,16 +32,16 @@ PoCX सहमति को नेटवर्क में सटीक सम�
 
 **Bitcoin-PoCX कॉन्फ़िगरेशन:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 सेकंड
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 सेकंड
 ```
 
 ### सत्यापन जांच
 
-**ब्लॉक टाइमस्टैम्प सत्यापन** (`src/validation.cpp:4547-4561`):
+**ब्लॉक टाइमस्टैम्प सत्यापन** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. मोनोटोनिक जांच: टाइमस्टैम्प >= पिछले ब्लॉक टाइमस्टैम्प
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Deadline जांच: बीता हुआ समय >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX आपके नोड और नेटवर्क peers के �
 ## कार्यान्वयन संदर्भ
 
 **कोर फ़ाइलें**:
-- समय सत्यापन: `src/validation.cpp:4547-4561`
-- भविष्य सहनशीलता स्थिरांक: `src/chain.h:31`
-- चेतावनी सीमा: `src/node/timeoffsets.h:27`
+- समय सत्यापन: `src/validation.cpp:ContextualCheckBlockHeader()`
+- भविष्य सहनशीलता स्थिरांक: `src/chain.h`
+- चेतावनी सीमा: `src/node/timeoffsets.h`
 - समय ऑफ़सेट निगरानी: `src/node/timeoffsets.cpp`
 - डिफेंसिव फोर्जिंग: `src/pocx/mining/scheduler.cpp`
 

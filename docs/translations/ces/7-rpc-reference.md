@@ -23,7 +23,7 @@ Kompletní reference RPC příkazů Bitcoin-PoCX včetně těžebních RPC, spr�
 
 ### Režim těžebního serveru
 
-**Příznak**: `-miningserver`
+**Příznak**: ``
 
 **Účel**: Povoluje RPC přístup pro externí těžaře k volání těžebních RPC
 
@@ -34,10 +34,9 @@ Kompletní reference RPC příkazů Bitcoin-PoCX včetně těžebních RPC, spr�
 **Použití**:
 ```bash
 # Příkazový řádek
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Bezpečnostní aspekty**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Kategorie**: mining
-**Vyžaduje těžební server**: Ne
 **Vyžaduje peněženku**: Ne
 
 **Účel**: Vrací aktuální těžební parametry potřebné pro externí těžaře ke skenování plot souborů a výpočtu deadlinů.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 znaků
-  "base_target": 36650387593,                // číselný
+  "base_target": 36650387592,                // číselný
   "height": 12345,                           // číselný, výška dalšího bloku
   "block_hash": "def456...",                 // hex, předchozí blok
   "target_quality": 18446744073709551615,    // uint64_max (všechna řešení přijata)
@@ -103,14 +101,16 @@ bitcoin-cli get_mining_info
 
 **Účel**: Odeslat těžební řešení PoCX. Validuje důkaz, zařadí do fronty pro time-bended forging a automaticky vytvoří blok v naplánovaném čase.
 
-**Parametry**:
-1. `height` (číselný, povinný) - Výška bloku
-2. `generation_signature` (string hex, povinný) - Generační podpis (64 znaků)
-3. `account_id` (string, povinný) - ID účtu plotu (40 hex znaků = 20 bajtů)
-4. `seed` (string, povinný) - Seed plotu (64 hex znaků = 32 bajtů)
-5. `nonce` (číselný, povinný) - Těžební nonce
-6. `compression` (číselný, povinný) - Použitá úroveň škálování/komprese (1-255)
-7. `quality` (číselný, volitelný) - Hodnota kvality (přepočítána, pokud vynechána)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Návratové hodnoty** (úspěch):
 ```json
@@ -163,12 +163,16 @@ bitcoin-cli get_mining_info
 
 **Příklad**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_znaku..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Poznámky**:
@@ -186,7 +190,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategorie**: mining
-**Vyžaduje těžební server**: Ne
 **Vyžaduje peněženku**: Ne
 
 **Účel**: Dotaz na stav forging přiřazení pro adresu plotu. Pouze pro čtení, nevyžaduje peněženku.
@@ -260,7 +263,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategorie**: wallet
-**Vyžaduje těžební server**: Ne
 **Vyžaduje peněženku**: Ano (musí být načtena a odemčena)
 
 **Účel**: Vytvořit transakci forging přiřazení pro delegování práv na forging na jinou adresu (např. těžební pool).
@@ -316,7 +318,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategorie**: wallet
-**Vyžaduje těžební server**: Ne
 **Vyžaduje peněženku**: Ano (musí být načtena a odemčena)
 
 **Účel**: Revokovat existující forging přiřazení, vrátit práva na forging vlastníkovi plotu.
@@ -377,7 +378,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Modifikace PoCX**:
 - **Výpočet**: `reference_base_target / current_base_target`
-- **Reference**: Síťová kapacita 1 TiB (base_target = 36650387593)
+- **Reference**: Síťová kapacita 1 TiB (base_target = 36650387592)
 - **Interpretace**: Odhadovaná síťová úložná kapacita v TiB
   - Příklad: `1.0` = ~1 TiB
   - Příklad: `1024.0` = ~1 PiB
@@ -494,10 +495,11 @@ Následující PoW-specifická RPC jsou **zakázána** v režimu PoCX:
 - **Alternativa**: Použijte `get_mining_info` (specifické pro PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Důvod**: CPU těžba není aplikovatelná na PoCX (vyžaduje předgenerované ploty)
-- **Alternativa**: Použijte externí plotter + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementace**: `src/rpc/mining.cpp` (RPC vrací chybu, když je definováno ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +532,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skenovat plot soubory (externí implementace)
@@ -538,11 +540,15 @@ while True:
 
     # 3. Odeslat nejlepší řešení
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +668,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Těžební RPC**: `src/pocx/rpc/mining.cpp`
 **RPC přiřazení**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain RPC**: `src/rpc/blockchain.cpp`
-**Validace důkazu**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Validace důkazu**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Stav přiřazení**: `src/pocx/assignments/assignment_state.cpp`
 **Vytváření transakcí**: `src/pocx/assignments/transactions.cpp`
 

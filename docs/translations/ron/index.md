@@ -1,7 +1,7 @@
 # Documentație Tehnică Bitcoin-PoCX
 
 **Versiune**: 1.0
-**Baza Bitcoin Core**: v30.0
+**Baza Bitcoin Core**: v30.2
 **Stare**: Fază Testnet
 **Ultima actualizare**: 2025-12-25
 
@@ -118,8 +118,8 @@ Ghid de utilizare pentru portofelul Qt Bitcoin-PoCX: dialogul de atribuire a for
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Configurare cu PoCX activat
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Compilare
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Variante de compilare**:
 ```bash
 # Cu interfață Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Compilare pentru depanare
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Dependențe**: Dependențele standard pentru compilarea Bitcoin Core. Consultați [documentația de compilare Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) pentru cerințele specifice fiecărei platforme.
@@ -188,7 +188,7 @@ Contribuțiile la documentație sunt binevenite. Vă rugăm să mențineți:
 
 ## Licență
 
-Bitcoin-PoCX moștenește licența MIT de la Bitcoin Core. Consultați `COPYING` în rădăcina depozitului.
+Bitcoin-PoCX moștenește licența MIT de la Bitcoin Core. Consultați `bitcoin/COPYING` în rădăcina depozitului.
 
 Atribuirea framework-ului PoCX core este documentată în [Capitolul 2: Formatul plot](2-plot-format.md).
 

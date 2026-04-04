@@ -21,40 +21,15 @@ Tham chiếu đầy đủ cho các lệnh RPC Bitcoin-PoCX, bao gồm các RPC �
 
 ## Cấu hình
 
-### Chế độ Mining Server
+### Mining RPCs
 
-**Cờ**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Mục đích**: Bật truy cập RPC cho thợ đào bên ngoài gọi các RPC đặc thù đào
-
-**Yêu cầu**:
-- Yêu cầu để `submit_nonce` hoạt động
-- Yêu cầu để hiển thị hộp thoại ủy quyền forging trong ví Qt
-
-**Sử dụng**:
-```bash
-# Dòng lệnh
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Cân nhắc Bảo mật**:
-- Không có xác thực bổ sung ngoài thông tin RPC tiêu chuẩn
-- Các RPC đào bị giới hạn bởi dung lượng hàng đợi
-- Xác thực RPC tiêu chuẩn vẫn được yêu cầu
-
-**Triển khai**: `src/pocx/rpc/mining.cpp`
-
----
-
-## RPC Đào PoCX
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **Danh mục**: mining
-**Yêu cầu Mining Server**: Không
 **Yêu cầu Ví**: Không
 
 **Mục đích**: Trả về các tham số đào hiện tại cần thiết cho thợ đào bên ngoài quét tệp plot và tính deadline.
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 ký tự
-  "base_target": 36650387593,                // số
+  "base_target": 36650387592,                // số
   "height": 12345,                           // số, chiều cao khối tiếp theo
   "block_hash": "def456...",                 // hex, khối trước
   "target_quality": 18446744073709551615,    // uint64_max (tất cả lời giải được chấp nhận)
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Danh mục**: mining
-**Yêu cầu Mining Server**: Có
 **Yêu cầu Ví**: Có (cho khóa riêng)
 
 **Mục đích**: Gửi lời giải đào PoCX. Xác thực bằng chứng, xếp hàng cho forging time-bended, và tự động tạo khối tại thời gian đã lên lịch.
 
-**Tham số**:
-1. `height` (số, bắt buộc) - Chiều cao khối
-2. `generation_signature` (chuỗi hex, bắt buộc) - Chữ ký sinh (64 ký tự)
-3. `account_id` (chuỗi, bắt buộc) - ID tài khoản plot (40 ký tự hex = 20 byte)
-4. `seed` (chuỗi, bắt buộc) - Seed plot (64 ký tự hex = 32 byte)
-5. `nonce` (số, bắt buộc) - Mining nonce
-6. `compression` (số, bắt buộc) - Cấp độ mở rộng/nén sử dụng (1-255)
-7. `quality` (số, tùy chọn) - Giá trị chất lượng (tính lại nếu bỏ qua)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Giá trị Trả về** (thành công):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // deadline đã điều chỉnh độ khó tính bằng giây
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // thời gian forge time-bended tính bằng giây
 }
 ```
@@ -163,12 +139,16 @@ bitcoin-cli get_mining_info
 
 **Ví dụ**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Lưu ý**:
@@ -186,7 +166,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Danh mục**: mining
-**Yêu cầu Mining Server**: Không
 **Yêu cầu Ví**: Không
 
 **Mục đích**: Truy vấn trạng thái ủy quyền forging cho một địa chỉ plot. Chỉ đọc, không yêu cầu ví.
@@ -260,7 +239,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Danh mục**: wallet
-**Yêu cầu Mining Server**: Không
 **Yêu cầu Ví**: Có (phải được tải và mở khóa)
 
 **Mục đích**: Tạo giao dịch ủy quyền forging để ủy thác quyền forging cho địa chỉ khác (ví dụ, pool đào).
@@ -294,7 +272,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Kích hoạt**:
 - Ủy quyền trở thành ASSIGNING khi xác nhận
-- Trở thành ACTIVE sau `nForgingAssignmentDelay` khối
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Độ trễ ngăn tái ủy quyền nhanh trong fork chuỗi
 
 **Mã Lỗi**:
@@ -316,7 +294,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Danh mục**: wallet
-**Yêu cầu Mining Server**: Không
 **Yêu cầu Ví**: Có (phải được tải và mở khóa)
 
 **Mục đích**: Thu hồi ủy quyền forging hiện có, trả quyền forging về chủ sở hữu plot.
@@ -377,7 +354,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Sửa đổi PoCX**:
 - **Tính toán**: `reference_base_target / current_base_target`
-- **Tham chiếu**: Dung lượng mạng 1 TiB (base_target = 36650387593)
+- **Tham chiếu**: Dung lượng mạng 1 TiB (base_target = 36650387592)
 - **Diễn giải**: Ước tính dung lượng lưu trữ mạng tính bằng TiB
   - Ví dụ: `1.0` = ~1 TiB
   - Ví dụ: `1024.0` = ~1 PiB
@@ -401,7 +378,7 @@ bitcoin-cli getdifficulty
 - `base_target` (số) - Base target độ khó PoCX
 - `generation_signature` (chuỗi hex) - Chữ ký sinh
 - `pocx_proof` (đối tượng):
-  - `account_id` (chuỗi hex) - ID tài khoản plot (20 byte)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (chuỗi hex) - Seed plot (32 byte)
   - `nonce` (số) - Mining nonce
   - `compression` (số) - Cấp độ mở rộng sử dụng
@@ -494,10 +471,11 @@ Các RPC đặc thù PoW sau đây bị **vô hiệu hóa** trong chế độ Po
 - **Thay thế**: Sử dụng `get_mining_info` (đặc thù PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Lý do**: Đào CPU không áp dụng cho PoCX (yêu cầu plot được tạo trước)
-- **Thay thế**: Sử dụng plotter bên ngoài + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Triển khai**: `src/rpc/mining.cpp` (RPC trả về lỗi khi ENABLE_POCX được định nghĩa)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +508,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Quét tệp plot (triển khai bên ngoài)
@@ -538,11 +516,15 @@ while True:
 
     # 3. Gửi lời giải tốt nhất
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +644,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Mining RPC**: `src/pocx/rpc/mining.cpp`
 **Assignment RPC**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blockchain RPC**: `src/rpc/blockchain.cpp`
-**Xác thực Bằng chứng**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Xác thực Bằng chứng**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Trạng thái Ủy quyền**: `src/pocx/assignments/assignment_state.cpp`
 **Tạo Giao dịch**: `src/pocx/assignments/transactions.cpp`
 

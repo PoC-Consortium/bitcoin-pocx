@@ -32,16 +32,16 @@ Konsensus PoCX memerlukan sinkronisasi waktu yang presisi di seluruh jaringan. B
 
 **Konfigurasi Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 detik
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 detik
 ```
 
 ### Pemeriksaan Validasi
 
-**Validasi Timestamp Blok** (`src/validation.cpp:4547-4561`):
+**Validasi Timestamp Blok** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Pemeriksaan monotonik: timestamp >= timestamp blok sebelumnya
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Pemeriksaan deadline: waktu berlalu >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Tinggi penambangan Anda 100, pesaing menerbitkan blok 99
 - Validasi selesai dalam milidetik
 
 **Penggunaan Sumber Daya:** Minimal
-- ~20 baris logika inti
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Menggunakan kembali infrastruktur validasi yang ada
 - Akuisisi kunci tunggal
 
@@ -372,9 +372,9 @@ Node **>15 detik terlambat** adalah bencana:
 ## Referensi Implementasi
 
 **File Inti**:
-- Validasi waktu: `src/validation.cpp:4547-4561`
-- Konstanta toleransi masa depan: `src/chain.h:31`
-- Ambang peringatan: `src/node/timeoffsets.h:27`
+- Validasi waktu: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Konstanta toleransi masa depan: `src/chain.h`
+- Ambang peringatan: `src/node/timeoffsets.h`
 - Pemantauan offset waktu: `src/node/timeoffsets.cpp`
 - Defensive forging: `src/pocx/mining/scheduler.cpp`
 

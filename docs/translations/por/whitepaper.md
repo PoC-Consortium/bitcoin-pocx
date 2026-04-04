@@ -16,7 +16,7 @@ Nossa implementação introduz várias inovações principais:
 (3) Um mecanismo de atribuição de forja baseado em OP_RETURN que permite mineração em pool sem custódia; e
 (4) Escalonamento dinâmico de compressão, que aumenta a dificuldade de geração de plots alinhada com os cronogramas de halving para manter margens de segurança de longo prazo conforme o hardware melhora.
 
-O Bitcoin-PoCX mantém a arquitetura do Bitcoin Core através de modificações mínimas e sinalizadas por feature flags, isolando a lógica PoC do código de consenso existente. O sistema preserva a política monetária do Bitcoin mirando um intervalo de bloco de 120 segundos e ajustando o subsídio de bloco para 10 BTC. O subsídio reduzido compensa o aumento de cinco vezes na frequência de blocos, mantendo a taxa de emissão de longo prazo alinhada com o cronograma original do Bitcoin e mantendo a oferta máxima de ~21 milhões.
+O Bitcoin-PoCX mantém a arquitetura do Bitcoin Core através de modificações mínimas e sinalizadas por feature flags, isolando a lógica PoC do código de consenso existente. O sistema preserva a política monetária do Bitcoin mirando um intervalo de bloco de 120 segundos e ajustando o subsídio de bloco para 10 BTCX. O subsídio reduzido compensa o aumento de cinco vezes na frequência de blocos, mantendo a taxa de emissão de longo prazo alinhada com o cronograma original do Bitcoin e mantendo a oferta máxima de ~21 milhões.
 
 ---
 
@@ -211,9 +211,9 @@ A prova embute toda informação relevante ao consenso necessária por validador
 
 A assinatura de geração fornece a imprevisibilidade necessária para mineração segura de Proof of Capacity. Cada bloco deriva sua assinatura de geração da assinatura e signatário do bloco anterior, garantindo que mineradores não possam antecipar desafios futuros ou pré-computar regiões vantajosas do plot:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Isso produz uma sequência de valores de entropia criptograficamente fortes e dependentes do minerador. Como a chave pública de um minerador é desconhecida até o bloco anterior ser publicado, nenhum participante pode prever seleções futuras de scoop. Isso previne pré-computação seletiva ou plotting estratégico e garante que cada bloco introduza trabalho de mineração genuinamente novo.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Isso produz uma sequência de valores de entropia criptograficamente fortes e dependentes do minerador. Como a chave pública de um minerador é desconhecida até o bloco anterior ser publicado, nenhum participante pode prever seleções futuras de scoop. Isso previne pré-computação seletiva ou plotting estratégico e garante que cada bloco introduza trabalho de mineração genuinamente novo.
 
 ### 4.3 Processo de Forja
 
@@ -231,7 +231,7 @@ Proof of Capacity produz deadlines distribuídos exponencialmente. Após um curt
 
 Time Bending remodela a distribuição aplicando uma transformação de raiz cúbica:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 O fator de escala preserva o tempo esperado de bloco (120 segundos) enquanto reduz dramaticamente a variância. Deadlines curtos são expandidos, melhorando propagação de blocos e segurança de rede. Deadlines longos são comprimidos, prevenindo outliers de atrasar a cadeia.
 
@@ -411,12 +411,12 @@ As tabelas abaixo resumem as configurações resultantes de mainnet, testnet e r
 | Parâmetro | Valor |
 |-----------|-------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Porta padrão | 8888 |
+| Porta padrão | 8338 |
 | HRP Bech32 | `pocx` |
 | Alvo de tempo de bloco | 120 segundos |
-| Subsídio inicial | 10 BTC |
+| Subsídio inicial | 10 BTCX |
 | Intervalo de halving | 1050000 blocos (~4 anos) |
-| Oferta total | ~21 milhões de BTC |
+| Oferta total | ~21 milhões de BTCX |
 | Ativação de atribuição | 30 blocos |
 | Revogação de atribuição | 720 blocos |
 | Janela móvel | 24 blocos |
@@ -425,8 +425,8 @@ As tabelas abaixo resumem as configurações resultantes de mainnet, testnet e r
 
 | Parâmetro | Valor |
 |-----------|-------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Porta padrão | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Porta padrão | 18338 |
 | HRP Bech32 | `tpocx` |
 | Alvo de tempo de bloco | 120 segundos |
 | Outros parâmetros | Mesmo que mainnet |

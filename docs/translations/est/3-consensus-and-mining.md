@@ -49,7 +49,7 @@ PoCX plokid laiendavad Bitcoin'i ploki struktuuri täiendavate konsensuse välja
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Graafiku seeme (32 baiti)
     std::array<uint8_t, 20> account_id;       // Graafiku aadress (20-baidine hash160)
-    uint32_t compression;                     // Skaleerimistase (1-255)
+    uint32_t compression;                     // Skaleerimistase (1-6)
     uint64_t nonce;                           // Kaevandamise nonce (64-bit)
     uint64_t quality;                         // Väidetav kvaliteet (PoC räsi väljund)
 };
@@ -92,7 +92,7 @@ generationSignature = SHA256(eelmine_genereerimisallkiri || eelmise_kaevandaja_p
 
 **Geneesisplokk:** Kasutab kodeeritud algset genereerimisallkirja
 
-**Implementatsioon:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementatsioon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Baassihtmärk (raskus)
 
@@ -113,8 +113,8 @@ PoCX toetab skaleeritavat tööst tuletatud tõestust graafikufailides läbi ska
 **Dünaamilised piirid:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimaalne aktsepteeritud tase
-    uint8_t nPoCXTargetCompression;  // Soovitatav tase
+    uint32_t nPoCXMinCompression;     // Minimaalne aktsepteeritud tase
+    uint32_t nPoCXTargetCompression;  // Soovitatav tase
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Säilitab ohutuspiiri graafiku loomise ja otsimise kulude vahel
 - Maksimaalne skaleerimistase: 255
 
-**Implementatsioon:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementatsioon:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Ülesannete tugi:** Graafikuomanik võib määrata sepistamisõigused teisele aadressile. Rahakotis peab olema võti efektiivse allkirjastaja jaoks, mitte tingimata graafikuomaniku jaoks.
 
-#### Samm 5: Tõestuse valideerimine
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 baiti
     block_height,
     nonce,
-    seed,                // 32 baiti
-    min_compression,
-    max_compression,
-    &result             // Väljund: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Valideeri, et kvaliteet vastab raskusnõuetele
 4. Tagasta töötlemata kvaliteediväärtus
 
-**Implementatsioon:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementatsioon:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Samm 6: Ajapainde arvutamine
 ```cpp
@@ -270,15 +276,15 @@ kus:
 
 **Implementatsioon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Samm 7: Sepistajale esitamine
+#### Step 8: Forger Submission: Sepistajale esitamine
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // MITTE tähtaeg - arvutatakse sepistajal ümber
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Genereerimisallkirja mittevastavus -> loobu
    - Tipu ploki räsi muutunud (ümberkorraldus) -> lähtesta sepistamise olek
 
-3. Kvaliteedi võrdlus:
+3. Quality comparison (lower = better):
    - Kui quality >= current_best -> loobu
 
 4. Arvuta ajapaindega tähtaeg:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Algne graafiku aadress
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Arvuta Merkle juur ümber:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementatsioon:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementatsioon:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Põhilised disainiotsused:**
 - Coinbase maksab efektiivsele allkirjastajale (austab ülesandeid)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Verifitseeri, et taastatud pubkey vastab salvestatud pubkey-le
 
 **Implementatsioon:** `src/validation.cpp:CheckBlockHeader()`
-**Allkirja loogika:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Allkirja loogika:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Etapp 2: Ploki valideerimine (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Samm 1: Valideeri genereerimisallkiri
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Samm 2: Valideeri baassihtmärk
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Samm 3: Valideeri mahtutõestus
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Samm 4: Verifitseeri tähtaja ajastus
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Valideerimise sammud:**
-1. **Genereerimisallkiri:** Peab vastama eelmisest plokist arvutatud väärtusele
-2. **Baassihtmärk:** Peab vastama raskuse kohandamise arvutusele
-3. **Skaleerimistase:** Peab vastama võrgu miinimumile (`compression >= min_compression`)
-4. **Kvaliteedi väide:** Esitatud kvaliteet peab vastama tõestusest arvutatud kvaliteedile
-5. **Mahtutõestus:** Krüptograafilise tõestuse valideerimine (SIMD-optimeeritud)
-6. **Tähtaja ajastus:** Ajapaindega tähtaeg (`poc_time`) peab olema <= möödunud aeg
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementatsioon:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementatsioon:**
 - Ühendamine: `src/validation.cpp:ConnectBlock()`
-- Laiendatud valideerimine: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Ülesannete loogika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Laiendatud valideerimine: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Ülesannete loogika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Etapp 5: Ahela aktiveerimine
 
@@ -599,7 +593,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Ploki vastuvõtmine
     ↓
-CheckBlockHeader (põhiline allkiri)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (tehingud, merkle)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Saab ASSIGNED oleku pärast viivitusperioodi (4 plokki regtest, 30 plokki mainnet)
 - Viivitus takistab kiireid ümberseadistusi plokkide võidujooksude ajal
 
-**Implementatsioon:** `src/script/forging_assignment.h`, valideerimine ConnectBlock'is
+**Implementatsioon:** `src/pocx/assignments/opcodes.h`, valideerimine ConnectBlock'is
 
 ### Ülesannete tühistamine
 
@@ -683,9 +677,10 @@ Transaction {
 ```
 
 **Tulemus:**
-- Kohene oleku üleminek REVOKED-ile
-- Graafikuomanik saab kohe sepistada
-- Saab pärast luua uue ülesande
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Ülesannete valideerimine kaevandamise ajal
 
@@ -831,7 +826,10 @@ SHA256(eelmine_genereerimisallkiri || eelmise_kaevandaja_pubkey_33baiti)
 
 **Ploki allkirja räsi:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompaktne allkirja vorming:**
@@ -863,12 +861,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Põhiimplementatsioonid:**
 - RPC liides: `src/pocx/rpc/mining.cpp`
 - Sepistaja järjekord: `src/pocx/mining/scheduler.cpp`
-- Konsensuse valideerimine: `src/pocx/consensus/validation.cpp`
-- Tõestuse valideerimine: `src/pocx/consensus/pocx.cpp`
+- Konsensuse valideerimine: `src/pocx/consensus/proof.cpp`
+- Tõestuse valideerimine: `src/pocx/consensus/signature.cpp`
 - Ajapainde: `src/pocx/algorithms/time_bending.cpp`
 - Ploki valideerimine: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Ülesannete loogika: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Konteksti haldamine: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Ülesannete loogika: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Konteksti haldamine: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Andmestruktuurid:**
 - Ploki vorming: `src/primitives/block.h`
@@ -902,7 +900,7 @@ kus:
 **Protsess:**
 1. Genereeri scoop genereerimisallkirjast ja kõrgusest
 2. Loe graafiku andmed arvutatud scoop'i jaoks
-3. Räsi: `SHABAL256(generation_signature || scoop_data)`
+3. Räsi: `Shabal256Lite(scoop_data, generation_signature)`
 4. Testi skaleerimistasemeid min-ist max-ini
 5. Tagasta parim leitud kvaliteet
 
@@ -925,7 +923,7 @@ kus:
 avg_base_target = moving_average(hiljutised baassihtmärgid)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

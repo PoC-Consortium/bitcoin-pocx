@@ -32,16 +32,16 @@ Consensul PoCX necesită sincronizare temporală precisă în întreaga rețea. 
 
 **Configurația Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 secunde
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 secunde
 ```
 
 ### Verificări de validare
 
-**Validarea timestamp-ului blocului** (`src/validation.cpp:4547-4561`):
+**Validarea timestamp-ului blocului** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Verificare monotonă: timestamp >= timestamp-ul blocului anterior
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Verificare deadline: timp scurs >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Un nod **>15s în urmă** este catastrofal:
 ## Referințe de implementare
 
 **Fișiere de bază**:
-- Validare timp: `src/validation.cpp:4547-4561`
-- Constantă toleranță viitor: `src/chain.h:31`
-- Prag avertizare: `src/node/timeoffsets.h:27`
+- Validare timp: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Constantă toleranță viitor: `src/chain.h`
+- Prag avertizare: `src/node/timeoffsets.h`
 - Monitorizare offset timp: `src/node/timeoffsets.cpp`
 - Forjare defensivă: `src/pocx/mining/scheduler.cpp`
 

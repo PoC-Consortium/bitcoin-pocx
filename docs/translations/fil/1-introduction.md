@@ -42,7 +42,7 @@ Ang Proof of Capacity (PoC) ay isang mekanismo ng consensus kung saan ang kapang
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX integration
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX integration
 │   └── src/pocx/        # PoCX implementation
 ├── pocx/                # PoCX core framework (submodule, read-only)
 └── docs/                # Ang dokumentasyong ito
@@ -67,7 +67,7 @@ bitcoin-pocx/
 - **Istruktura ng Block**: Ang mga field na tiyak sa PoCX ay pumapalit sa PoW nonce at difficulty bits
   - Generation signature (deterministic mining entropy)
   - Base target (kabaligtaran ng difficulty)
-  - PoCX proof (account ID, seed, nonce)
+  - PoCX proof (account ID, seed, nonce, compression, quality)
   - Block signature (nagpapatunay ng pagmamay-ari ng plot)
 
 - **Validation**: 5-yugto na validation pipeline mula sa header check hanggang block connection
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Problema**: Ang tradisyunal na PoC block time ay sumusunod sa exponential distribution, na humahantong sa mahabang mga block kapag walang miner ang nakahanap ng magandang solusyon.
 
-**Solusyon**: Pagbabago ng distribution mula exponential patungong chi-squared gamit ang cube root: `Y = scale × (X^(1/3))`.
+**Solusyon**: Pagbabago ng distribution mula exponential patungong chi-squared gamit ang cube root: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Epekto**: Ang mga napakagandang solusyon ay nag-fo-forge ng mas huli (ang network ay may oras na i-scan ang lahat ng disk, binabawasan ang mabibilis na block), ang mga mahinang solusyon ay napapabuti. Average na block time na napapanatili sa 120 segundo, nabawasan ang mahabang mga block.
+**Epekto**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detalye**: [Kabanata 3: Consensus at Mining](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Pareho sa Bitcoin Core**:
 - **CPU**: Modernong x86_64 processor
 - **Memorya**: 4-8 GB RAM
-- **Storage**: Bagong chain, kasalukuyang walang laman (maaaring lumaki ng ~4× na mas mabilis kaysa Bitcoin dahil sa 2-minutong mga block at assignment database)
+- **Storage**: Bagong chain, kasalukuyang walang laman (maaaring lumaki ng ~5× na mas mabilis kaysa Bitcoin dahil sa 2-minutong mga block at assignment database)
 - **Network**: Matatag na koneksyon sa internet
 - **Orasan**: Inirerekomenda ang NTP synchronization para sa optimal na operasyon
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Buuin na naka-enable ang PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detalye**: Tingnan ang `CLAUDE.md` sa root ng repository
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Patakbuhin ang Node
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Para sa mining** (pinapagana ang RPC access para sa mga external miner):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # o
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detalye**: [Kabanata 6: Mga Parameter ng Network](6-network-parameters.md)

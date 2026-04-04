@@ -77,12 +77,12 @@ PoCX גוזר את פורמט הכרייה שלו (X1) על ידי החלת קי
 1. **ACCOUNT_PAYLOAD** (40 תווי hex)
    - נתוני חשבון גולמיים של 20 בתים כ-hex באותיות גדולות
    - בלתי תלוי ברשת (ללא מזהה רשת או checksum)
-   - דוגמה: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - דוגמה: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 תווי hex)
    - ערך seed של 32 בתים כ-hex באותיות קטנות
    - **חדש ב-PoCX**: seed אקראי של 32 בתים בשם הקובץ מחליף מספור nonce רציף - מונע חפיפות plot
-   - דוגמה: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - דוגמה: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (מספר עשרוני)
    - **יחידת גודל חדשה ב-PoCX**: מחליף גודל מבוסס nonce מ-POC1/POC2
@@ -97,8 +97,8 @@ PoCX גוזר את פורמט הכרייה שלו (X1) על ידי החלת קי
 
 ### דוגמאות שמות קבצים
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

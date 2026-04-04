@@ -49,7 +49,7 @@ PoCX blokları, Bitcoin'in blok yapısını ek konsensüs alanlarıyla genişlet
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plot seed'i (32 bayt)
     std::array<uint8_t, 20> account_id;       // Plot adresi (20 baytlık hash160)
-    uint32_t compression;                     // Ölçeklendirme seviyesi (1-255)
+    uint32_t compression;                     // Ölçeklendirme seviyesi (1-6)
     uint64_t nonce;                           // Madencilik nonce'u (64-bit)
     uint64_t quality;                         // Talep edilen kalite (PoC hash çıktısı)
 };
@@ -92,7 +92,7 @@ generationSignature = SHA256(önceki_generationSignature || önceki_madenci_pubk
 
 **Genesis Bloğu:** Sabit kodlanmış bir başlangıç üretim imzası kullanır
 
-**Uygulama:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Uygulama:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Temel Hedef (Zorluk)
 
@@ -113,8 +113,8 @@ PoCX, ölçeklendirme seviyeleri (Xn) aracılığıyla plot dosyalarında ölçe
 **Dinamik Sınırlar:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Kabul edilen minimum seviye
-    uint8_t nPoCXTargetCompression;  // Önerilen seviye
+    uint32_t nPoCXMinCompression;     // Kabul edilen minimum seviye
+    uint32_t nPoCXTargetCompression;  // Önerilen seviye
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Plot oluşturma ve arama maliyetleri arasında güvenlik marjını korur
 - Maksimum ölçeklendirme seviyesi: 255
 
-**Uygulama:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Uygulama:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,30 +223,36 @@ if (!HaveAccountKey(effective_signer, wallet)) reddet;
 
 **Atama Desteği:** Plot sahibi dövme haklarını başka bir adrese atamış olabilir. Cüzdan, plot sahibi için değil, etkin imzalayan için anahtara sahip olmalıdır.
 
-#### Adım 5: Kanıt Doğrulaması
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20 bayt
     block_height,
     nonce,
-    seed,                // 32 bayt
-    min_compression,
-    max_compression,
-    &result             // Çıktı: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**Algoritma:**
-1. Üretim imzasını hex'ten çöz
-2. SIMD optimize algoritmalar kullanarak sıkıştırma aralığında en iyi kaliteyi hesapla
-3. Kalitenin zorluk gereksinimlerini karşıladığını doğrula
-4. Ham kalite değerini döndür
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**Uygulama:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
-#### Adım 6: Zaman Bükme Hesaplaması
+#### Step 7: Time Bending Bükme Hesaplaması
 ```cpp
 // Ham zorluk ayarlı son tarih (saniye)
 uint64_t deadline_seconds = quality / base_target;
@@ -270,15 +276,15 @@ burada:
 
 **Uygulama:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Adım 7: Dövücü Gönderimi
+#### Step 8: Forger Submission Gönderimi
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // Son tarih DEĞİL - dövücüde yeniden hesaplanır
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Üretim imzası uyuşmazlığı → at
    - Uç blok hash'i değişti (yeniden düzenleme) → dövme durumunu sıfırla
 
-3. Kalite karşılaştırması:
+3. Quality comparison (lower = better):
    - quality >= current_best ise → at
 
 4. Zaman Bükülmüş son tarihi hesapla:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Orijinal plot adresi
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Merkle kökünü yeniden hesapla:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Uygulama:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Uygulama:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Temel Tasarım Kararları:**
 - Coinbase etkin imzalayana öder (atamalara saygı gösterir)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Kurtarılan pubkey'in depolanan pubkey ile eşleştiğini doğrula
 
 **Uygulama:** `src/validation.cpp:CheckBlockHeader()`
-**İmza Mantığı:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**İmza Mantığı:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Aşama 2: Blok Doğrulaması (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Adım 1: Üretim imzasını doğrula
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Adım 2: Temel hedefi doğrula
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Adım 3: Kapasite kanıtını doğrula
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Adım 4: Son tarih zamanlamasını doğrula
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Doğrulama Adımları:**
-1. **Üretim İmzası:** Önceki bloktan hesaplanan değerle eşleşmeli
-2. **Temel Hedef:** Zorluk ayarlama hesaplamasıyla eşleşmeli
-3. **Ölçeklendirme Seviyesi:** Ağ minimumunu karşılamalı (`compression >= min_compression`)
-4. **Kalite Talebi:** Gönderilen kalite, kanıttan hesaplanan kaliteyle eşleşmeli
-5. **Kapasite Kanıtı:** Kriptografik kanıt doğrulaması (SIMD optimize)
-6. **Son Tarih Zamanlaması:** Zaman bükülmüş son tarih (`poc_time`) ≤ geçen süre olmalı
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Uygulama:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Uygulama:**
 - Bağlantı: `src/validation.cpp:ConnectBlock()`
-- Genişletilmiş doğrulama: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Atama mantığı: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Genişletilmiş doğrulama: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Atama mantığı: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Aşama 5: Zincir Aktivasyonu
 
@@ -599,11 +593,11 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Blok Al
     ↓
-CheckBlockHeader (temel imza)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (işlemler, merkle)
     ↓
-ContextualCheckBlockHeader (üretim imzası, temel hedef, PoC kanıtı, son tarih)
+ContextualCheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 ConnectBlock (atamalarla genişletilmiş imza, durum geçişleri)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Gecikme süresinden sonra ASSIGNED olur (4 blok regtest, 30 blok mainnet)
 - Gecikme, blok yarışları sırasında hızlı yeniden atamaları önler
 
-**Uygulama:** `src/script/forging_assignment.h`, ConnectBlock'ta doğrulama
+**Uygulama:** `src/pocx/assignments/opcodes.h`, ConnectBlock'ta doğrulama
 
 ### Atama İptali
 
@@ -831,7 +825,10 @@ SHA256(önceki_generation_signature || önceki_madenci_pubkey_33bayt)
 
 **Blok İmza Hash'i:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompakt İmza Formatı:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Çekirdek Uygulamalar:**
 - RPC Arayüzü: `src/pocx/rpc/mining.cpp`
 - Dövücü Kuyruğu: `src/pocx/mining/scheduler.cpp`
-- Konsensüs Doğrulaması: `src/pocx/consensus/validation.cpp`
-- Kanıt Doğrulaması: `src/pocx/consensus/pocx.cpp`
+- Konsensüs Doğrulaması: `src/pocx/consensus/proof.cpp`
+- Kanıt Doğrulaması: `src/pocx/consensus/signature.cpp`
 - Zaman Bükme: `src/pocx/algorithms/time_bending.cpp`
 - Blok Doğrulaması: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Atama Mantığı: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Bağlam Yönetimi: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Atama Mantığı: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Bağlam Yönetimi: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Veri Yapıları:**
 - Blok Formatı: `src/primitives/block.h`
@@ -902,7 +899,7 @@ burada:
 **Süreç:**
 1. Üretim imzası ve yükseklikten scoop oluştur
 2. Hesaplanan scoop için plot verisini oku
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Min'den maks'a ölçeklendirme seviyelerini test et
 5. Bulunan en iyi kaliteyi döndür
 
@@ -925,7 +922,7 @@ burada:
 avg_base_target = moving_average(son temel hedefler)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

@@ -32,16 +32,16 @@ O consenso PoCX requer sincronização precisa de tempo em toda a rede. Este cap
 
 **Configuração do Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 segundos
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 segundos
 ```
 
 ### Verificações de Validação
 
-**Validação de Timestamp de Bloco** (`src/validation.cpp:4547-4561`):
+**Validação de Timestamp de Bloco** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Verificação monotônica: timestamp >= timestamp do bloco anterior
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Verificação de deadline: tempo decorrido >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Um nó **>15s atrasado** é catastrófico:
 ## Referências de Implementação
 
 **Arquivos Core**:
-- Validação de tempo: `src/validation.cpp:4547-4561`
-- Constante de tolerância futura: `src/chain.h:31`
-- Limiar de aviso: `src/node/timeoffsets.h:27`
+- Validação de tempo: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Constante de tolerância futura: `src/chain.h`
+- Limiar de aviso: `src/node/timeoffsets.h`
 - Monitoramento de offset de tempo: `src/node/timeoffsets.cpp`
 - Forja defensiva: `src/pocx/mining/scheduler.cpp`
 

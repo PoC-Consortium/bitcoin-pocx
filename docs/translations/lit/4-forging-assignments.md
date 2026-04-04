@@ -39,7 +39,7 @@ Išvestys:
   [1]: Grąža naudotojui (neprivaloma, standartinis P2WPKH)
 ```
 
-**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp`
 
 ### Atšaukimo transakcijos formatas
 
@@ -58,14 +58,14 @@ Išvestys:
   [1]: Grąža naudotojui (neprivaloma, standartinis P2WPKH)
 ```
 
-**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp`
 
 ### Žymekliai
 
 - **Priskyrimo žymeklis:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Atšaukimo žymeklis:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp`
 
 ### Pagrindinės transakcijos charakteristikos
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Pilna istorija: visi priskyrimai kiekvienam grafikui per laiką
 ```
 
-**Įgyvendinimas:** `src/txdb.cpp:237-348`
+**Įgyvendinimas:** `src/txdb.cpp`
 
 ### ForgingAssignment struktūra
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Įgyvendinimas:** `src/coins.h:111-178`
+**Įgyvendinimas:** `src/coins.h`
 
 ### Priskyrimo būsenos
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Įgyvendinimas:** `src/coins.h:98-104`
+**Įgyvendinimas:** `src/coins.h`
 
 ### Duomenų bazės raktai
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Įgyvendinimas:** `src/txdb.cpp:245-262`
+**Įgyvendinimas:** `src/txdb.cpp`
 
 ### Istorijos sekimas
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Patikrinti grafiko būseną (turi būti UNASSIGNED arba REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Sukurti naują priskyrimą
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins tęsiasi normaliai (automatiškai praleidžia OP_RETURN išvestis)
 ```
 
-**Įgyvendinimas:** `src/validation.cpp:2775-2878`
+**Įgyvendinimas:** `src/validation.cpp:ConnectBlock()`
 
 ### Nuosavybės verifikacija
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Patikrinti, kad bent vienas įėjimas pasirašytas grafiko savininko
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Išgauti tikslą
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Patikrinti ar P2WPKH į grafiko adresą
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core jau validavo parašą
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Įgyvendinimas:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Aktyvacijos atidėjimai
 
@@ -282,7 +280,7 @@ Atliekami `src/consensus/tx_check.cpp` be grandinės būsenos prieigos:
 
 1. **Maksimaliai vienas POCX OP_RETURN:** Transakcija negali turėti kelių POCX/XCOP žymeklių
 
-**Įgyvendinimas:** `src/consensus/tx_check.cpp:63-77`
+**Įgyvendinimas:** `src/consensus/tx_check.cpp`
 
 ### Mempool priėmimo tikrinimai (PreChecks)
 
@@ -300,7 +298,7 @@ Atliekami `src/validation.cpp` su pilna grandinės būsenos ir mempool prieiga:
 2. **Aktyvus priskyrimas:** Grafikas turi būti ASSIGNED (2) būsenoje
 3. **Mempool konfliktai:** Jokio kito atšaukimo šiam grafikui mempool
 
-**Įgyvendinimas:** `src/validation.cpp:898-993`
+**Įgyvendinimas:** `src/validation.cpp:PreChecks()`
 
 ### Validacijos srautas
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Surinkti nešvarius priskyrimus
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Tuščia - nenaudojama
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Įrašyti į duomenų bazę
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Išvalyti sekimą
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Atlaisvinti atmintį
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Įgyvendinimas:** `src/coins.cpp:278-315`
+**Įgyvendinimas:** `src/coins.cpp:Flush()`
 
 ### Duomenų bazės paketinis įrašymas
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Priskyrimai įrašomi atskirai, bet toje pačioje duomenų bazės transakcijos kontekste
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Nenaudojamas parametras (paliktas API suderinamumui)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Naujas paketas, bet ta pati duomenų bazė
+    CDBBatch batch(*m_db);
 
-    // Įrašyti priskyrimo istoriją
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Ištrinti ištrintus priskyrimus iš istorijos
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ATOMINIS PATVIRTINIMAS
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Įgyvendinimas:** `src/txdb.cpp:332-348`
+**Įgyvendinimas:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Atomiškumo garantijos
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Įgyvendinimas:** `src/undo.h:63-105`
+**Įgyvendinimas:** `src/undo.h`
 
 ### DisconnectBlock procesas
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Įgyvendinimas:** `src/validation.cpp:2381-2415`
+**Įgyvendinimas:** `src/validation.cpp:DisconnectBlock()`
 
 ### Podėlio valdymas reorg metu
 
@@ -556,7 +562,7 @@ private:
     // Priskyrimo podėliai
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Sekti modifikuotus grafikus
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Sekti ištrinimus
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Sekti ištrinimus
     mutable size_t cachedAssignmentsUsage{0};  // Atminties sekimas
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Įgyvendinimas:** `src/coins.cpp:494-565`
+**Įgyvendinimas:** `src/coins.cpp`
 
 ## RPC sąsaja
 
@@ -613,7 +617,7 @@ Grąžina dabartinę priskyrimo būseną grafiko adresui:
 }
 ```
 
-**Įgyvendinimas:** `src/pocx/rpc/assignments.cpp:31-126`
+**Įgyvendinimas:** `src/pocx/rpc/assignments.cpp`
 
 ### Piniginės komandos (piniginė reikalinga)
 
@@ -628,7 +632,7 @@ Sukuria priskyrimo transakciją:
 - Pasirašo grafiko savininko raktu
 - Transliuoja į tinklą
 
-**Įgyvendinimas:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Įgyvendinimas:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Sukuria atšaukimo transakciją:
 - Pasirašo grafiko savininko raktu
 - Transliuoja į tinklą
 
-**Įgyvendinimas:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Įgyvendinimas:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Piniginės transakcijos kūrimas
 
@@ -660,7 +664,7 @@ Piniginės transakcijos kūrimo procesas:
 
 **Pagrindinė įžvalga:** Piniginė turi išleisti iš grafiko adreso nuosavybei įrodyti, todėl automatiškai priverstinai pasirenka monetas iš to adreso.
 
-**Įgyvendinimas:** `src/pocx/assignments/transactions.cpp:38-263`
+**Įgyvendinimas:** `src/pocx/assignments/transactions.cpp`
 
 ## Failų struktūra
 
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # Mazgo RPC komandos (be piniginės)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # Piniginės RPC komandos
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │

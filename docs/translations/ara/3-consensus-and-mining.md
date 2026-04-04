@@ -49,7 +49,7 @@
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // بذرة الرسم (32 بايت)
     std::array<uint8_t, 20> account_id;       // عنوان الرسم (hash160 20 بايت)
-    uint32_t compression;                     // مستوى المقياس (1-255)
+    uint32_t compression;                     // مستوى المقياس (1-6)
     uint64_t nonce;                           // nonce التعدين (64-bit)
     uint64_t quality;                         // الجودة المُدّعاة (مخرج تجزئة PoC)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **الحساب:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **كتلة التكوين:** تستخدم توقيع توليد أولي مُشفّر
 
-**التنفيذ:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**التنفيذ:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### الهدف الأساسي (الصعوبة)
 
@@ -113,8 +113,8 @@ generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
 **الحدود الديناميكية:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // الحد الأدنى المقبول
-    uint8_t nPoCXTargetCompression;  // المستوى الموصى به
+    uint32_t nPoCXMinCompression;     // الحد الأدنى المقبول
+    uint32_t nPoCXTargetCompression;  // المستوى الموصى به
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - يحافظ على هامش الأمان بين تكاليف إنشاء الرسم والبحث
 - أقصى مستوى مقياس: 255
 
-**التنفيذ:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**التنفيذ:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **دعم التعيين:** قد يُعيّن مالك الرسم حقوق الصياغة لعنوان آخر. يجب أن تملك المحفظة مفتاح المُوقّع الفعال، ليس بالضرورة مالك الرسم.
 
-#### الخطوة 5: التحقق من الإثبات
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 بايت
     block_height,
     nonce,
-    seed,                // 32 بايت
-    min_compression,
-    max_compression,
-    &result             // المخرج: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. التحقق من أن الجودة تستوفي متطلبات الصعوبة
 4. إرجاع قيمة الجودة الخام
 
-**التنفيذ:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**التنفيذ:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### الخطوة 6: حساب ثني الوقت
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **التنفيذ:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### الخطوة 7: إرسال للصائغ
+#### Step 8: Forger Submission: إرسال للصائغ
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // ليس الموعد النهائي - يُعاد حسابه في الصائغ
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // عنوان الرسم الأصلي
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. إعادة حساب جذر ميركل:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**التنفيذ:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**التنفيذ:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **قرارات التصميم الرئيسية:**
 - Coinbase يدفع للمُوقّع الفعال (يحترم التعيينات)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. التحقق من تطابق pubkey المسترد مع pubkey المُخزّن
 
 **التنفيذ:** `src/validation.cpp:CheckBlockHeader()`
-**منطق التوقيع:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**منطق التوقيع:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### المرحلة 2: التحقق من الكتلة (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // الخطوة 1: التحقق من توقيع التوليد
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // الخطوة 2: التحقق من الهدف الأساسي
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // الخطوة 3: التحقق من إثبات السعة
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // الخطوة 4: التحقق من توقيت الموعد النهائي
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**خطوات التحقق:**
-1. **توقيع التوليد:** يجب أن يطابق القيمة المحسوبة من الكتلة السابقة
-2. **الهدف الأساسي:** يجب أن يطابق حساب تعديل الصعوبة
-3. **مستوى المقياس:** يجب أن يستوفي الحد الأدنى للشبكة (`compression >= min_compression`)
-4. **ادعاء الجودة:** الجودة المُرسلة يجب أن تطابق الجودة المحسوبة من الإثبات
-5. **إثبات السعة:** التحقق من الإثبات التشفيري (محسّن لـ SIMD)
-6. **توقيت الموعد النهائي:** الموعد النهائي المثني للوقت (`poc_time`) يجب أن يكون ≤ الوقت المنقضي
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **التنفيذ:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **التنفيذ:**
 - الاتصال: `src/validation.cpp:ConnectBlock()`
-- التحقق الموسع: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- منطق التعيين: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- التحقق الموسع: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- منطق التعيين: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### المرحلة 5: تفعيل السلسلة
 
@@ -668,7 +662,7 @@ Transaction {
 - يصبح ASSIGNED بعد فترة التأخير (4 كتل regtest، 30 كتلة mainnet)
 - التأخير يمنع إعادة التعيين السريعة أثناء سباقات الكتل
 
-**التنفيذ:** `src/script/forging_assignment.h`، التحقق في ConnectBlock
+**التنفيذ:** `src/pocx/assignments/opcodes.h`، التحقق في ConnectBlock
 
 ### إلغاء التعيينات
 
@@ -826,12 +820,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **توقيع التوليد:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **تجزئة توقيع الكتلة:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **صيغة التوقيع المضغوط:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **التنفيذات الأساسية:**
 - واجهة RPC: `src/pocx/rpc/mining.cpp`
 - طابور الصائغ: `src/pocx/mining/scheduler.cpp`
-- التحقق من الإجماع: `src/pocx/consensus/validation.cpp`
-- التحقق من الإثبات: `src/pocx/consensus/pocx.cpp`
+- التحقق من الإجماع: `src/pocx/consensus/proof.cpp`
+- التحقق من الإثبات: `src/pocx/consensus/signature.cpp`
 - ثني الوقت: `src/pocx/algorithms/time_bending.cpp`
 - التحقق من الكتلة: `src/validation.cpp` (CheckBlockHeader، ConnectBlock)
-- منطق التعيين: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- إدارة السياق: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- منطق التعيين: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- إدارة السياق: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **هياكل البيانات:**
 - صيغة الكتلة: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **العملية:**
 1. توليد scoop من توقيع التوليد والارتفاع
 2. قراءة بيانات الرسم لـ scoop المحسوب
-3. التجزئة: `SHABAL256(generation_signature || scoop_data)`
+3. التجزئة: `Shabal256Lite(scoop_data, generation_signature)`
 4. اختبار مستويات المقياس من الحد الأدنى للأقصى
 5. إرجاع أفضل جودة موجودة
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(الأهداف الأساسية الأخيرة)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

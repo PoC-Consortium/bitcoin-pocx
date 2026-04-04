@@ -28,7 +28,7 @@ Hướng dẫn đầy đủ cho ví Qt Bitcoin-PoCX và quản lý ủy quyền 
 Ví Qt Bitcoin-PoCX (`bitcoin-qt`) cung cấp:
 - Chức năng ví Bitcoin Core tiêu chuẩn (gửi, nhận, quản lý giao dịch)
 - **Quản lý Ủy quyền Forging**: GUI để tạo/thu hồi ủy quyền plot
-- **Chế độ Mining Server**: Cờ `-miningserver` bật các tính năng liên quan đến đào
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Lịch sử Giao dịch**: Hiển thị giao dịch ủy quyền và thu hồi
 
 ### Khởi động Ví
@@ -40,18 +40,18 @@ Ví Qt Bitcoin-PoCX (`bitcoin-qt`) cung cấp:
 
 **Với Đào** (bật hộp thoại ủy quyền):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Thay thế Dòng lệnh**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Yêu cầu Đào
 
 **Cho Hoạt động Đào**:
-- Cờ `-miningserver` bắt buộc
+- Cờ `` bắt buộc
 - Ví với địa chỉ P2WPKH và khóa riêng
 - Plotter bên ngoài (`pocx_plotter`) để tạo plot
 - Miner bên ngoài (`pocx_miner`) để đào
@@ -83,8 +83,7 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 
 ### Truy cập Hộp thoại
 
-**Menu**: `Wallet → Forging Assignments`
-**Thanh công cụ**: Biểu tượng đào (chỉ hiển thị với cờ `-miningserver`)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Kích thước Cửa sổ**: 600×450 pixel
 
 ### Các Chế độ Hộp thoại
@@ -118,7 +117,7 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output OP_RETURN: marker `POCX` + plot_address + forging_address (46 byte)
+- Output OP_RETURN: marker `POCX` + plot_address + forging_address (44 byte)
 - Output tiền thừa: Trả về ví
 
 #### Chế độ 2: Thu hồi Ủy quyền
@@ -146,7 +145,7 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output OP_RETURN: marker `XCOP` + plot_address (26 byte)
+- Output OP_RETURN: marker `XCOP` + plot_address (24 byte)
 - Output tiền thừa: Trả về ví
 
 #### Chế độ 3: Kiểm tra Trạng thái Ủy quyền
@@ -296,8 +295,8 @@ Revocation effective at height: 13020
 ### Thông báo Lỗi Xác thực
 
 **Lỗi Hộp thoại**:
-- "Plot address must be P2WPKH (bech32)"
-- "Forging address must be P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Invalid address format"
 - "No coins available at the plot address. Cannot prove ownership."
 - "Cannot create transactions with watch-only wallet"
@@ -313,7 +312,6 @@ Revocation effective at height: 13020
 **Cấu hình Node**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Khởi động Node** với mining server:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Cấu hình Miner**:
@@ -365,7 +363,7 @@ server=1
    - Chọn địa chỉ plot
    - Nhập địa chỉ forging của pool
    - Nhấp "Send Assignment"
-   - Chờ độ trễ kích hoạt (30 khối testnet)
+   - Chờ độ trễ kích hoạt (30 blocks mainnet/testnet))
 
 3. **Cấu hình Miner**:
    - Trỏ đến endpoint **pool** (không phải node cục bộ)
@@ -399,20 +397,15 @@ server=1
 
 ### Vấn đề Phổ biến
 
-#### "Wallet does not have private key for plot address"
+- Or use different plot address owned by wallet
 
-**Nguyên nhân**: Ví không sở hữu địa chỉ
-**Giải pháp**:
-- Import khóa riêng qua RPC `importprivkey`
-- Hoặc sử dụng địa chỉ plot khác thuộc sở hữu ví
+#### "Cannot create assignment: plot is in ... state"
 
-#### "Assignment already exists for this plot"
-
-**Nguyên nhân**: Plot đã được ủy quyền cho địa chỉ khác
-**Giải pháp**:
-1. Thu hồi ủy quyền hiện tại
-2. Chờ độ trễ thu hồi (720 khối testnet)
-3. Tạo ủy quyền mới
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Address format not supported"
 
@@ -442,16 +435,6 @@ server=1
 1. Gửi tiền đến địa chỉ plot
 2. Chờ 1 xác nhận
 3. Thử lại tạo ủy quyền
-
-#### "Cannot create transactions with watch-only wallet"
-
-**Nguyên nhân**: Ví import địa chỉ không có khóa riêng
-**Giải pháp**: Import khóa riêng đầy đủ, không chỉ địa chỉ
-
-#### "Forging Assignment tab not visible"
-
-**Nguyên nhân**: Node khởi động không có cờ `-miningserver`
-**Giải pháp**: Khởi động lại với `bitcoin-qt -server -miningserver`
 
 ### Các Bước Debug
 
@@ -525,12 +508,12 @@ server=1
 
 ### Độ trễ Ủy quyền
 
-**Độ trễ Kích hoạt** (30 khối testnet):
+**Độ trễ Kích hoạt** (30 blocks mainnet/testnet)):
 - Ngăn tái ủy quyền nhanh trong fork chuỗi
 - Cho phép mạng đạt đồng thuận
 - Không thể bỏ qua
 
-**Độ trễ Thu hồi** (720 khối testnet):
+**Độ trễ Thu hồi** (720 blocks mainnet/testnet)):
 - Cung cấp ổn định cho pool đào
 - Ngăn tấn công "griefing" ủy quyền
 - Địa chỉ forging vẫn hoạt động trong độ trễ

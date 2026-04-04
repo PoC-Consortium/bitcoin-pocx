@@ -32,16 +32,16 @@ PoCX консензус захтева прецизну синхронизаци
 
 **Bitcoin-PoCX конфигурација:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 секунди
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 секунди
 ```
 
 ### Провере валидације
 
-**Валидација временске ознаке блока** (`src/validation.cpp:4547-4561`):
+**Валидација временске ознаке блока** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Монотона провера: временска ознака >= временска ознака претходног блока
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Провера рока: протекло време >= рок
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX надгледа временски офсет између ваш�
 ## Референце имплементације
 
 **Основне датотеке**:
-- Валидација времена: `src/validation.cpp:4547-4561`
-- Константа толеранције будућности: `src/chain.h:31`
-- Праг упозорења: `src/node/timeoffsets.h:27`
+- Валидација времена: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Константа толеранције будућности: `src/chain.h`
+- Праг упозорења: `src/node/timeoffsets.h`
 - Надгледање временског офсета: `src/node/timeoffsets.cpp`
 - Дефанзивно ковање: `src/pocx/mining/scheduler.cpp`
 

@@ -16,7 +16,7 @@ Onze implementatie introduceert verschillende belangrijke innovaties:
 (3) Een OP_RETURN-gebaseerd forging-toewijzingsmechanisme dat niet-custodiale pool-mining mogelijk maakt; en
 (4) Dynamische compressieschaling, die plotgeneratiemoeilijkheid verhoogt in lijn met halveringsschema's om langetermijn-veiligheidsmarges te behouden naarmate hardware verbetert.
 
-Bitcoin-PoCX behoudt de architectuur van Bitcoin Core door minimale, functievlag-gebaseerde wijzigingen, waarbij PoC-logica wordt geisoleerd van de bestaande consensuscode. Het systeem behoudt Bitcoin's monetaire beleid door te richten op een 120-seconden blokinterval en de bloksubsidie aan te passen naar 10 BTC. De verminderde subsidie compenseert de vijfvoudige toename in blokfrequentie, waardoor de langetermijn-uitgiftesnelheid in lijn blijft met Bitcoin's oorspronkelijke schema en de ~21 miljoen maximum voorraad behouden blijft.
+Bitcoin-PoCX behoudt de architectuur van Bitcoin Core door minimale, functievlag-gebaseerde wijzigingen, waarbij PoC-logica wordt geisoleerd van de bestaande consensuscode. Het systeem behoudt Bitcoin's monetaire beleid door te richten op een 120-seconden blokinterval en de bloksubsidie aan te passen naar 10 BTCX. De verminderde subsidie compenseert de vijfvoudige toename in blokfrequentie, waardoor de langetermijn-uitgiftesnelheid in lijn blijft met Bitcoin's oorspronkelijke schema en de ~21 miljoen maximum voorraad behouden blijft.
 
 ---
 
@@ -243,7 +243,7 @@ Time Bending behoudt de informatieinhoud van het onderliggende bewijs. Het wijzi
 
 PoCX reguleert blokproductie met de base target, een inverse moeilijkheidsmaat. De verwachte bloktijd is evenredig aan de verhouding `kwaliteit / base_target`, dus het verhogen van de base target versnelt blokcreatie terwijl het verlagen de keten vertraagt.
 
-Moeilijkheid past zich elk blok aan met behulp van de gemeten tijd tussen recente blokken vergeleken met het doelinterval. Deze frequente aanpassing is noodzakelijk omdat opslagcapaciteit snel kan worden toegevoegd of verwijderd - in tegenstelling tot Bitcoin's hashkracht, die langzamer verandert.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 De aanpassing volgt twee leidende beperkingen: **Geleidelijkheid** - per-blokwijzigingen zijn begrensd (maximaal +-20%) om oscillaties of manipulatie te voorkomen; **Verharding** - de base target kan zijn genesiswaarde niet overschrijden, wat voorkomt dat het netwerk ooit moeilijkheid verlaagt onder de oorspronkelijke beveiligingsaannames.
 
@@ -411,12 +411,12 @@ De tabellen hieronder vatten de resulterende mainnet-, testnet- en regtest-inste
 | Parameter | Waarde |
 |-----------|--------|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Standaardpoort | 8888 |
+| Standaardpoort | 8338 |
 | Bech32 HRP | `pocx` |
 | Bloktijddoel | 120 seconden |
-| Initiele subsidie | 10 BTC |
+| Initiele subsidie | 10 BTCX |
 | Halveringsinterval | 1050000 blokken (~4 jaar) |
-| Totale voorraad | ~21 miljoen BTC |
+| Totale voorraad | ~21 miljoen BTCX |
 | Toewijzingsactivering | 30 blokken |
 | Toewijzingsintrekking | 720 blokken |
 | Rollend venster | 24 blokken |
@@ -425,8 +425,8 @@ De tabellen hieronder vatten de resulterende mainnet-, testnet- en regtest-inste
 
 | Parameter | Waarde |
 |-----------|--------|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Standaardpoort | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Standaardpoort | 18338 |
 | Bech32 HRP | `tpocx` |
 | Bloktijddoel | 120 seconden |
 | Overige parameters | Zelfde als mainnet |

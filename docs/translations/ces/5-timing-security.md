@@ -32,16 +32,16 @@ Konsenzus PoCX vyžaduje přesnou časovou synchronizaci napříč sítí. Tato 
 
 **Konfigurace Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekund
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekund
 ```
 
 ### Validační kontroly
 
-**Validace časové značky bloku** (`src/validation.cpp:4547-4561`):
+**Validace časové značky bloku** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotónní kontrola: časová značka >= časová značka předchozího bloku
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Kontrola deadline: uplynulý čas >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Uzel **>15s pozadu** je katastrofální:
 ## Reference implementace
 
 **Základní soubory**:
-- Validace času: `src/validation.cpp:4547-4561`
-- Konstanta tolerance budoucnosti: `src/chain.h:31`
-- Práh varování: `src/node/timeoffsets.h:27`
+- Validace času: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Konstanta tolerance budoucnosti: `src/chain.h`
+- Práh varování: `src/node/timeoffsets.h`
 - Monitorování časového offsetu: `src/node/timeoffsets.cpp`
 - Obranný forging: `src/pocx/mining/scheduler.cpp`
 

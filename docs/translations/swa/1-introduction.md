@@ -42,7 +42,7 @@ Proof of Capacity (PoC) ni utaratibu wa makubaliano ambapo nguvu ya uchimbaji in
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + muungano wa PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + muungano wa PoCX
 │   └── src/pocx/        # Utekelezaji wa PoCX
 ├── pocx/                # Mfumo wa msingi wa PoCX (moduli ndogo, kusoma pekee)
 └── docs/                # Nyaraka hizi
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Tatizo**: Muda wa bloku wa PoC wa jadi unafuata usambazaji wa exponential, na kusababisha bloku ndefu wakati hakuna mchimbaji anayepata suluhisho zuri.
 
-**Suluhisho**: Ubadilishaji wa usambazaji kutoka exponential hadi chi-squared kwa kutumia mzizi wa tatu: `Y = scale × (X^(1/3))`.
+**Suluhisho**: Ubadilishaji wa usambazaji kutoka exponential hadi chi-squared kwa kutumia mzizi wa tatu: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Athari**: Suluhisho nzuri sana zinaunda baadaye (mtandao una muda wa kuchanganua diski zote, inapunguza bloku za haraka), suluhisho duni zimeboreshwa. Muda wa wastani wa bloku unadumishwa sekunde 120, bloku ndefu zimepunguzwa.
+**Athari**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Maelezo**: [Sura ya 3: Makubaliano na Uchimbaji](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Sawa na Bitcoin Core**:
 - **CPU**: Processor ya kisasa ya x86_64
 - **Kumbukumbu**: 4-8 GB RAM
-- **Hifadhi**: Mtandao mpya, kwa sasa tupu (inaweza kukua ~4× haraka kuliko Bitcoin kutokana na bloku za dakika 2 na hifadhidata ya ugawaji)
+- **Hifadhi**: Mtandao mpya, kwa sasa tupu (inaweza kukua ~5× haraka kuliko Bitcoin kutokana na bloku za dakika 2 na hifadhidata ya ugawaji)
 - **Mtandao**: Muunganisho wa mtandao imara
 - **Saa**: Usawazishaji wa NTP unapendekezwa kwa uendeshaji bora
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Jenga na PoCX imewezeshwa
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Maelezo**: Tazama `CLAUDE.md` katika mzizi wa hifadhi
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Endesha Nodi
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Kwa uchimbaji** (inawezesha ufikiaji wa RPC kwa wachimbaji wa nje):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # au
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Maelezo**: [Sura ya 6: Vigezo vya Mtandao](6-network-parameters.md)

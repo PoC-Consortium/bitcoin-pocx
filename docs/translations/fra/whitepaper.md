@@ -16,7 +16,7 @@ Notre implémentation introduit plusieurs innovations clés :
 (3) Un mécanisme d'assignation de forge basé sur OP_RETURN permettant le minage en pool non-custodial ; et
 (4) Une mise à l'échelle dynamique de la compression, qui augmente la difficulté de génération de plot en alignement avec les calendriers de halving pour maintenir les marges de sécurité à long terme à mesure que le matériel s'améliore.
 
-Bitcoin-PoCX maintient l'architecture de Bitcoin Core grâce à des modifications minimales et conditionnées, isolant la logique PoC du code de consensus existant. Le système préserve la politique monétaire de Bitcoin en ciblant un intervalle de bloc de 120 secondes et en ajustant la subvention de bloc à 10 BTC. La subvention réduite compense l'augmentation quintuple de la fréquence des blocs, maintenant le taux d'émission à long terme aligné avec le calendrier original de Bitcoin et conservant l'offre maximale de ~21 millions.
+Bitcoin-PoCX maintient l'architecture de Bitcoin Core grâce à des modifications minimales et conditionnées, isolant la logique PoC du code de consensus existant. Le système préserve la politique monétaire de Bitcoin en ciblant un intervalle de bloc de 120 secondes et en ajustant la subvention de bloc à 10 BTCX. La subvention réduite compense l'augmentation quintuple de la fréquence des blocs, maintenant le taux d'émission à long terme aligné avec le calendrier original de Bitcoin et conservant l'offre maximale de ~21 millions.
 
 ---
 
@@ -211,9 +211,9 @@ La preuve intègre toutes les informations pertinentes au consensus nécessaires
 
 La signature de génération fournit l'imprévisibilité requise pour un minage de preuve de capacité sécurisé. Chaque bloc dérive sa signature de génération de la signature et du signataire du bloc précédent, garantissant que les mineurs ne peuvent pas anticiper les défis futurs ou pré-calculer des régions de plot avantageuses :
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Cela produit une séquence de valeurs d'entropie cryptographiquement fortes et dépendantes du mineur. Parce que la clé publique d'un mineur est inconnue jusqu'à la publication du bloc précédent, aucun participant ne peut prédire les futures sélections de scoop. Cela empêche le pré-calcul sélectif ou le plotting stratégique et garantit que chaque bloc introduit un travail de minage véritablement nouveau.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Cela produit une séquence de valeurs d'entropie cryptographiquement fortes et dépendantes du mineur. Parce que la account ID d'un mineur est inconnue jusqu'à la publication du bloc précédent, aucun participant ne peut prédire les futures sélections de scoop. Cela empêche le pré-calcul sélectif ou le plotting stratégique et garantit que chaque bloc introduit un travail de minage véritablement nouveau.
 
 ### 4.3 Processus de forge
 
@@ -233,7 +233,7 @@ Le Time Bending remodèle la distribution en appliquant une transformation par r
 
 `deadline_bendée = échelle × (quality / base_target)^(1/3)`
 
-Le facteur d'échelle préserve le temps de bloc attendu (120 secondes) tout en réduisant dramatiquement la variance. Les deadlines courtes sont étendues, améliorant la propagation des blocs et la sécurité du réseau. Les deadlines longues sont compressées, empêchant les valeurs aberrantes de retarder la chaîne.
+Where `scale = block_time / (block_time^(1/3) × Γ(4/3))` and `Γ(4/3) ≈ 0.893`. The Gamma normalization ensures the expected block time (120 seconds) is preserved while dramatically reducing variance.
 
 ![Distributions des temps de bloc](blocktime_distributions.svg)
 
@@ -243,7 +243,7 @@ Le Time Bending maintient le contenu informationnel de la preuve sous-jacente. I
 
 PoCX régule la production de blocs en utilisant la cible de base, une mesure de difficulté inverse. Le temps de bloc attendu est proportionnel au ratio `quality / base_target`, donc augmenter la cible de base accélère la création de blocs tandis que la diminuer ralentit la chaîne.
 
-La difficulté s'ajuste à chaque bloc en utilisant le temps mesuré entre les blocs récents par rapport à l'intervalle cible. Cet ajustement fréquent est nécessaire car la capacité de stockage peut être ajoutée ou retirée rapidement — contrairement à la puissance de hachage de Bitcoin, qui change plus lentement.
+Difficulty adjusts every block using a 24-block rolling window. The actual timespan is computed as a hybrid correction: `actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)`, compensating for Time Bending's effect on observed block times.
 
 L'ajustement suit deux contraintes directrices : **Progressivité** — les changements par bloc sont limités (maximum ±20 %) pour éviter les oscillations ou la manipulation ; **Renforcement** — la cible de base ne peut pas dépasser sa valeur genesis, empêchant le réseau de jamais abaisser la difficulté en dessous des hypothèses de sécurité originales.
 
@@ -411,12 +411,12 @@ Les tableaux ci-dessous résument les paramètres mainnet, testnet et regtest r�
 | Paramètre | Valeur |
 |-----------|--------|
 | Octets magiques | `0xa7 0x3c 0x91 0x5e` |
-| Port par défaut | 8888 |
+| Port par défaut | 8338 |
 | HRP Bech32 | `pocx` |
 | Temps de bloc cible | 120 secondes |
-| Subvention initiale | 10 BTC |
+| Subvention initiale | 10 BTCX |
 | Intervalle de halving | 1050000 blocs (~4 ans) |
-| Offre totale | ~21 millions BTC |
+| Offre totale | ~21 millions BTCX |
 | Activation d'assignation | 30 blocs |
 | Révocation d'assignation | 720 blocs |
 | Fenêtre glissante | 24 blocs |
@@ -425,8 +425,8 @@ Les tableaux ci-dessous résument les paramètres mainnet, testnet et regtest r�
 
 | Paramètre | Valeur |
 |-----------|--------|
-| Octets magiques | `0x6d 0xf2 0x48 0xb3` |
-| Port par défaut | 18888 |
+| Octets magiques | `0x6d 0xf2 0x48 0xb4` |
+| Port par défaut | 18338 |
 | HRP Bech32 | `tpocx` |
 | Temps de bloc cible | 120 secondes |
 | Autres paramètres | Identiques au mainnet |

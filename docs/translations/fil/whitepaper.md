@@ -16,7 +16,7 @@ Ang aming implementasyon ay nagpapakilala ng ilang pangunahing inobasyon:
 (3) Isang OP_RETURN-based na mekanismo ng forging-assignment na nagpapagana ng non-custodial pool mining; at
 (4) Dynamic compression scaling, na nagpapataas ng difficulty ng plot-generation na naka-align sa mga iskedyul ng halving upang mapanatili ang mga long-term security margin habang umuunlad ang hardware.
 
-Pinapanatili ng Bitcoin-PoCX ang arkitektura ng Bitcoin Core sa pamamagitan ng minimal, feature-flagged na mga modipikasyon, na naghihiwalay sa PoC logic mula sa kasalukuyang consensus code. Pinapanatili ng sistema ang monetary policy ng Bitcoin sa pamamagitan ng pag-target ng 120-segundong block interval at pag-adjust ng block subsidy sa 10 BTC. Ang nabawasang subsidy ay nag-o-offset sa limang beses na pagtaas ng block frequency, pinapanatili ang long-term issuance rate na naka-align sa orihinal na iskedyul ng Bitcoin at pinapanatili ang ~21 milyong maximum supply.
+Pinapanatili ng Bitcoin-PoCX ang arkitektura ng Bitcoin Core sa pamamagitan ng minimal, feature-flagged na mga modipikasyon, na naghihiwalay sa PoC logic mula sa kasalukuyang consensus code. Pinapanatili ng sistema ang monetary policy ng Bitcoin sa pamamagitan ng pag-target ng 120-segundong block interval at pag-adjust ng block subsidy sa 10 BTCX. Ang nabawasang subsidy ay nag-o-offset sa limang beses na pagtaas ng block frequency, pinapanatili ang long-term issuance rate na naka-align sa orihinal na iskedyul ng Bitcoin at pinapanatili ang ~21 milyong maximum supply.
 
 ---
 
@@ -211,9 +211,9 @@ Ang proof ay nag-e-embed ng lahat ng consensus-relevant na impormasyon na kailan
 
 Ang generation signature ay nagbibigay ng hindi mahuhulaan na kinakailangan para sa secure na Proof of Capacity mining. Ang bawat block ay kinukuha ang generation signature nito mula sa signature at signer ng nakaraang block, tinitiyak na ang mga miner ay hindi maaaring mahulaan ang mga hinaharap na challenge o mag-precompute ng mga advantageous plot region:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Gumagawa ito ng isang sequence ng cryptographically strong, miner-dependent entropy value. Dahil ang public key ng isang miner ay hindi kilala hanggang ma-publish ang nakaraang block, walang kalahok ang makapaghuhula ng mga hinaharap na scoop selection. Pinipigilan nito ang selective precomputation o strategic plotting at tinitiyak na ang bawat block ay nagpapakilala ng tunay na bagong mining work.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Gumagawa ito ng isang sequence ng cryptographically strong, miner-dependent entropy value. Dahil ang public key ng isang miner ay hindi kilala hanggang ma-publish ang nakaraang block, walang kalahok ang makapaghuhula ng mga hinaharap na scoop selection. Pinipigilan nito ang selective precomputation o strategic plotting at tinitiyak na ang bawat block ay nagpapakilala ng tunay na bagong mining work.
 
 ### 4.3 Proseso ng Forging
 
@@ -231,7 +231,7 @@ Ang Proof of Capacity ay gumagawa ng exponentially distributed deadline. Pagkata
 
 Binabago ng Time Bending ang distribution sa pamamagitan ng pag-apply ng cube root transformation:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Pinapanatili ng scale factor ang inaasahang block time (120 segundo) habang lubos na binabawasan ang variance. Ang mga maikling deadline ay pinapalawak, pinapabuti ang block propagation at network safety. Ang mga mahabang deadline ay nako-compress, pinipigilan ang mga outlier na mag-delay ng chain.
 
@@ -411,12 +411,12 @@ Ang mga talahanayan sa ibaba ay nagbubuod ng mga resultang mainnet, testnet, at 
 | Parameter | Halaga |
 |-----------|-------|
 | Magic byte | `0xa7 0x3c 0x91 0x5e` |
-| Default port | 8888 |
+| Default port | 8338 |
 | Bech32 HRP | `pocx` |
 | Target na block time | 120 segundo |
-| Panimulang subsidy | 10 BTC |
+| Panimulang subsidy | 10 BTCX |
 | Halving interval | 1050000 block (~4 na taon) |
-| Kabuuang supply | ~21 milyong BTC |
+| Kabuuang supply | ~21 milyong BTCX |
 | Assignment activation | 30 block |
 | Assignment revocation | 720 block |
 | Rolling window | 24 block |
@@ -425,8 +425,8 @@ Ang mga talahanayan sa ibaba ay nagbubuod ng mga resultang mainnet, testnet, at 
 
 | Parameter | Halaga |
 |-----------|-------|
-| Magic byte | `0x6d 0xf2 0x48 0xb3` |
-| Default port | 18888 |
+| Magic byte | `0x6d 0xf2 0x48 0xb4` |
+| Default port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Target na block time | 120 segundo |
 | Ibang mga parameter | Pareho sa mainnet |

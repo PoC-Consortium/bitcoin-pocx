@@ -32,16 +32,16 @@ PoCX 共识要求网络中的时间同步精确。本章记录了时间相关的
 
 **Bitcoin-PoCX 配置：**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 秒
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 秒
 ```
 
 ### 验证检查
 
-**区块时间戳验证**（`src/validation.cpp:4547-4561`）：
+**区块时间戳验证**（`src/validation.cpp:ContextualCheckBlockHeader()`）：
 ```cpp
 // 1. 单调检查：时间戳 >= 上一个区块时间戳
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. 截止时间检查：经过时间 >= 截止时间
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX 监控您节点与网络对等节点之间的时间偏移。如果�
 ## 实现参考
 
 **核心文件**：
-- 时间验证：`src/validation.cpp:4547-4561`
-- 未来容差常量：`src/chain.h:31`
-- 警告阈值：`src/node/timeoffsets.h:27`
+- 时间验证：`src/validation.cpp:ContextualCheckBlockHeader()`
+- 未来容差常量：`src/chain.h`
+- 警告阈值：`src/node/timeoffsets.h`
 - 时间偏移监控：`src/node/timeoffsets.cpp`
 - 防御性锻造：`src/pocx/mining/scheduler.cpp`
 

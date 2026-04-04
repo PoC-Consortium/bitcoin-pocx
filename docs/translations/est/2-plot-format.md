@@ -77,12 +77,12 @@ Kõik graafikumetaandmed on kodeeritud failinimes täpselt selles vormingus:
 1. **KONTO_KOOREM** (40 hex tähemärki)
    - Töötlemata 20-baidine konto koorem suurtähtedes hex-na
    - Võrgust sõltumatu (pole võrgu ID-d ega kontrollsummat)
-   - Näide: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Näide: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEEME** (64 hex tähemärki)
    - 32-baidine seemeväärtus väiketähtedes hex-na
    - **PoCX-is uus**: Juhuslik 32-baidine seeme failinimes asendab järjestikuse nonce nummerdamise - takistab graafikute kattumist
-   - Näide: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Näide: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARP_ID** (kümnendnumber)
    - **PoCX-is uus suurusühik**: Asendab nonce-põhist suurust POC1/POC2-st
@@ -97,8 +97,8 @@ Kõik graafikumetaandmed on kodeeritud failinimes täpselt selles vormingus:
 
 ### Näidisfailinimed
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

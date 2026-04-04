@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **計算:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **ジェネシスブロック:** ハードコードされた初期生成署名を使用
 
-**実装:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**実装:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### ベースターゲット（難易度）
 
@@ -113,8 +113,8 @@ PoCXはスケーリングレベル（Xn）を通じてプロットファイル�
 **動的境界:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 受け入れられる最小レベル
-    uint8_t nPoCXTargetCompression;  // 推奨レベル
+    uint32_t nPoCXMinCompression;     // 受け入れられる最小レベル
+    uint32_t nPoCXTargetCompression;  // 推奨レベル
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - 最小スケーリングレベルが1増加
 - ターゲットスケーリングレベルが1増加
 - プロット作成コストと参照コストの安全マージンを維持
-- 最大スケーリングレベル: 255
+- 最大スケーリングレベル: 7 (target = min + 1, with min capping at 6)
 
-**実装:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**実装:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,30 +223,36 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **割り当てサポート:** プロット所有者はフォージング権限を別のアドレスに割り当て可能。ウォレットは必ずしもプロット所有者ではなく、有効な署名者の鍵を持っている必要があります。
 
-#### ステップ5: 証明検証
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20バイト
     block_height,
     nonce,
-    seed,                // 32バイト
-    min_compression,
-    max_compression,
-    &result             // 出力: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**アルゴリズム:**
-1. 16進数から生成署名をデコード
-2. SIMD最適化アルゴリズムを使用して圧縮範囲内の最良品質を計算
-3. 品質が難易度要件を満たすことを検証
-4. 生の品質値を返す
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**実装:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
-#### ステップ6: タイムベンディング計算
+#### Step 7: Time Bendingベンディング計算
 ```cpp
 // 生の難易度調整デッドライン（秒）
 uint64_t deadline_seconds = quality / base_target;
@@ -270,20 +276,20 @@ Y = scale * (X^(1/3))
 
 **実装:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### ステップ7: フォージャー送信
+#### Step 8: Forger Submission送信
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // デッドラインではない - フォージャーで再計算
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **キューベース設計:**
-- 送信は常に成功（キューに追加）
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPCは即座に返る
 - ワーカースレッドが非同期で処理
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - 生成署名不一致 → 破棄
    - ティップブロックハッシュ変更（再編成） → フォージング状態リセット
 
-3. 品質比較:
+3. Quality comparison (lower = better):
    - quality >= current_best → 破棄
 
 4. タイムベンドされたデッドラインを計算:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // 元のプロットアドレス
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. マークルルートを再計算:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**実装:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**実装:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **主要な設計決定:**
 - Coinbaseは有効な署名者に支払い（割り当てを尊重）
@@ -450,25 +457,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX検証（ENABLE_POCX定義時）:**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // 基本署名検証（まだ割り当てサポートなし）
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**基本署名検証:**
-1. 公開鍵と署名フィールドの存在を確認
-2. 公開鍵サイズを検証（33バイト圧縮）
-3. 署名サイズを検証（65バイトコンパクト）
-4. 署名から公開鍵を復元: `pubkey.RecoverCompact(hash, signature)`
-5. 復元された公開鍵が保存された公開鍵と一致することを確認
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**実装:** `src/validation.cpp:CheckBlockHeader()`
-**署名ロジック:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### ステージ2: ブロック検証（CheckBlock）
 
@@ -487,49 +483,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // ステップ1: 生成署名を検証
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // ステップ2: ベースターゲットを検証
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // ステップ3: 容量証明を検証
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // ステップ4: デッドラインタイミングを検証
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**検証ステップ:**
-1. **生成署名:** 前のブロックから計算された値と一致する必要あり
-2. **ベースターゲット:** 難易度調整計算と一致する必要あり
-3. **スケーリングレベル:** ネットワーク最小値を満たす必要あり（`compression >= min_compression`）
-4. **品質主張:** 送信された品質は証明から計算された品質と一致する必要あり
-5. **容量証明:** 暗号証明検証（SIMD最適化）
-6. **デッドラインタイミング:** タイムベンドされたデッドライン（`poc_time`）は経過時間以下である必要あり
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **実装:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +556,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **実装:**
 - 接続: `src/validation.cpp:ConnectBlock()`
-- 拡張検証: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- 割り当てロジック: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- 拡張検証: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- 割り当てロジック: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### ステージ5: チェーンアクティベーション
 
@@ -668,7 +651,7 @@ Transaction {
 - 遅延期間後にASSIGNEDになる（regtestは4ブロック、メインネットは30ブロック）
 - 遅延はブロックレース中の急速な再割り当てを防止
 
-**実装:** `src/script/forging_assignment.h`、ConnectBlockでの検証
+**実装:** `src/pocx/assignments/opcodes.h`、ConnectBlockでの検証
 
 ### 割り当ての取り消し
 
@@ -826,12 +809,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **生成署名:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **ブロック署名ハッシュ:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **コンパクト署名形式:**
@@ -863,12 +849,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **コア実装:**
 - RPCインターフェース: `src/pocx/rpc/mining.cpp`
 - フォージャーキュー: `src/pocx/mining/scheduler.cpp`
-- コンセンサス検証: `src/pocx/consensus/validation.cpp`
-- 証明検証: `src/pocx/consensus/pocx.cpp`
+- コンセンサス検証: `src/pocx/consensus/proof.cpp`
+- 証明検証: `src/pocx/consensus/signature.cpp`
 - タイムベンディング: `src/pocx/algorithms/time_bending.cpp`
 - ブロック検証: `src/validation.cpp`（CheckBlockHeader、ConnectBlock）
-- 割り当てロジック: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- コンテキスト管理: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- 割り当てロジック: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- コンテキスト管理: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **データ構造:**
 - ブロック形式: `src/primitives/block.h`
@@ -902,7 +888,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **プロセス:**
 1. 生成署名と高さからスクープを生成
 2. 計算されたスクープのプロットデータを読み取り
-3. ハッシュ: `SHABAL256(generation_signature || scoop_data)`
+3. ハッシュ: `Shabal256Lite(scoop_data, generation_signature)`
 4. 最小から最大までスケーリングレベルをテスト
 5. 見つかった最良の品質を返す
 
@@ -925,7 +911,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(最近のベースターゲット)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

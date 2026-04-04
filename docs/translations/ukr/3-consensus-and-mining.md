@@ -49,7 +49,7 @@ Bitcoin-PoCX реалізує чистий механізм консенсусу
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed плоту (32 байти)
     std::array<uint8_t, 20> account_id;       // Адреса плоту (20-байтовий hash160)
-    uint32_t compression;                     // Рівень масштабування (1-255)
+    uint32_t compression;                     // Рівень масштабування (1-6)
     uint64_t nonce;                           // Nonce майнінгу (64-біт)
     uint64_t quality;                         // Заявлена якість (вивід хешу PoC)
 };
@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **Обчислення:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Блок генезису:** Використовує жорстко закодовану початкову сигнатуру генерації
 
-**Реалізація:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Реалізація:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Базова ціль (складність)
 
@@ -113,8 +113,8 @@ PoCX підтримує масштабований proof-of-work у файлах
 **Динамічні межі:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Мінімальний прийнятний рівень
-    uint8_t nPoCXTargetCompression;  // Рекомендований рівень
+    uint32_t nPoCXMinCompression;     // Мінімальний прийнятний рівень
+    uint32_t nPoCXTargetCompression;  // Рекомендований рівень
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - Мінімальний рівень масштабування збільшується на 1
 - Цільовий рівень масштабування збільшується на 1
 - Підтримує запас міцності між витратами на створення плотів і пошуком
-- Максимальний рівень масштабування: 255
+- Максимальний рівень масштабування: 7 (target = min + 1, with min capping at 6)
 
-**Реалізація:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Реалізація:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Підтримка призначень:** Власник плоту може призначити права кування іншій адресі. Гаманець повинен мати ключ для ефективного підписанта, не обов'язково для власника плоту.
 
-#### Крок 5: Валідація доказу
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 байтів
     block_height,
     nonce,
-    seed,                // 32 байти
-    min_compression,
-    max_compression,
-    &result             // Вивід: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Валідація відповідності якості вимогам складності
 4. Повернення сирого значення якості
 
-**Реалізація:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Реалізація:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Крок 6: Обчислення Time Bending
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **Реалізація:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Крок 7: Подання до кувача
+#### Step 8: Forger Submission: Подання до кувача
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // НЕ дедлайн - перераховується в кувачі
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Оригінальна адреса плоту
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Перерахунок кореня Merkle:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Реалізація:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Реалізація:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Ключові проектні рішення:**
 - Coinbase платить ефективному підписанту (дотримується призначень)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Перевірка відповідності відновленого pubkey збереженому
 
 **Реалізація:** `src/validation.cpp:CheckBlockHeader()`
-**Логіка підпису:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Логіка підпису:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Етап 2: Валідація блоку (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Крок 1: Валідація сигнатури генерації
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Крок 2: Валідація базової цілі
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Крок 3: Валідація proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Крок 4: Перевірка таймінгу дедлайну
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Кроки валідації:**
-1. **Сигнатура генерації:** Повинна відповідати обчисленому значенню з попереднього блоку
-2. **Базова ціль:** Повинна відповідати обчисленню налаштування складності
-3. **Рівень масштабування:** Повинен відповідати мережевому мінімуму (`compression >= min_compression`)
-4. **Заявлена якість:** Подана якість повинна відповідати обчисленій якості з доказу
-5. **Proof of Capacity:** Криптографічна валідація доказу (оптимізована SIMD)
-6. **Таймінг дедлайну:** Time-bended дедлайн (`poc_time`) повинен бути ≤ минулого часу
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Реалізація:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Реалізація:**
 - Підключення: `src/validation.cpp:ConnectBlock()`
-- Розширена валідація: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Логіка призначень: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Розширена валідація: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Логіка призначень: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Етап 5: Активація ланцюга
 
@@ -599,7 +593,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Отримання блоку
     ↓
-CheckBlockHeader (базовий підпис)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (транзакції, merkle)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Стає ASSIGNED після періоду затримки (4 блоки regtest, 30 блоків mainnet)
 - Затримка запобігає швидким перепризначенням під час гонок блоків
 
-**Реалізація:** `src/script/forging_assignment.h`, валідація в ConnectBlock
+**Реалізація:** `src/pocx/assignments/opcodes.h`, валідація в ConnectBlock
 
 ### Скасування призначень
 
@@ -826,12 +820,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **Сигнатура генерації:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Хеш підпису блоку:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Формат компактного підпису:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Основні реалізації:**
 - Інтерфейс RPC: `src/pocx/rpc/mining.cpp`
 - Черга кувача: `src/pocx/mining/scheduler.cpp`
-- Валідація консенсусу: `src/pocx/consensus/validation.cpp`
-- Валідація доказу: `src/pocx/consensus/pocx.cpp`
+- Валідація консенсусу: `src/pocx/consensus/proof.cpp`
+- Валідація доказу: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Валідація блоків: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Логіка призначень: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Управління контекстом: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Логіка призначень: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Управління контекстом: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Структури даних:**
 - Формат блоку: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **Процес:**
 1. Генерація scoop з сигнатури генерації та висоти
 2. Читання даних плоту для обчисленого scoop
-3. Хеш: `SHABAL256(generation_signature || scoop_data)`
+3. Хеш: `Shabal256Lite(scoop_data, generation_signature)`
 4. Тестування рівнів масштабування від min до max
 5. Повернення найкращої знайденої якості
 
@@ -925,7 +922,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 avg_base_target = moving_average(недавні базові цілі)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

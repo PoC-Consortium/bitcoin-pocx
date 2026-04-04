@@ -23,7 +23,7 @@
 
 ### Режим сервера за рударење
 
-**Флаг**: `-miningserver`
+**Флаг**: ``
 
 **Сврха**: Омогућава RPC приступ за спољне рударе да позивају RPC-ове специфичне за рударење
 
@@ -34,10 +34,9 @@
 **Употреба**:
 ```bash
 # Командна линија
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Безбедносна разматрања**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // хекс, 64 карактера
-  "base_target": 36650387593,                // нумерички
+  "base_target": 36650387592,                // нумерички
   "height": 12345,                           // нумерички, висина следећег блока
   "block_hash": "def456...",                 // хекс, претходни блок
   "target_quality": 18446744073709551615,    // uint64_max (сва решења прихваћена)
@@ -98,19 +97,20 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Категорија**: mining
-**Захтева сервер за рударење**: Да
 **Захтева новчаник**: Да (за приватне кључеве)
 
 **Сврха**: Шаље PoCX решење рударења. Валидира доказ, ставља у ред чекања за ковање са савијањем времена, и аутоматски креира блок у заказано време.
 
-**Параметри**:
-1. `height` (нумерички, обавезан) - Висина блока
-2. `generation_signature` (стринг хекс, обавезан) - Генерацијски потпис (64 карактера)
-3. `account_id` (стринг, обавезан) - ID налога плота (40 хекс карактера = 20 бајтова)
-4. `seed` (стринг, обавезан) - Seed плота (64 хекс карактера = 32 бајта)
-5. `nonce` (нумерички, обавезан) - Nonce рударења
-6. `compression` (нумерички, обавезан) - Коришћени ниво скалирања/компресије (1-255)
-7. `quality` (нумерички, опционо) - Вредност квалитета (прерачунава се ако није дато)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Повратне вредности** (успех):
 ```json
@@ -163,12 +163,16 @@ bitcoin-cli get_mining_info
 
 **Пример**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Напомене**:
@@ -377,7 +381,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX модификације**:
 - **Израчунавање**: `reference_base_target / current_base_target`
-- **Референца**: 1 TiB капацитет мреже (base_target = 36650387593)
+- **Референца**: 1 TiB капацитет мреже (base_target = 36650387592)
 - **Интерпретација**: Процењени капацитет складиштења мреже у TiB
   - Пример: `1.0` = ~1 TiB
   - Пример: `1024.0` = ~1 PiB
@@ -464,7 +468,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (нумерички) - За рударење у пулу
 
 **PoCX уклоњена поља**:
-- `target` - Уклоњено (PoW-специфично)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Уклоњено (PoW-специфично)
 - `bits` - Уклоњено (PoW-специфично)
 
@@ -494,10 +498,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Алтернатива**: Користите `get_mining_info` (PoCX-специфично)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Разлог**: CPU рударење није примењиво на PoCX (захтева унапред генерисане плотове)
-- **Алтернатива**: Користите спољни плотер + рудар + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Имплементација**: `src/rpc/mining.cpp` (RPC-ови враћају грешку када је ENABLE_POCX дефинисан)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +535,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Скенирај плот датотеке (спољна имплементација)
@@ -538,11 +543,15 @@ while True:
 
     # 3. Пошаљи најбоље решење
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +671,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC-ови рударења**: `src/pocx/rpc/mining.cpp`
 **RPC-ови додељивања**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Блокчејн RPC-ови**: `src/rpc/blockchain.cpp`
-**Валидација доказа**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Валидација доказа**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Стање додељивања**: `src/pocx/assignments/assignment_state.cpp`
 **Креирање трансакција**: `src/pocx/assignments/transactions.cpp`
 

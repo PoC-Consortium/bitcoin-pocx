@@ -77,12 +77,12 @@ Kaikki plotin metatiedot on koodattu tiedostonimeen tällä täsmällisellä muo
 1. **ACCOUNT_PAYLOAD** (40 heksamerkkiä)
    - Raaka 20-tavuinen tilin payload isokirjaimisena heksana
    - Verkkoriippumaton (ei verkkotunnistetta tai tarkistussummaa)
-   - Esimerkki: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Esimerkki: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 heksamerkkiä)
    - 32-tavuinen seed-arvo pienikirjaimisena heksana
    - **Uutta PoCX:ssä**: Satunnainen 32-tavuinen seed tiedostonimessä korvaa peräkkäisen nonce-numeroinnin – estäen plottien päällekkäisyydet
-   - Esimerkki: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Esimerkki: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (desimaaliluku)
    - **UUSI kokoyksikkö PoCX:ssä**: Korvaa nonce-pohjaisen koon määrityksen POC1/POC2:sta
@@ -97,8 +97,8 @@ Kaikki plotin metatiedot on koodattu tiedostonimeen tällä täsmällisellä muo
 
 ### Esimerkkitiedostonimet
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

@@ -42,7 +42,7 @@ Proof of Capacity (PoC) је механизам консензуса где је
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX интеграција
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX интеграција
 │   └── src/pocx/        # PoCX имплементација
 ├── pocx/                # PoCX core framework (подмодул, само за читање)
 └── docs/                # Ова документација
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Проблем**: Традиционална PoC времена блокова прате експоненцијалну дистрибуцију, што доводи до дугих блокова када ниједан рудар не пронађе добро решење.
 
-**Решење**: Трансформација дистрибуције са експоненцијалне на хи-квадрат користећи кубни корен: `Y = scale × (X^(1/3))`.
+**Решење**: Трансформација дистрибуције са експоненцијалне на хи-квадрат користећи кубни корен: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Ефекат**: Веома добра решења се кују касније (мрежа има времена да скенира све дискове, смањује брзе блокове), лоша решења су побољшана. Просечно време блока се одржава на 120 секунди, дуги блокови су смањени.
+**Ефекат**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Детаљи**: [Поглавље 3: Консензус и рударење](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Исто као Bitcoin Core**:
 - **CPU**: Модеран x86_64 процесор
 - **Меморија**: 4-8 GB RAM
-- **Складиштење**: Нови ланац, тренутно празан (може расти ~4× брже од Bitcoin-а због 2-минутних блокова и базе додељивања)
+- **Складиштење**: Нови ланац, тренутно празан (може расти ~5× брже од Bitcoin-а због 2-минутних блокова и базе додељивања)
 - **Мрежа**: Стабилна интернет веза
 - **Сат**: NTP синхронизација се препоручује за оптималан рад
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Компајлирајте са омогућеним PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Детаљи**: Погледајте `CLAUDE.md` у коренском директоријуму репозиторијума
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Покрените чвор
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **За рударење** (омогућава RPC приступ за спољне рударе):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # или
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Детаљи**: [Поглавље 6: Мрежни параметри](6-network-parameters.md)

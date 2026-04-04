@@ -28,7 +28,7 @@ Guide complet du portefeuille Qt Bitcoin-PoCX et de la gestion des assignations 
 Le portefeuille Qt Bitcoin-PoCX (`bitcoin-qt`) fournit :
 - Fonctionnalités standard du portefeuille Bitcoin Core (envoi, réception, gestion des transactions)
 - **Gestionnaire d'assignation de forge** : Interface graphique pour créer/révoquer les assignations de plot
-- **Mode serveur de minage** : L'option `-miningserver` active les fonctionnalités liées au minage
+- **Mode serveur de minage** : L'option `` active les fonctionnalités liées au minage
 - **Historique des transactions** : Affichage des transactions d'assignation et de révocation
 
 ### Démarrage du portefeuille
@@ -38,20 +38,20 @@ Le portefeuille Qt Bitcoin-PoCX (`bitcoin-qt`) fournit :
 ./build/bin/bitcoin-qt
 ```
 
-**Avec minage** (active le dialogue d'assignation) :
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternative en ligne de commande** :
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Exigences de minage
 
 **Pour les opérations de minage** :
-- Option `-miningserver` requise
+- Option `` requise
 - Portefeuille avec adresses P2WPKH et clés privées
 - Plotter externe (`pocx_plotter`) pour la génération de plot
 - Mineur externe (`pocx_miner`) pour le minage
@@ -84,7 +84,7 @@ Bitcoin-PoCX utilise l'unité de devise **BTCX** (pas BTC) :
 ### Accès au dialogue
 
 **Menu** : `Portefeuille → Assignations de forge`
-**Barre d'outils** : Icône de minage (visible uniquement avec l'option `-miningserver`)
+**Barre d'outils** : Icône de minage (visible uniquement avec l'option ``)
 **Taille de fenêtre** : 600×450 pixels
 
 ### Modes du dialogue
@@ -313,7 +313,6 @@ Révocation effective à la hauteur : 13020
 **Configuration du nœud** :
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Démarrer le nœud** avec le serveur de minage :
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configurer le mineur** :
@@ -365,7 +364,7 @@ server=1
    - Sélectionner l'adresse de plot
    - Entrer l'adresse de forge du pool
    - Cliquer sur « Envoyer l'assignation »
-   - Attendre le délai d'activation (30 blocs testnet)
+   - Attendre le délai d'activation (30 blocks mainnet/testnet))
 
 3. **Configurer le mineur** :
    - Pointer vers le point de terminaison du **pool** (pas le nœud local)
@@ -411,7 +410,7 @@ server=1
 **Cause** : Le plot est déjà assigné à une autre adresse
 **Solution** :
 1. Révoquer l'assignation existante
-2. Attendre le délai de révocation (720 blocs testnet)
+2. Attendre le délai de révocation (720 blocks mainnet/testnet))
 3. Créer une nouvelle assignation
 
 #### « Format d'adresse non supporté »
@@ -450,8 +449,8 @@ server=1
 
 #### « Onglet Assignation de forge non visible »
 
-**Cause** : Nœud démarré sans l'option `-miningserver`
-**Solution** : Redémarrer avec `bitcoin-qt -server -miningserver`
+**Cause** : Nœud démarré sans l'option ``
+**Solution** : Redémarrer avec `bitcoin-qt -server`
 
 ### Étapes de débogage
 
@@ -525,12 +524,12 @@ server=1
 
 ### Délais d'assignation
 
-**Délai d'activation** (30 blocs testnet) :
+**Délai d'activation** (30 blocks mainnet/testnet)) :
 - Empêche la réassignation rapide pendant les forks de chaîne
 - Permet au réseau d'atteindre le consensus
 - Ne peut pas être contourné
 
-**Délai de révocation** (720 blocs testnet) :
+**Délai de révocation** (720 blocks mainnet/testnet)) :
 - Fournit de la stabilité pour les pools de minage
 - Empêche les attaques de « griefing » par assignation
 - L'adresse de forge reste active pendant le délai

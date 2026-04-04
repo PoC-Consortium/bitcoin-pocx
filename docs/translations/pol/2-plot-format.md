@@ -77,12 +77,12 @@ Wszystkie metadane plotu są zakodowane w nazwie pliku przy użyciu tego dokład
 1. **ACCOUNT_PAYLOAD** (40 znaków hex)
    - Surowy 20-bajtowy payload konta jako wielkie litery hex
    - Niezależny od sieci (bez ID sieci ani sumy kontrolnej)
-   - Przykład: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Przykład: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 znaki hex)
    - 32-bajtowa wartość seed jako małe litery hex
    - **Nowość w PoCX**: Losowy 32-bajtowy seed w nazwie pliku zastępuje kolejne numerowanie nonce'ów — zapobiegając nakładaniu się plotów
-   - Przykład: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Przykład: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (liczba dziesiętna)
    - **NOWA jednostka rozmiaru w PoCX**: Zastępuje rozmiar oparty na nonce'ach z POC1/POC2
@@ -97,8 +97,8 @@ Wszystkie metadane plotu są zakodowane w nazwie pliku przy użyciu tego dokład
 
 ### Przykładowe nazwy plików
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

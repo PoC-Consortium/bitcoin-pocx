@@ -28,7 +28,7 @@ Guia completo para a carteira Qt do Bitcoin-PoCX e gerenciamento de atribuição
 A carteira Qt do Bitcoin-PoCX (`bitcoin-qt`) fornece:
 - Funcionalidade padrão de carteira Bitcoin Core (enviar, receber, gerenciamento de transações)
 - **Gerenciador de Atribuição de Forja**: GUI para criar/revogar atribuições de plots
-- **Modo Servidor de Mineração**: Flag `-miningserver` habilita recursos relacionados a mineração
+- **Modo Servidor de Mineração**: Flag `` habilita recursos relacionados a mineração
 - **Histórico de Transações**: Exibição de transações de atribuição e revogação
 
 ### Iniciando a Carteira
@@ -40,18 +40,18 @@ A carteira Qt do Bitcoin-PoCX (`bitcoin-qt`) fornece:
 
 **Com Mineração** (habilita diálogo de atribuição):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternativa de Linha de Comando**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Requisitos de Mineração
 
 **Para Operações de Mineração**:
-- Flag `-miningserver` necessária
+- Flag `` necessária
 - Carteira com endereços P2WPKH e chaves privadas
 - Plotter externo (`pocx_plotter`) para geração de plots
 - Minerador externo (`pocx_miner`) para mineração
@@ -84,7 +84,7 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 ### Acessando o Diálogo
 
 **Menu**: `Carteira → Atribuições de Forja`
-**Barra de Ferramentas**: Ícone de mineração (visível apenas com flag `-miningserver`)
+**Barra de Ferramentas**: Ícone de mineração (visível apenas com flag ``)
 **Tamanho da Janela**: 600×450 pixels
 
 ### Modos do Diálogo
@@ -118,7 +118,7 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 
 **Estrutura de Transação**:
 - Input: UTXO do endereço do plot (prova propriedade)
-- Saída OP_RETURN: marcador `POCX` + plot_address + forging_address (46 bytes)
+- Saída OP_RETURN: marcador `POCX` + plot_address + forging_address (44 bytes)
 - Saída de troco: Retornado para carteira
 
 #### Modo 2: Revogar Atribuição
@@ -146,7 +146,7 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 
 **Estrutura de Transação**:
 - Input: UTXO do endereço do plot (prova propriedade)
-- Saída OP_RETURN: marcador `XCOP` + plot_address (26 bytes)
+- Saída OP_RETURN: marcador `XCOP` + plot_address (24 bytes)
 - Saída de troco: Retornado para carteira
 
 #### Modo 3: Verificar Status de Atribuição
@@ -296,7 +296,7 @@ Revogação efetiva na altura: 13020
 ### Mensagens de Erro de Validação
 
 **Erros do Diálogo**:
-- "Endereço do plot deve ser P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
 - "Endereço de forja deve ser P2WPKH (bech32)"
 - "Formato de endereço inválido"
 - "Sem moedas disponíveis no endereço do plot. Não é possível provar propriedade."
@@ -313,7 +313,6 @@ Revogação efetiva na altura: 13020
 **Configuração do Nó**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Iniciar Nó** com servidor de mineração:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configurar Minerador**:
@@ -450,8 +449,8 @@ server=1
 
 #### "Aba de Atribuição de Forja não visível"
 
-**Causa**: Nó iniciado sem flag `-miningserver`
-**Solução**: Reiniciar com `bitcoin-qt -server -miningserver`
+**Causa**: Nó iniciado sem flag ``
+**Solução**: Reiniciar com `bitcoin-qt -server`
 
 ### Passos de Depuração
 

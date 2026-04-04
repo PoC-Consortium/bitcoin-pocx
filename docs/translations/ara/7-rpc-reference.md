@@ -23,7 +23,7 @@
 
 ### وضع خادم التعدين
 
-**العَلَم**: `-miningserver`
+**العَلَم**: ``
 
 **الغرض**: يُفعّل وصول RPC للمُعدّنين الخارجيين لاستدعاء RPCs الخاصة بالتعدين
 
@@ -34,10 +34,9 @@
 **الاستخدام**:
 ```bash
 # سطر الأوامر
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **اعتبارات الأمان**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex، 64 حرف
-  "base_target": 36650387593,                // رقمي
+  "base_target": 36650387592,                // رقمي
   "height": 12345,                           // رقمي، ارتفاع الكتلة التالية
   "block_hash": "def456...",                 // hex، الكتلة السابقة
   "target_quality": 18446744073709551615,    // uint64_max (جميع الحلول مقبولة)
@@ -103,14 +102,16 @@ bitcoin-cli get_mining_info
 
 **الغرض**: إرسال حل تعدين PoCX. يتحقق من الإثبات، يضعه في طابور للصياغة المثنية للوقت، ويُنشئ الكتلة تلقائياً في الوقت المجدول.
 
-**المعلمات**:
-1. `height` (رقمي، مطلوب) - ارتفاع الكتلة
-2. `generation_signature` (سلسلة hex، مطلوب) - توقيع التوليد (64 حرف)
-3. `account_id` (سلسلة، مطلوب) - معرف حساب الرسم (40 حرف hex = 20 بايت)
-4. `seed` (سلسلة، مطلوب) - بذرة الرسم (64 حرف hex = 32 بايت)
-5. `nonce` (رقمي، مطلوب) - nonce التعدين
-6. `compression` (رقمي، مطلوب) - مستوى المقياس/الضغط المستخدم (1-255)
-7. `quality` (رقمي، اختياري) - قيمة الجودة (تُعاد حسابها إذا حُذفت)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **القيم المُرجعة** (النجاح):
 ```json
@@ -163,12 +164,16 @@ bitcoin-cli get_mining_info
 
 **مثال**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **ملاحظات**:
@@ -377,7 +382,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **تعديلات PoCX**:
 - **الحساب**: `reference_base_target / current_base_target`
-- **المرجع**: سعة شبكة 1 TiB (base_target = 36650387593)
+- **المرجع**: سعة شبكة 1 TiB (base_target = 36650387592)
 - **التفسير**: سعة التخزين المُقدّرة للشبكة بـ TiB
   - مثال: `1.0` = ~1 TiB
   - مثال: `1024.0` = ~1 PiB
@@ -530,7 +535,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. مسح ملفات الرسم (تنفيذ خارجي)
@@ -538,11 +543,15 @@ while True:
 
     # 3. إرسال أفضل حل
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +671,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPCs التعدين**: `src/pocx/rpc/mining.cpp`
 **RPCs التعيين**: `src/pocx/rpc/assignments.cpp`، `src/pocx/rpc/assignments_wallet.cpp`
 **RPCs سلسلة الكتل**: `src/rpc/blockchain.cpp`
-**التحقق من الإثبات**: `src/pocx/consensus/validation.cpp`، `src/pocx/consensus/pocx.cpp`
+**التحقق من الإثبات**: `src/pocx/consensus/proof.cpp`، `src/pocx/consensus/signature.cpp`
 **حالة التعيين**: `src/pocx/assignments/assignment_state.cpp`
 **إنشاء المعاملة**: `src/pocx/assignments/transactions.cpp`
 

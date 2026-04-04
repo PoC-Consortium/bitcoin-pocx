@@ -77,12 +77,12 @@ Al plotmetadata er kodet i filnavnet ved hjaelp af dette praecise format:
 1. **ACCOUNT_PAYLOAD** (40 hex-tegn)
    - Ra 20-byte konto-payload som store hex-bogstaver
    - Netvaerksuafhaengig (ingen netvaerks-ID eller checksum)
-   - Eksempel: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Eksempel: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 hex-tegn)
    - 32-byte seed-vaerdi som sma hex-bogstaver
    - **Nyt i PoCX**: Tilfaeldig 32-byte seed i filnavn erstatter fortlobende nonce-nummerering - forebygger plotoverlap
-   - Eksempel: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Eksempel: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (decimaltal)
    - **NY storrelsesenhed i PoCX**: Erstatter nonce-baseret storrelse fra POC1/POC2
@@ -97,8 +97,8 @@ Al plotmetadata er kodet i filnavnet ved hjaelp af dette praecise format:
 
 ### Eksempler pa filnavne
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

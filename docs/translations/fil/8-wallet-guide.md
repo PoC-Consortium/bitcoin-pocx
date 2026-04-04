@@ -28,7 +28,7 @@ Kumpletong gabay sa Bitcoin-PoCX Qt wallet at pamamahala ng forging assignment.
 Ang Bitcoin-PoCX Qt wallet (`bitcoin-qt`) ay nagbibigay ng:
 - Standard na functionality ng Bitcoin Core wallet (magpadala, makatanggap, pamamahala ng transaksyon)
 - **Forging Assignment Manager**: GUI para sa paggawa/pag-revoke ng mga plot assignment
-- **Mining Server Mode**: Ang `-miningserver` flag ay nagpapagana ng mga tampok na may kinalaman sa mining
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Kasaysayan ng Transaksyon**: Display ng assignment at revocation transaction
 
 ### Pagpapaandar ng Wallet
@@ -40,18 +40,18 @@ Ang Bitcoin-PoCX Qt wallet (`bitcoin-qt`) ay nagbibigay ng:
 
 **May Mining** (pinapagana ang assignment dialog):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternatibong Command Line**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Mga Kinakailangan sa Mining
 
 **Para sa mga Operasyon ng Mining**:
-- Kinakailangan ang `-miningserver` flag
+- Kinakailangan ang `` flag
 - Wallet na may mga P2WPKH address at private key
 - External plotter (`pocx_plotter`) para sa plot generation
 - External miner (`pocx_miner`) para sa mining
@@ -83,8 +83,7 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 
 ### Pag-access sa Dialog
 
-**Menu**: `Wallet → Forging Assignments`
-**Toolbar**: Mining icon (makikita lamang kapag may `-miningserver` flag)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Laki ng Window**: 600×450 pixel
 
 ### Mga Mode ng Dialog
@@ -118,7 +117,7 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- OP_RETURN output: `POCX` marker + plot_address + forging_address (46 byte)
+- OP_RETURN output: `POCX` marker + plot_address + forging_address (44 byte)
 - Change output: Ibinabalik sa wallet
 
 #### Mode 2: Mag-revoke ng Assignment
@@ -146,7 +145,7 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- OP_RETURN output: `XCOP` marker + plot_address (26 byte)
+- OP_RETURN output: `XCOP` marker + plot_address (24 byte)
 - Change output: Ibinabalik sa wallet
 
 #### Mode 3: Suriin ang Assignment Status
@@ -296,8 +295,8 @@ Naging epektibo ang revocation sa height: 13020
 ### Mga Mensahe ng Validation Error
 
 **Mga Dialog Error**:
-- "Plot address must be P2WPKH (bech32)"
-- "Forging address must be P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Invalid address format"
 - "No coins available at the plot address. Cannot prove ownership."
 - "Cannot create transactions with watch-only wallet"
@@ -313,7 +312,6 @@ Naging epektibo ang revocation sa height: 13020
 **Node Configuration**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Simulan ang Node** na may mining server:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **I-configure ang Miner**:
@@ -365,7 +363,7 @@ server=1
    - Piliin ang plot address
    - Ilagay ang forging address ng pool
    - I-click ang "Send Assignment"
-   - Maghintay ng activation delay (30 block testnet)
+   - Maghintay ng activation delay (30 blocks mainnet/testnet))
 
 3. **I-configure ang Miner**:
    - Ituro sa **pool** endpoint (hindi lokal na node)
@@ -406,13 +404,13 @@ server=1
 - I-import ang private key sa pamamagitan ng `importprivkey` RPC
 - O gumamit ng ibang plot address na pag-aari ng wallet
 
-#### "Assignment already exists for this plot"
+#### "Cannot create assignment: plot is in ... state"
 
-**Sanhi**: Naka-assign na ang plot sa ibang address
-**Solusyon**:
-1. I-revoke ang kasalukuyang assignment
-2. Maghintay ng revocation delay (720 block testnet)
-3. Gumawa ng bagong assignment
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Address format not supported"
 
@@ -443,15 +441,10 @@ server=1
 2. Maghintay ng 1 confirmation
 3. Subukang muli ang paggawa ng assignment
 
-#### "Cannot create transactions with watch-only wallet"
-
-**Sanhi**: Ang wallet ay nag-import ng address nang walang private key
-**Solusyon**: I-import ang buong private key, hindi lamang ang address
-
 #### "Hindi nakikita ang Forging Assignment tab"
 
-**Sanhi**: Sinimulan ang node nang walang `-miningserver` flag
-**Solusyon**: I-restart gamit ang `bitcoin-qt -server -miningserver`
+**Sanhi**: Sinimulan ang node nang walang `` flag
+**Solusyon**: I-restart gamit ang `bitcoin-qt -server`
 
 ### Mga Hakbang sa Debug
 
@@ -525,12 +518,12 @@ server=1
 
 ### Mga Assignment Delay
 
-**Activation Delay** (30 block testnet):
+**Activation Delay** (30 blocks mainnet/testnet)):
 - Pumipigil sa mabilis na reassignment sa panahon ng mga chain fork
 - Pinapayagan ang network na maabot ang consensus
 - Hindi maaaring i-bypass
 
-**Revocation Delay** (720 block testnet):
+**Revocation Delay** (720 blocks mainnet/testnet)):
 - Nagbibigay ng katatagan para sa mga mining pool
 - Pumipigil sa mga "griefing" attack ng assignment
 - Ang forging address ay nananatiling aktibo sa panahon ng delay

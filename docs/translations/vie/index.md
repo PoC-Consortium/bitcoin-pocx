@@ -1,7 +1,7 @@
 # Tài liệu Kỹ thuật Bitcoin-PoCX
 
 **Phiên bản**: 1.0
-**Nền tảng Bitcoin Core**: v30.0
+**Nền tảng Bitcoin Core**: v30.2
 **Trạng thái**: Giai đoạn Testnet
 **Cập nhật lần cuối**: 25-12-2025
 
@@ -114,8 +114,8 @@ Hướng dẫn sử dụng ví Qt Bitcoin-PoCX: hộp thoại ủy quyền forgi
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Cấu hình với PoCX được bật
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Build
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Các biến thể Build**:
 ```bash
 # Với Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Build Debug
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Phụ thuộc**: Các phụ thuộc build tiêu chuẩn của Bitcoin Core. Xem [Tài liệu build Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) cho yêu cầu từng nền tảng.
@@ -184,7 +184,7 @@ Các đóng góp cho tài liệu được hoan nghênh. Vui lòng tuân thủ:
 
 ## Giấy phép
 
-Bitcoin-PoCX kế thừa giấy phép MIT của Bitcoin Core. Xem `COPYING` trong thư mục gốc repository.
+Bitcoin-PoCX kế thừa giấy phép MIT của Bitcoin Core. Xem `bitcoin/COPYING` trong thư mục gốc repository.
 
 Ghi nhận nguồn gốc PoCX core framework được ghi trong [Chương 2: Định dạng Plot](2-plot-format.md).
 

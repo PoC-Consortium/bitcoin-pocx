@@ -49,7 +49,7 @@ Pinapalawak ng mga PoCX block ang istruktura ng block ng Bitcoin na may karagdag
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plot seed (32 byte)
     std::array<uint8_t, 20> account_id;       // Plot address (20-byte hash160)
-    uint32_t compression;                     // Scaling level (1-255)
+    uint32_t compression;                     // Scaling level (1-6)
     uint64_t nonce;                           // Mining nonce (64-bit)
     uint64_t quality;                         // Claimed quality (PoC hash output)
 };
@@ -87,12 +87,12 @@ Ang generation signature ay lumilikha ng mining entropy at pumipigil sa mga prec
 
 **Kalkulasyon:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Genesis Block:** Gumagamit ng hardcoded initial generation signature
 
-**Implementasyon:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementasyon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (Difficulty)
 
@@ -113,8 +113,8 @@ Sinusuportahan ng PoCX ang scalable proof-of-work sa mga plot file sa pamamagita
 **Mga Dynamic Bound:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum na tinatanggap na level
-    uint8_t nPoCXTargetCompression;  // Inirerekomendang level
+    uint32_t nPoCXMinCompression;     // Minimum na tinatanggap na level
+    uint32_t nPoCXTargetCompression;  // Inirerekomendang level
 };
 ```
 
@@ -123,9 +123,9 @@ struct CompressionBounds {
 - Ang minimum scaling level ay tumataas ng 1
 - Ang target scaling level ay tumataas ng 1
 - Pinapanatili ang safety margin sa pagitan ng plot creation at lookup cost
-- Maximum scaling level: 255
+- Maximum scaling level: 7 (target = min + 1, with min capping at 6)
 
-**Implementasyon:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementasyon:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -181,7 +181,7 @@ struct CompressionBounds {
 
 **Mga Parameter:**
 ```
-height, generation_signature, account_id, seed, nonce, quality (optional)
+block_hash, height, generation_signature, base_target, account_id, seed, nonce, compression, raw_quality
 ```
 
 **Daloy ng Validation (Na-optimize na Pagkakasunud-sunod):**
@@ -205,11 +205,17 @@ auto context = pocx::consensus::GetNewBlockContext(chainman);
 
 #### Hakbang 3: Context Validation
 ```cpp
+// Block hash check
+if (block_hash != context.block_hash) reject;
+
 // Height check
 if (height != context.height) reject;
 
 // Generation signature check
 if (submitted_gen_sig != context.generation_signature) reject;
+
+// Base target check
+if (base_target != context.base_target) reject;
 ```
 
 #### Hakbang 4: Wallet Verification
@@ -223,7 +229,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Suporta sa Assignment:** Maaaring mag-assign ang may-ari ng plot ng mga karapatan sa forging sa ibang address. Ang wallet ay dapat may key para sa effective signer, hindi kinakailangang ang may-ari ng plot.
 
-#### Hakbang 5: Proof Validation
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +244,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 byte
     block_height,
     nonce,
-    seed,                // 32 byte
-    min_compression,
-    max_compression,
-    &result             // Output: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +256,7 @@ bool success = pocx_validate_block(
 3. I-validate na natutugunan ng quality ang mga kinakailangan sa difficulty
 4. Ibalik ang raw quality value
 
-**Implementasyon:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementasyon:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Hakbang 6: Time Bending Calculation
 ```cpp
@@ -270,15 +282,15 @@ kung saan:
 
 **Implementasyon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Hakbang 7: Pagsusumite sa Forger
+#### Step 8: Forger Submission: Pagsusumite sa Forger
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // HINDI deadline - kinakalkula ulit sa forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +409,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Orihinal na plot address
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Kalkulahin ulit ang merkle root:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +434,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementasyon:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementasyon:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Mga Pangunahing Desisyon sa Disenyo:**
 - Ang coinbase ay nagbabayad sa effective signer (iginagalang ang mga assignment)
@@ -468,7 +481,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. I-verify na ang recovered pubkey ay tumutugma sa stored pubkey
 
 **Implementasyon:** `src/validation.cpp:CheckBlockHeader()`
-**Signature Logic:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Signature Logic:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Yugto 2: Block Validation (CheckBlock)
 
@@ -487,49 +500,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Hakbang 1: I-validate ang generation signature
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Hakbang 2: I-validate ang base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Hakbang 3: I-validate ang proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Hakbang 4: I-verify ang deadline timing
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Mga Hakbang ng Validation:**
-1. **Generation Signature:** Dapat tumugma sa kalkuladong halaga mula sa nakaraang block
-2. **Base Target:** Dapat tumugma sa kalkulasyon ng difficulty adjustment
-3. **Scaling Level:** Dapat tugunan ang network minimum (`compression >= min_compression`)
-4. **Quality Claim:** Ang isinumiteng quality ay dapat tumugma sa computed quality mula sa proof
-5. **Proof of Capacity:** Cryptographic proof validation (SIMD-optimized)
-6. **Deadline Timing:** Ang time-bended deadline (`poc_time`) ay dapat ≤ lumipas na oras
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementasyon:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +573,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementasyon:**
 - Connection: `src/validation.cpp:ConnectBlock()`
-- Pinahabang validation: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Assignment logic: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Pinahabang validation: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Assignment logic: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Yugto 5: Chain Activation
 
@@ -603,7 +603,7 @@ CheckBlockHeader (pangunahing signature)
     ↓
 CheckBlock (transaksyon, merkle)
     ↓
-ContextualCheckBlockHeader (gen sig, base target, PoC proof, deadline)
+ContextualCheckBlockHeader (height, gen sig, base target, deadline)
     ↓
 ConnectBlock (pinahabang signature na may mga assignment, state transition)
     ↓
@@ -668,7 +668,7 @@ Transaction {
 - Nagiging ASSIGNED pagkatapos ng delay period (4 block regtest, 30 block mainnet)
 - Pinipigilan ng delay ang mabilis na reassignment sa panahon ng block race
 
-**Implementasyon:** `src/script/forging_assignment.h`, validation sa ConnectBlock
+**Implementasyon:** `src/pocx/assignments/opcodes.h`, validation sa ConnectBlock
 
 ### Pag-revoke ng mga Assignment
 
@@ -826,12 +826,15 @@ Thread B: cs_wallet → cs_main
 
 **Generation Signature:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Block Signature Hash:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Compact Signature Format:**
@@ -863,12 +866,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Mga Core Implementation:**
 - RPC Interface: `src/pocx/rpc/mining.cpp`
 - Forger Queue: `src/pocx/mining/scheduler.cpp`
-- Consensus Validation: `src/pocx/consensus/validation.cpp`
-- Proof Validation: `src/pocx/consensus/pocx.cpp`
+- Proof Validation: `src/pocx/consensus/proof.cpp`
+- Signature Validation: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Block Validation: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Assignment Logic: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Context Management: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Assignment Logic: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Context Management: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Mga Data Structure:**
 - Block Format: `src/primitives/block.h`
@@ -902,7 +905,7 @@ kung saan:
 **Proseso:**
 1. I-generate ang scoop mula sa generation signature at taas
 2. Basahin ang plot data para sa kalkuladong scoop
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Subukan ang mga scaling level mula min hanggang max
 5. Ibalik ang pinakamahusay na quality na nakita
 
@@ -925,7 +928,7 @@ kung saan:
 avg_base_target = moving_average(kamakailang base target)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

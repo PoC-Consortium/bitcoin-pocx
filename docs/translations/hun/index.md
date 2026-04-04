@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Műszaki Dokumentáció
 
 **Verzió**: 1.0
-**Bitcoin Core Alapverzió**: v30.0
+**Bitcoin Core Alapverzió**: v30.2
 **Állapot**: Teszthálózati Fázis
 **Utolsó Frissítés**: 2025-12-25
 
@@ -118,8 +118,8 @@ Felhasználói útmutató a Bitcoin-PoCX Qt tárcához: kovácsolási megbízás
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfiguráció PoCX engedélyezésével
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Fordítás
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Build Változatok**:
 ```bash
 # Qt GUI-val
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug build
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Függőségek**: Szabványos Bitcoin Core build függőségek. Lásd a [Bitcoin Core build dokumentációt](https://github.com/bitcoin/bitcoin/tree/master/doc#building) a platform-specifikus követelményekért.
@@ -188,7 +188,7 @@ A dokumentációhoz való hozzájárulásokat szívesen fogadjuk. Kérjük, tart
 
 ## Licenc
 
-A Bitcoin-PoCX a Bitcoin Core MIT licencét örökli. Lásd `COPYING` a repository gyökerében.
+A Bitcoin-PoCX a Bitcoin Core MIT licencét örökli. Lásd `bitcoin/COPYING` a repository gyökerében.
 
 PoCX keretrendszer attribúció a [2. Fejezet: Plotfájl Formátum](2-plot-format.md) részben dokumentálva.
 

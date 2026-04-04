@@ -49,7 +49,7 @@ Các khối PoCX mở rộng cấu trúc khối của Bitcoin với các trườ
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed plot (32 byte)
     std::array<uint8_t, 20> account_id;       // Địa chỉ plot (20-byte hash160)
-    uint32_t compression;                     // Cấp độ mở rộng (1-255)
+    uint32_t compression;                     // Cấp độ mở rộng (1-6)
     uint64_t nonce;                           // Mining nonce (64-bit)
     uint64_t quality;                         // Chất lượng được khai báo (đầu ra hash PoC)
 };
@@ -87,12 +87,12 @@ Chữ ký sinh tạo entropy đào và ngăn các tấn công tính toán trư�
 
 **Tính toán:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Khối Genesis:** Sử dụng chữ ký sinh khởi tạo được hardcode
 
-**Triển khai:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Triển khai:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Mục tiêu Cơ sở (Độ khó)
 
@@ -113,8 +113,8 @@ PoCX hỗ trợ proof-of-work có thể mở rộng trong các tệp plot thông
 **Giới hạn Động:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Cấp độ tối thiểu được chấp nhận
-    uint8_t nPoCXTargetCompression;  // Cấp độ khuyến nghị
+    uint32_t nPoCXMinCompression;     // Cấp độ tối thiểu được chấp nhận
+    uint32_t nPoCXTargetCompression;  // Cấp độ khuyến nghị
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Duy trì biên độ an toàn giữa chi phí tạo plot và chi phí tra cứu
 - Cấp độ mở rộng tối đa: 255
 
-**Triển khai:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Triển khai:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Hỗ trợ Ủy quyền:** Chủ sở hữu plot có thể ủy quyền quyền forging cho địa chỉ khác. Ví phải có khóa cho người ký hiệu quả, không nhất thiết là chủ sở hữu plot.
 
-#### Bước 5: Xác thực Bằng chứng
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,20 +238,19 @@ bool success = pocx_validate_block(
     account_payload,     // 20 byte
     block_height,
     nonce,
-    seed,                // 32 byte
-    min_compression,
-    max_compression,
-    &result             // Đầu ra: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
 **Thuật toán:**
 1. Giải mã chữ ký sinh từ hex
-2. Tính chất lượng tốt nhất trong phạm vi nén sử dụng thuật toán tối ưu SIMD
+2. Calculate quality at specified compression level
 3. Xác thực chất lượng đáp ứng yêu cầu độ khó
 4. Trả về giá trị chất lượng thô
 
-**Triển khai:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Triển khai:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Bước 6: Tính toán Time Bending
 ```cpp
@@ -270,20 +276,20 @@ trong đó:
 
 **Triển khai:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Bước 7: Gửi Forger
+#### Step 8: Forger Submission: Gửi Forger
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // KHÔNG phải deadline - được tính lại trong forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
 **Thiết kế Dựa trên Hàng đợi:**
-- Gửi luôn thành công (được thêm vào hàng đợi)
+- Submission added to queue (rejected if queue full — `MAX_QUEUE_SIZE`)
 - RPC trả về ngay lập tức
 - Thread worker xử lý bất đồng bộ
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Không khớp chữ ký sinh → loại bỏ
    - Hash khối đỉnh thay đổi (reorg) → đặt lại trạng thái forging
 
-3. So sánh chất lượng:
+3. Quality comparison (lower = better):
    - Nếu quality >= current_best → loại bỏ
 
 4. Tính deadline Time Bended:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Địa chỉ plot gốc
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Tính lại merkle root:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Triển khai:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Triển khai:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Quyết định Thiết kế Quan trọng:**
 - Coinbase trả cho người ký hiệu quả (tôn trọng ủy quyền)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Xác minh pubkey khôi phục khớp pubkey đã lưu
 
 **Triển khai:** `src/validation.cpp:CheckBlockHeader()`
-**Logic Chữ ký:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Logic Chữ ký:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Giai đoạn 2: Xác thực Khối (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Bước 1: Xác thực chữ ký sinh
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Bước 2: Xác thực base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Bước 3: Xác thực proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Bước 4: Xác minh timing deadline
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Các Bước Xác thực:**
-1. **Chữ ký Sinh:** Phải khớp giá trị tính từ khối trước
-2. **Base Target:** Phải khớp tính toán điều chỉnh độ khó
-3. **Cấp độ Mở rộng:** Phải đáp ứng tối thiểu mạng (`compression >= min_compression`)
-4. **Khai báo Chất lượng:** Chất lượng gửi phải khớp chất lượng tính từ bằng chứng
-5. **Proof of Capacity:** Xác thực bằng chứng mật mã (tối ưu SIMD)
-6. **Timing Deadline:** Deadline time-bended (`poc_time`) phải ≤ thời gian đã trôi
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Triển khai:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Triển khai:**
 - Kết nối: `src/validation.cpp:ConnectBlock()`
-- Xác thực mở rộng: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Logic ủy quyền: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Xác thực mở rộng: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Logic ủy quyền: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Giai đoạn 5: Kích hoạt Chuỗi
 
@@ -599,11 +593,11 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Nhận Khối
     ↓
-CheckBlockHeader (chữ ký cơ bản)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (giao dịch, merkle)
     ↓
-ContextualCheckBlockHeader (gen sig, base target, PoC proof, deadline)
+ContextualCheckBlockHeader (height, gen sig, base target, deadline)
     ↓
 ConnectBlock (chữ ký mở rộng với ủy quyền, chuyển đổi trạng thái)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Trở thành ASSIGNED sau khoảng trễ (4 khối regtest, 30 khối mainnet)
 - Độ trễ ngăn tái ủy quyền nhanh trong các cuộc đua khối
 
-**Triển khai:** `src/script/forging_assignment.h`, xác thực trong ConnectBlock
+**Triển khai:** `src/pocx/assignments/opcodes.h`, xác thực trong ConnectBlock
 
 ### Thu hồi Ủy quyền
 
@@ -683,9 +677,10 @@ Transaction {
 ```
 
 **Hiệu quả:**
-- Chuyển đổi trạng thái ngay lập tức sang REVOKED
-- Chủ sở hữu plot có thể forge ngay lập tức
-- Có thể tạo ủy quyền mới sau đó
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Xác thực Ủy quyền Trong Đào
 
@@ -826,12 +821,15 @@ Thread B: cs_wallet → cs_main
 
 **Chữ ký Sinh:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Hash Chữ ký Khối:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Định dạng Chữ ký Compact:**
@@ -863,12 +861,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Triển khai Lõi:**
 - Giao diện RPC: `src/pocx/rpc/mining.cpp`
 - Hàng đợi Forger: `src/pocx/mining/scheduler.cpp`
-- Xác thực Đồng thuận: `src/pocx/consensus/validation.cpp`
-- Xác thực Bằng chứng: `src/pocx/consensus/pocx.cpp`
+- Xác thực Đồng thuận: `src/pocx/consensus/proof.cpp`
+- Xác thực Bằng chứng: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Xác thực Khối: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Logic Ủy quyền: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Quản lý Ngữ cảnh: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Logic Ủy quyền: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Quản lý Ngữ cảnh: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Cấu trúc Dữ liệu:**
 - Định dạng Khối: `src/primitives/block.h`
@@ -902,7 +900,7 @@ trong đó:
 **Quy trình:**
 1. Sinh scoop từ chữ ký sinh và chiều cao
 2. Đọc dữ liệu plot cho scoop đã tính
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Kiểm tra các cấp độ mở rộng từ min đến max
 5. Trả về chất lượng tốt nhất tìm được
 
@@ -923,9 +921,13 @@ trong đó:
 **Công thức:**
 ```
 avg_base_target = moving_average(recent base targets)
+
+// Hybrid correction: wall-clock time adjusted by bended deadlines
+actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)
+
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

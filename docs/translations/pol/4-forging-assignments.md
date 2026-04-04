@@ -39,7 +39,7 @@ Wyjścia:
   [1]: Reszta zwracana użytkownikowi (opcjonalne, standardowe P2WPKH)
 ```
 
-**Implementacja:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Implementacja:** `src/pocx/assignments/opcodes.cpp`
 
 ### Format transakcji cofnięcia
 
@@ -58,14 +58,14 @@ Wyjścia:
   [1]: Reszta zwracana użytkownikowi (opcjonalne, standardowe P2WPKH)
 ```
 
-**Implementacja:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Implementacja:** `src/pocx/assignments/opcodes.cpp`
 
 ### Znaczniki
 
 - **Znacznik przydziału:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Znacznik cofnięcia:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Implementacja:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Implementacja:** `src/pocx/assignments/opcodes.cpp`
 
 ### Kluczowe cechy transakcji
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Pełna historia: wszystkie przydziały na plot w czasie
 ```
 
-**Implementacja:** `src/txdb.cpp:237-348`
+**Implementacja:** `src/txdb.cpp`
 
 ### Struktura ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Implementacja:** `src/coins.h:111-178`
+**Implementacja:** `src/coins.h`
 
 ### Stany przydziałów
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Implementacja:** `src/coins.h:98-104`
+**Implementacja:** `src/coins.h`
 
 ### Klucze bazy danych
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Implementacja:** `src/txdb.cpp:245-262`
+**Implementacja:** `src/txdb.cpp`
 
 ### Śledzenie historii
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Sprawdź stan plotu (musi być UNASSIGNED lub REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Utwórz nowy przydział
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins kontynuuje normalnie (automatycznie pomija wyjścia OP_RETURN)
 ```
 
-**Implementacja:** `src/validation.cpp:2775-2878`
+**Implementacja:** `src/validation.cpp:ConnectBlock()`
 
 ### Weryfikacja własności
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Sprawdź czy co najmniej jedno wejście jest podpisane przez właściciela plotu
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Wyodrębnij miejsce docelowe
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Sprawdź czy P2WPKH do adresu plotu
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core już zwalidował sygnaturę
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Implementacja:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Implementacja:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Opóźnienia aktywacji
 
@@ -282,7 +280,7 @@ Wykonywane w `src/consensus/tx_check.cpp` bez dostępu do stanu łańcucha:
 
 1. **Maksymalnie jeden OP_RETURN POCX:** Transakcja nie może zawierać wielu znaczników POCX/XCOP
 
-**Implementacja:** `src/consensus/tx_check.cpp:63-77`
+**Implementacja:** `src/consensus/tx_check.cpp`
 
 ### Sprawdzenia akceptacji mempoola (PreChecks)
 
@@ -300,7 +298,7 @@ Wykonywane w `src/validation.cpp` z pełnym dostępem do stanu łańcucha i memp
 2. **Aktywny przydział:** Plot musi być tylko w stanie ASSIGNED (2)
 3. **Konflikty mempoola:** Brak innego cofnięcia dla tego plotu w mempoolu
 
-**Implementacja:** `src/validation.cpp:898-993`
+**Implementacja:** `src/validation.cpp:PreChecks()`
 
 ### Przepływ walidacji
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Zbierz brudne przydziały
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Pusty - nieużywany
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Zapisz do bazy danych
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Wyczyść śledzenie
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Zwolnij pamięć
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Implementacja:** `src/coins.cpp:278-315`
+**Implementacja:** `src/coins.cpp:Flush()`
 
 ### Zapis wsadowy do bazy
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Przydziały zapisywane oddzielnie ale w tym samym kontekście transakcji bazy
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Nieużywany parametr (zachowany dla kompatybilności API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Nowy wsad, ale ta sama baza
+    CDBBatch batch(*m_db);
 
-    // Zapisz historię przydziałów
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Usuń usunięte przydziały z historii
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // ATOMOWY COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Implementacja:** `src/txdb.cpp:332-348`
+**Implementacja:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Gwarancje atomowości
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Implementacja:** `src/undo.h:63-105`
+**Implementacja:** `src/undo.h`
 
 ### Proces DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Implementacja:** `src/validation.cpp:2381-2415`
+**Implementacja:** `src/validation.cpp:DisconnectBlock()`
 
 ### Zarządzanie cache podczas reorganizacji
 
@@ -556,7 +562,7 @@ private:
     // Cache przydziałów
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Śledź zmodyfikowane ploty
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Śledź usunięcia
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Śledź usunięcia
     mutable size_t cachedAssignmentsUsage{0};  // Śledzenie pamięci
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Implementacja:** `src/coins.cpp:494-565`
+**Implementacja:** `src/coins.cpp`
 
 ## Interfejs RPC
 
@@ -613,7 +617,7 @@ Zwraca aktualny status przydziału dla adresu plotu:
 }
 ```
 
-**Implementacja:** `src/pocx/rpc/assignments.cpp:31-126`
+**Implementacja:** `src/pocx/rpc/assignments.cpp`
 
 ### Polecenia portfela (wymagają portfela)
 
@@ -628,7 +632,7 @@ Tworzy transakcję przydziału:
 - Podpisuje kluczem właściciela plotu
 - Rozgłasza do sieci
 
-**Implementacja:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Implementacja:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Tworzy transakcję cofnięcia:
 - Podpisuje kluczem właściciela plotu
 - Rozgłasza do sieci
 
-**Implementacja:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Implementacja:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Tworzenie transakcji przez portfel
 
@@ -660,7 +664,7 @@ Proces tworzenia transakcji przez portfel:
 
 **Kluczowy wniosek:** Portfel musi wydać z adresu plotu, aby udowodnić własność, więc automatycznie wymusza wybór monet z tego adresu.
 
-**Implementacja:** `src/pocx/assignments/transactions.cpp:38-263`
+**Implementacja:** `src/pocx/assignments/transactions.cpp`
 
 ## Struktura plików
 

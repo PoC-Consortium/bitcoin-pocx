@@ -28,7 +28,7 @@ Pilnīgs Bitcoin-PoCX Qt maka un kalšanas piešķīrumu pārvaldības ceļvedis
 Bitcoin-PoCX Qt maciņš (`bitcoin-qt`) nodrošina:
 - Standarta Bitcoin Core maka funkcionalitāti (sūtīt, saņemt, darījumu pārvaldība)
 - **Kalšanas piešķīrumu pārvaldnieks**: GUI piešķīrumu izveidei/atsaukšanai
-- **Kalnrūpniecības servera režīms**: `-miningserver` karodziņš iespējo ar kalnrūpniecību saistītas funkcijas
+- **Kalnrūpniecības servera režīms**: `` karodziņš iespējo ar kalnrūpniecību saistītas funkcijas
 - **Darījumu vēsture**: Piešķīrumu un atsaukšanas darījumu attēlošana
 
 ### Maka palaišana
@@ -40,18 +40,18 @@ Bitcoin-PoCX Qt maciņš (`bitcoin-qt`) nodrošina:
 
 **Ar kalnrūpniecību** (iespējo piešķīrumu dialogu):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Komandrindas alternatīva**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Kalnrūpniecības prasības
 
 **Kalnrūpniecības operācijām**:
-- `-miningserver` karodziņš nepieciešams
+- `` karodziņš nepieciešams
 - Maciņš ar P2WPKH adresēm un privātajām atslēgām
 - Ārējs ploteris (`pocx_plotter`) plotfailu ģenerēšanai
 - Ārējs kalnracis (`pocx_miner`) kalnrūpniecībai
@@ -83,8 +83,7 @@ Bitcoin-PoCX izmanto **BTCX** valūtas vienību (nevis BTC):
 
 ### Piekļuve dialogam
 
-**Izvēlne**: `Wallet → Forging Assignments`
-**Rīkjosla**: Kalnrūpniecības ikona (redzama tikai ar `-miningserver` karodziņu)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Loga izmērs**: 600×450 pikseļi
 
 ### Dialoga režīmi
@@ -296,8 +295,8 @@ Atsaukšana stājās spēkā augstumā: 13020
 ### Validācijas kļūdu ziņojumi
 
 **Dialoga kļūdas**:
-- "Plot address must be P2WPKH (bech32)"
-- "Forging address must be P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Invalid address format"
 - "No coins available at the plot address. Cannot prove ownership."
 - "Cannot create transactions with watch-only wallet"
@@ -313,7 +312,6 @@ Atsaukšana stājās spēkā augstumā: 13020
 **Mezgla konfigurācija**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Palaist mezglu** ar kalnrūpniecības serveri:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigurēt kalnraci**:
@@ -399,20 +397,15 @@ server=1
 
 ### Biežākās problēmas
 
-#### "Wallet does not have private key for plot address"
+- Or use different plot address owned by wallet
 
-**Cēlonis**: Maciņam nepieder adrese
-**Risinājums**:
-- Importēt privāto atslēgu caur `importprivkey` RPC
-- Vai izmantot citu plotfaila adresi, kas pieder maciņam
+#### "Cannot create assignment: plot is in ... state"
 
-#### "Assignment already exists for this plot"
-
-**Cēlonis**: Plotfails jau piešķirts citai adresei
-**Risinājums**:
-1. Atsaukt esošo piešķīrumu
-2. Gaidīt atsaukšanas aizkavi (720 bloki testnet)
-3. Izveidot jaunu piešķīrumu
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Address format not supported"
 
@@ -442,16 +435,6 @@ server=1
 1. Nosūtīt līdzekļus uz plotfaila adresi
 2. Gaidīt 1 apstiprinājumu
 3. Mēģināt piešķīruma izveidi vēlreiz
-
-#### "Cannot create transactions with watch-only wallet"
-
-**Cēlonis**: Maciņš importēja adresi bez privātās atslēgas
-**Risinājums**: Importēt pilnu privāto atslēgu, ne tikai adresi
-
-#### "Forging Assignment tab not visible"
-
-**Cēlonis**: Mezgls palaists bez `-miningserver` karodziņa
-**Risinājums**: Restartēt ar `bitcoin-qt -server -miningserver`
 
 ### Atkļūdošanas soļi
 

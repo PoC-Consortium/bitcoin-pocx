@@ -23,7 +23,7 @@ Referință completă pentru comenzile RPC Bitcoin-PoCX, incluzând RPC-urile de
 
 ### Modul server de minerit
 
-**Flag**: `-miningserver`
+**Flag**: ``
 
 **Scop**: Activează accesul RPC pentru minerii externi pentru a apela RPC-uri specifice mineritului
 
@@ -34,10 +34,9 @@ Referință completă pentru comenzile RPC Bitcoin-PoCX, incluzând RPC-urile de
 **Utilizare**:
 ```bash
 # Linie de comandă
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Considerații de securitate**:
@@ -65,7 +64,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 caractere
-  "base_target": 36650387593,                // numeric
+  "base_target": 36650387592,                // numeric
   "height": 12345,                           // numeric, înălțimea următorului bloc
   "block_hash": "def456...",                 // hex, blocul anterior
   "target_quality": 18446744073709551615,    // uint64_max (toate soluțiile acceptate)
@@ -98,19 +97,20 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Categorie**: mining
-**Necesită server de minerit**: Da
 **Necesită portofel**: Da (pentru chei private)
 
 **Scop**: Trimite o soluție de minerit PoCX. Validează dovada, pune în coadă pentru forjare time-bended și creează automat blocul la momentul programat.
 
-**Parametri**:
-1. `height` (numeric, obligatoriu) - Înălțimea blocului
-2. `generation_signature` (string hex, obligatoriu) - Semnătura de generare (64 caractere)
-3. `account_id` (string, obligatoriu) - ID-ul contului plot (40 caractere hex = 20 octeți)
-4. `seed` (string, obligatoriu) - Seed-ul plot-ului (64 caractere hex = 32 octeți)
-5. `nonce` (numeric, obligatoriu) - Nonce-ul de minerit
-6. `compression` (numeric, obligatoriu) - Nivelul de scalare/compresie folosit (1-255)
-7. `quality` (numeric, opțional) - Valoarea calității (recalculată dacă este omisă)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Valori returnate** (succes):
 ```json
@@ -163,12 +163,16 @@ bitcoin-cli get_mining_info
 
 **Exemplu**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_caractere_hex..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Note**:
@@ -377,7 +381,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Modificări PoCX**:
 - **Calcul**: `reference_base_target / current_base_target`
-- **Referință**: Capacitate de rețea de 1 TiB (base_target = 36650387593)
+- **Referință**: Capacitate de rețea de 1 TiB (base_target = 36650387592)
 - **Interpretare**: Capacitate estimată de stocare a rețelei în TiB
   - Exemplu: `1.0` = ~1 TiB
   - Exemplu: `1024.0` = ~1 PiB
@@ -494,10 +498,11 @@ Următoarele RPC-uri specifice PoW sunt **dezactivate** în modul PoCX:
 - **Alternativă**: Folosiți `get_mining_info` (specific PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Motiv**: Mineritul CPU nu se aplică la PoCX (necesită plot-uri pre-generate)
-- **Alternativă**: Folosiți plotter extern + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementare**: `src/rpc/mining.cpp` (RPC-urile returnează eroare când ENABLE_POCX este definit)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +535,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Scanează fișierele plot (implementare externă)
@@ -538,11 +543,15 @@ while True:
 
     # 3. Trimite cea mai bună soluție
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +671,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC-uri minerit**: `src/pocx/rpc/mining.cpp`
 **RPC-uri atribuiri**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC-uri blockchain**: `src/rpc/blockchain.cpp`
-**Validare dovadă**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Validare dovadă**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Stare atribuiri**: `src/pocx/assignments/assignment_state.cpp`
 **Creare tranzacții**: `src/pocx/assignments/transactions.cpp`
 

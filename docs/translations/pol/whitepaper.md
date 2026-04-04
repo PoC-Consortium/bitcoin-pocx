@@ -16,7 +16,7 @@ Nasza implementacja wprowadza kilka kluczowych innowacji:
 (3) Mechanizm przydziału kucia oparty na OP_RETURN umożliwiający wydobycie w puli bez powiernictwa; oraz
 (4) Dynamiczne skalowanie kompresji, które zwiększa trudność generowania plotów w zgodności z harmonogramami halvingu, aby utrzymać długoterminowe marginesy bezpieczeństwa w miarę poprawy sprzętu.
 
-Bitcoin-PoCX zachowuje architekturę Bitcoin Core poprzez minimalne, oznaczone flagami modyfikacje, izolując logikę PoC od istniejącego kodu konsensusu. System zachowuje politykę monetarną Bitcoina, celując w 120-sekundowy interwał bloków i dostosowując dotację blokową do 10 BTC. Zmniejszona dotacja kompensuje pięciokrotny wzrost częstotliwości bloków, utrzymując długoterminową stopę emisji zgodną z oryginalnym harmonogramem Bitcoina i zachowując maksymalną podaż ~21 milionów.
+Bitcoin-PoCX zachowuje architekturę Bitcoin Core poprzez minimalne, oznaczone flagami modyfikacje, izolując logikę PoC od istniejącego kodu konsensusu. System zachowuje politykę monetarną Bitcoina, celując w 120-sekundowy interwał bloków i dostosowując dotację blokową do 10 BTCX. Zmniejszona dotacja kompensuje pięciokrotny wzrost częstotliwości bloków, utrzymując długoterminową stopę emisji zgodną z oryginalnym harmonogramem Bitcoina i zachowując maksymalną podaż ~21 milionów.
 
 ---
 
@@ -211,9 +211,9 @@ Dowód osadza wszystkie informacje istotne dla konsensusu potrzebne walidatorom 
 
 Sygnatura generacji zapewnia nieprzewidywalność wymaganą dla bezpiecznego wydobycia Proof of Capacity. Każdy blok wywodzi swoją sygnaturę generacji z sygnatury i podpisującego poprzedniego bloku, zapewniając że górnicy nie mogą przewidywać przyszłych wyzwań ani wstępnie obliczać korzystnych regionów plotu:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-To produkuje sekwencję kryptograficznie silnych, zależnych od górnika wartości entropii. Ponieważ klucz publiczny górnika jest nieznany aż poprzedni blok zostanie opublikowany, żaden uczestnik nie może przewidzieć przyszłych wyborów scoopów. To zapobiega selektywnemu wstępnemu obliczaniu lub strategicznemu plottingowi i zapewnia że każdy blok wprowadza prawdziwie świeżą pracę wydobywczą.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. To produkuje sekwencję kryptograficznie silnych, zależnych od górnika wartości entropii. Ponieważ klucz publiczny górnika jest nieznany aż poprzedni blok zostanie opublikowany, żaden uczestnik nie może przewidzieć przyszłych wyborów scoopów. To zapobiega selektywnemu wstępnemu obliczaniu lub strategicznemu plottingowi i zapewnia że każdy blok wprowadza prawdziwie świeżą pracę wydobywczą.
 
 ### 4.3 Proces kucia
 
@@ -411,12 +411,12 @@ Poniższe tabele podsumowują wynikowe ustawienia mainnet, testnet i regtest, po
 | Parametr | Wartość |
 |----------|---------|
 | Bajty magiczne | `0xa7 0x3c 0x91 0x5e` |
-| Domyślny port | 8888 |
+| Domyślny port | 8338 |
 | Bech32 HRP | `pocx` |
 | Docelowy czas bloku | 120 sekund |
-| Początkowa dotacja | 10 BTC |
+| Początkowa dotacja | 10 BTCX |
 | Interwał halvingu | 1050000 bloków (~4 lata) |
-| Całkowita podaż | ~21 milionów BTC |
+| Całkowita podaż | ~21 milionów BTCX |
 | Aktywacja przydziału | 30 bloków |
 | Cofnięcie przydziału | 720 bloków |
 | Okno kroczące | 24 bloki |
@@ -425,8 +425,8 @@ Poniższe tabele podsumowują wynikowe ustawienia mainnet, testnet i regtest, po
 
 | Parametr | Wartość |
 |----------|---------|
-| Bajty magiczne | `0x6d 0xf2 0x48 0xb3` |
-| Domyślny port | 18888 |
+| Bajty magiczne | `0x6d 0xf2 0x48 0xb4` |
+| Domyślny port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Docelowy czas bloku | 120 sekund |
 | Inne parametry | Takie same jak mainnet |

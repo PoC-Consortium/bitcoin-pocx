@@ -39,7 +39,7 @@ Outputs:
   [1]: Ресто обратно към потребителя (незадължително, стандартен P2WPKH)
 ```
 
-**Имплементация:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Имплементация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Формат на транзакция за отмяна
 
@@ -58,14 +58,14 @@ Outputs:
   [1]: Ресто обратно към потребителя (незадължително, стандартен P2WPKH)
 ```
 
-**Имплементация:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Имплементация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Маркери
 
 - **Маркер за делегиране:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Маркер за отмяна:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Имплементация:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Имплементация:** `src/pocx/assignments/opcodes.cpp`
 
 ### Ключови характеристики на транзакции
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Пълна история: всички делегирания за plot във времето
 ```
 
-**Имплементация:** `src/txdb.cpp:237-348`
+**Имплементация:** `src/txdb.cpp`
 
 ### Структура ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Имплементация:** `src/coins.h:111-178`
+**Имплементация:** `src/coins.h`
 
 ### Състояния на делегиране
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Имплементация:** `src/coins.h:98-104`
+**Имплементация:** `src/coins.h`
 
 ### Ключове на база данни
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Имплементация:** `src/txdb.cpp:245-262`
+**Имплементация:** `src/txdb.cpp`
 
 ### Проследяване на история
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Проверка на състояние на plot (трябва да бъде UNASSIGNED или REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Създаване на ново делегиране
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins продължава нормално (автоматично пропуска OP_RETURN изходи)
 ```
 
-**Имплементация:** `src/validation.cpp:2775-2878`
+**Имплементация:** `src/validation.cpp:ConnectBlock()`
 
 ### Проверка на собственост
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Проверка дали поне един вход е подписан от собственика на plot
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Извличане на дестинация
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Проверка дали е P2WPKH към адрес на plot
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core вече е валидирал подписа
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Имплементация:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Имплементация:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Забавяния на активиране
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // Забавяне на активиран
 
 1. **Максимум един POCX OP_RETURN:** Транзакцията не може да съдържа множество POCX/XCOP маркери
 
-**Имплементация:** `src/consensus/tx_check.cpp:63-77`
+**Имплементация:** `src/consensus/tx_check.cpp`
 
 ### Проверки при приемане в Mempool (PreChecks)
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // Забавяне на активиран
 2. **Активно делегиране:** Plot трябва да бъде в състояние ASSIGNED (2) само
 3. **Конфликти в mempool:** Няма друга отмяна за този plot в mempool
 
-**Имплементация:** `src/validation.cpp:898-993`
+**Имплементация:** `src/validation.cpp:PreChecks()`
 
 ### Поток на валидация
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Събиране на dirty делегирания
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Празен - неизползван
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Запис в база данни
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Изчистване на проследяване
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Освобождаване на памет
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Имплементация:** `src/coins.cpp:278-315`
+**Имплементация:** `src/coins.cpp:Flush()`
 
 ### Batch запис в база данни
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Делегиранията се записват отделно, но в същия контекст на транзакция на база данни
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Неизползван параметър (запазен за съвместимост на API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Нов batch, но същата база данни
+    CDBBatch batch(*m_db);
 
-    // Запис на история на делегирания
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Изтриване на изтрити делегирания от историята
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // АТОМАРЕН COMMIT
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Имплементация:** `src/txdb.cpp:332-348`
+**Имплементация:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Гаранции за атомарност
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Имплементация:** `src/undo.h:63-105`
+**Имплементация:** `src/undo.h`
 
 ### Процес на DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Имплементация:** `src/validation.cpp:2381-2415`
+**Имплементация:** `src/validation.cpp:DisconnectBlock()`
 
 ### Управление на кеш при реорганизация
 
@@ -556,7 +562,7 @@ private:
     // Кешове за делегирания
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Проследяване на модифицирани plot-ове
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Проследяване на изтривания
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Проследяване на изтривания
     mutable size_t cachedAssignmentsUsage{0};  // Проследяване на памет
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Имплементация:** `src/coins.cpp:494-565`
+**Имплементация:** `src/coins.cpp`
 
 ## RPC интерфейс
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**Имплементация:** `src/pocx/rpc/assignments.cpp:31-126`
+**Имплементация:** `src/pocx/rpc/assignments.cpp`
 
 ### Команди за портфейл (изисква портфейл)
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - Подписва с ключа на собственика на plot
 - Разпространява в мрежата
 
-**Имплементация:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Имплементация:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - Подписва с ключа на собственика на plot
 - Разпространява в мрежата
 
-**Имплементация:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Имплементация:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Създаване на транзакция от портфейл
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **Ключов момент:** Портфейлът трябва да харчи от адреса на plot, за да докаже собственост, така че автоматично принуждава избор на coin от този адрес.
 
-**Имплементация:** `src/pocx/assignments/transactions.cpp:38-263`
+**Имплементация:** `src/pocx/assignments/transactions.cpp`
 
 ## Файлова структура
 
@@ -689,7 +693,7 @@ src/
     │
     ├── rpc/
     │   ├── assignments.h          # RPC команди за възел (без портфейл)
-    │   ├── assignments.cpp        # get_assignment, list_assignments RPC
+    │   ├── assignments.cpp        # get_assignment RPC
     │   ├── assignments_wallet.h   # RPC команди за портфейл
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │

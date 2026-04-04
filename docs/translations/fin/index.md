@@ -1,7 +1,7 @@
 # Bitcoin-PoCX Tekninen dokumentaatio
 
 **Versio**: 1.0
-**Bitcoin Core -pohja**: v30.0
+**Bitcoin Core -pohja**: v30.2
 **Tila**: Testiverkkofase
 **Päivitetty viimeksi**: 25.12.2025
 
@@ -118,8 +118,8 @@ Käyttöopas Bitcoin-PoCX Qt -lompakolle: forging-delegointidialogi, transaktioh
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfiguroi PoCX käyttöön
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Rakenna
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Buildivariantit**:
 ```bash
 # Qt-käyttöliittymällä
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Debug-buildi
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Riippuvuudet**: Samat kuin Bitcoin Coren standardibuildivaatimukset. Katso [Bitcoin Core -rakennusdokumentaatio](https://github.com/bitcoin/bitcoin/tree/master/doc#building) alustakohtaisiin vaatimuksiin.
@@ -188,7 +188,7 @@ Dokumentaatioon osallistuminen on tervetullutta. Säilytä:
 
 ## Lisenssi
 
-Bitcoin-PoCX perii Bitcoin Coren MIT-lisenssin. Katso `COPYING` repositorion juurihakemistossa.
+Bitcoin-PoCX perii Bitcoin Coren MIT-lisenssin. Katso `bitcoin/COPYING` repositorion juurihakemistossa.
 
 PoCX-ydinkehyksen attribuutio dokumentoitu [Luvussa 2: Plottimuoto](2-plot-format.md).
 

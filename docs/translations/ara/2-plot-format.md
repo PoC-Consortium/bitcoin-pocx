@@ -77,12 +77,12 @@
 1. **ACCOUNT_PAYLOAD** (40 حرف hex)
    - حمولة الحساب الخام 20 بايت كـ hex بأحرف كبيرة
    - مستقل عن الشبكة (لا معرف شبكة أو checksum)
-   - مثال: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - مثال: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 حرف hex)
    - قيمة seed 32 بايت كـ hex بأحرف صغيرة
    - **جديد في PoCX**: seed عشوائي 32 بايت في اسم الملف يحل محل ترقيم nonce المتتالي — يمنع تداخل الرسومات
-   - مثال: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - مثال: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (رقم عشري)
    - **وحدة حجم جديدة في PoCX**: تحل محل التحجيم القائم على nonce من POC1/POC2
@@ -97,8 +97,8 @@
 
 ### أمثلة أسماء الملفات
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

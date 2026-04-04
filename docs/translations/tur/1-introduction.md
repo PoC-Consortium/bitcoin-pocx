@@ -42,7 +42,7 @@ Kapasite Kanıtı (PoC), madencilik gücünün hesaplama gücü yerine **disk al
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + PoCX entegrasyonu
+├── bitcoin/             # Bitcoin Core v30.2 + PoCX entegrasyonu
 │   └── src/pocx/        # PoCX uygulaması
 ├── pocx/                # PoCX çekirdek çatısı (alt modül, salt okunur)
 └── docs/                # Bu dokümantasyon
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Çözüm**: Küp kök kullanarak üstel dağılımdan ki-kare dağılımına dönüşüm: `Y = ölçek × (X^(1/3))`.
 
-**Etki**: Çok iyi çözümler daha geç döver (ağın tüm diskleri taraması için zaman tanır, hızlı blokları azaltır), zayıf çözümler iyileştirilir. Ortalama blok süresi 120 saniyede korunur, uzun bloklar azaltılır.
+**Etki**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detaylar**: [Bölüm 3: Konsensüs ve Madencilik](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Bitcoin Core ile Aynı**:
 - **CPU**: Modern x86_64 işlemci
 - **Bellek**: 4-8 GB RAM
-- **Depolama**: Yeni zincir, şu anda boş (2 dakikalık bloklar ve atama veritabanı nedeniyle Bitcoin'den ~4× daha hızlı büyüyebilir)
+- **Depolama**: Yeni zincir, şu anda boş (2 dakikalık bloklar ve atama veritabanı nedeniyle Bitcoin'den ~5× daha hızlı büyüyebilir)
 - **Ağ**: Kararlı internet bağlantısı
 - **Saat**: Optimum işletim için NTP senkronizasyonu önerilir
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# PoCX etkin olarak derleyin
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detaylar**: Depo kök dizinindeki `CLAUDE.md` dosyasına bakın
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Düğüm Çalıştırma
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Madencilik için** (harici madenciler için RPC erişimini etkinleştirir):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # veya
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detaylar**: [Bölüm 6: Ağ Parametreleri](6-network-parameters.md)

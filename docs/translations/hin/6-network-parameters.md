@@ -39,12 +39,7 @@
 
 ### Genesis संदेश
 
-सभी नेटवर्क Bitcoin genesis संदेश साझा करते हैं:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**कार्यान्वयन**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **नेटवर्क पहचान**:
 - **Magic Bytes**: `0xa7 0x3c 0x91 0x5e`
-- **डिफ़ॉल्ट पोर्ट**: `8888`
+- **डिफ़ॉल्ट पोर्ट**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **पता उपसर्ग** (Base58):
@@ -84,14 +79,14 @@
 ### Testnet पैरामीटर
 
 **नेटवर्क पहचान**:
-- **Magic Bytes**: `0x6d 0xf2 0x48 0xb3`
-- **डिफ़ॉल्ट पोर्ट**: `18888`
+- **Magic Bytes**: `0x6d 0xf2 0x48 0xb4`
+- **डिफ़ॉल्ट पोर्ट**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **पता उपसर्ग** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **ब्लॉक समय**:
 - **ब्लॉक समय लक्ष्य**: `120` सेकंड
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**कार्यान्वयन**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**कार्यान्वयन**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **संरचना**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // न्यूनतम स्वीकृत स्तर
-    uint8_t nPoCXTargetCompression;  // अनुशंसित स्तर
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // न्यूनतम स्वीकृत स्तर
+    uint32_t nPoCXTargetCompression;  // अनुशंसित स्तर
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**कार्यान्वयन**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**कार्यान्वयन**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### प्रोटोकॉल संस्करण
 
-**बेस**: Bitcoin Core v30.0 प्रोटोकॉल
+**बेस**: Bitcoin Core v30.2 प्रोटोकॉल
 - **प्रोटोकॉल संस्करण**: Bitcoin Core से विरासत में
 - **Service Bits**: मानक Bitcoin सेवाएं
 - **संदेश प्रकार**: मानक Bitcoin P2P संदेश
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX माइनिंग सर्वर (बाहरी माइनर्स के लिए आवश्यक)
-miningserver=1
 
 # RPC सेटिंग्स
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # कनेक्शन सेटिंग्स
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # ब्लॉक समय लक्ष्य (सूचनात्मक, सहमति द्वारा लागू)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **सहमति पैरामीटर**: `src/consensus/params.h`
-**Compression सीमाएं**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Compression सीमाएं**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesis Base Target गणना**: `src/pocx/consensus/params.cpp`
-**Coinbase भुगतान लॉजिक**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase भुगतान लॉजिक**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **असाइनमेंट स्थिति स्टोरेज**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache एक्सटेंशन)
 
 ---

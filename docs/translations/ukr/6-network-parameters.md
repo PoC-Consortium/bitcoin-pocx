@@ -39,12 +39,7 @@
 
 ### Повідомлення генезису
 
-Усі мережі поділяють повідомлення генезису Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Реалізація**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **Ідентичність мережі**:
 - **Магічні байти**: `0xa7 0x3c 0x91 0x5e`
-- **Порт за замовчуванням**: `8888`
+- **Порт за замовчуванням**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Префікси адрес** (Base58):
@@ -84,14 +79,14 @@
 ### Параметри Testnet
 
 **Ідентичність мережі**:
-- **Магічні байти**: `0x6d 0xf2 0x48 0xb3`
-- **Порт за замовчуванням**: `18888`
+- **Магічні байти**: `0x6d 0xf2 0x48 0xb4`
+- **Порт за замовчуванням**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Префікси адрес** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Таймінг блоків**:
 - **Цільовий час блоку**: `120` секунд
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Реалізація**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Реалізація**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Структура**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Мінімальний прийнятний рівень
-    uint8_t nPoCXTargetCompression;  // Рекомендований рівень
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Мінімальний прийнятний рівень
+    uint32_t nPoCXTargetCompression;  // Рекомендований рівень
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Реалізація**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Реалізація**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Версія протоколу
 
-**База**: Протокол Bitcoin Core v30.0
+**База**: Протокол Bitcoin Core v30.2
 - **Версія протоколу**: Успадкована від Bitcoin Core
 - **Service Bits**: Стандартні сервіси Bitcoin
 - **Типи повідомлень**: Стандартні P2P повідомлення Bitcoin
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # Сервер майнінгу PoCX (потрібен для зовнішніх майнерів)
-miningserver=1
 
 # Налаштування RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Налаштування з'єднання
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Цільовий час блоку (інформаційний, консенсус забезпечує)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Параметри консенсусу**: `src/consensus/params.h`
-**Межі стиснення**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Межі стиснення**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Обчислення базової цілі генезису**: `src/pocx/consensus/params.cpp`
-**Логіка платежу coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Логіка платежу coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Зберігання стану призначень**: `src/coins.h`, `src/coins.cpp` (розширення CCoinsViewCache)
 
 ---

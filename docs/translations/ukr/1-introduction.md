@@ -42,7 +42,7 @@ Proof of Capacity (PoC) — це механізм консенсусу, де п�
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + інтеграція PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + інтеграція PoCX
 │   └── src/pocx/        # Реалізація PoCX
 ├── pocx/                # Базовий фреймворк PoCX (підмодуль, тільки для читання)
 └── docs/                # Ця документація
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Проблема**: Традиційний час блоків PoC має експоненційний розподіл, що призводить до довгих блоків, коли жоден майнер не знаходить хорошого рішення.
 
-**Рішення**: Трансформація розподілу з експоненційного в хі-квадрат за допомогою кубічного кореня: `Y = scale × (X^(1/3))`.
+**Рішення**: Трансформація розподілу з експоненційного в хі-квадрат за допомогою кубічного кореня: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Ефект**: Дуже хороші рішення куються пізніше (мережа має час просканувати всі диски, зменшує швидкі блоки), погані рішення покращуються. Середній час блоку підтримується на рівні 120 секунд, довгі блоки зменшуються.
+**Ефект**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Деталі**: [Розділ 3: Консенсус і майнінг](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Такі самі як Bitcoin Core**:
 - **CPU**: Сучасний процесор x86_64
 - **Пам'ять**: 4-8 ГБ RAM
-- **Сховище**: Новий ланцюг, наразі порожній (може зростати ~4× швидше ніж Bitcoin через 2-хвилинні блоки та базу даних призначень)
+- **Сховище**: Новий ланцюг, наразі порожній (може зростати ~5× швидше ніж Bitcoin через 2-хвилинні блоки та базу даних призначень)
 - **Мережа**: Стабільне інтернет-з'єднання
 - **Годинник**: Рекомендується синхронізація NTP для оптимальної роботи
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Збірка з увімкненим PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Деталі**: Див. `CLAUDE.md` у корені репозиторію
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Запуск вузла
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Для майнінгу** (вмикає RPC-доступ для зовнішніх майнерів):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # або
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Деталі**: [Розділ 6: Параметри мережі](6-network-parameters.md)

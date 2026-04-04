@@ -77,12 +77,12 @@ XOR-transpose блокує кожен scoop з цілим рядком та ці
 1. **ACCOUNT_PAYLOAD** (40 шістнадцяткових символів)
    - Сирий 20-байтовий payload облікового запису як шістнадцятковий у верхньому регістрі
    - Незалежний від мережі (без ідентифікатора мережі або контрольної суми)
-   - Приклад: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Приклад: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 шістнадцяткових символи)
    - 32-байтове значення seed як шістнадцяткове в нижньому регістрі
    - **Нове в PoCX**: Випадковий 32-байтовий seed в імені файлу замінює послідовну нумерацію nonce — запобігає перекриттю плотів
-   - Приклад: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Приклад: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (десяткове число)
    - **Нова одиниця розміру в PoCX**: Замінює розмірність на основі nonce з POC1/POC2
@@ -97,8 +97,8 @@ XOR-transpose блокує кожен scoop з цілим рядком та ці
 
 ### Приклади імен файлів
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

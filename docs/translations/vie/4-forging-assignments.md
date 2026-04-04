@@ -39,7 +39,7 @@ Outputs:
   [1]: Tiền thừa trả về người dùng (tùy chọn, P2WPKH tiêu chuẩn)
 ```
 
-**Triển khai:** `src/pocx/assignments/opcodes.cpp:25-52`
+**Triển khai:** `src/pocx/assignments/opcodes.cpp`
 
 ### Định dạng Giao dịch Thu hồi
 
@@ -58,14 +58,14 @@ Outputs:
   [1]: Tiền thừa trả về người dùng (tùy chọn, P2WPKH tiêu chuẩn)
 ```
 
-**Triển khai:** `src/pocx/assignments/opcodes.cpp:54-77`
+**Triển khai:** `src/pocx/assignments/opcodes.cpp`
 
 ### Các Marker
 
 - **Marker Ủy quyền:** `POCX` (0x50, 0x4F, 0x43, 0x58) = "Proof of Capacity neXt"
 - **Marker Thu hồi:** `XCOP` (0x58, 0x43, 0x4F, 0x50) = "eXit Capacity OPeration"
 
-**Triển khai:** `src/pocx/assignments/opcodes.cpp:15-19`
+**Triển khai:** `src/pocx/assignments/opcodes.cpp`
 
 ### Đặc điểm Giao dịch Chính
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB:
        └─ Lịch sử đầy đủ: tất cả ủy quyền cho mỗi plot theo thời gian
 ```
 
-**Triển khai:** `src/txdb.cpp:237-348`
+**Triển khai:** `src/txdb.cpp`
 
 ### Cấu trúc ForgingAssignment
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**Triển khai:** `src/coins.h:111-178`
+**Triển khai:** `src/coins.h`
 
 ### Các Trạng thái Ủy quyền
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**Triển khai:** `src/coins.h:98-104`
+**Triển khai:** `src/coins.h`
 
 ### Khóa Cơ sở Dữ liệu
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**Triển khai:** `src/txdb.cpp:245-262`
+**Triển khai:** `src/txdb.cpp`
 
 ### Theo dõi Lịch sử
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // Kiểm tra trạng thái plot (phải là UNASSIGNED hoặc REVOKED)
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // Tạo ủy quyền mới
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins tiếp tục bình thường (tự động bỏ qua đầu ra OP_RETURN)
 ```
 
-**Triển khai:** `src/validation.cpp:2775-2878`
+**Triển khai:** `src/validation.cpp:ConnectBlock()`
 
 ### Xác minh Quyền sở hữu
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // Kiểm tra ít nhất một input được ký bởi chủ sở hữu plot
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // Trích xuất đích
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // Kiểm tra nếu P2WPKH đến địa chỉ plot
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core đã xác thực chữ ký
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**Triển khai:** `src/pocx/assignments/opcodes.cpp:217-256`
+**Triển khai:** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### Độ trễ Kích hoạt
 
@@ -282,7 +280,7 @@ Thực hiện trong `src/consensus/tx_check.cpp` không có truy cập trạng t
 
 1. **Tối đa Một OP_RETURN POCX:** Giao dịch không thể chứa nhiều marker POCX/XCOP
 
-**Triển khai:** `src/consensus/tx_check.cpp:63-77`
+**Triển khai:** `src/consensus/tx_check.cpp`
 
 ### Kiểm tra Chấp nhận Mempool (PreChecks)
 
@@ -300,7 +298,7 @@ Thực hiện trong `src/validation.cpp` với truy cập đầy đủ trạng t
 2. **Ủy quyền Hoạt động:** Plot phải ở trạng thái ASSIGNED (2) chỉ
 3. **Xung đột Mempool:** Không có thu hồi khác cho plot này trong mempool
 
-**Triển khai:** `src/validation.cpp:898-993`
+**Triển khai:** `src/validation.cpp:PreChecks()`
 
 ### Luồng Xác thực
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // Thu thập ủy quyền dirty
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // Trống - không sử dụng
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // Ghi vào cơ sở dữ liệu
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // Xóa theo dõi
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // Giải phóng bộ nhớ
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**Triển khai:** `src/coins.cpp:278-315`
+**Triển khai:** `src/coins.cpp:Flush()`
 
 ### Ghi Batch Cơ sở Dữ liệu
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // Ủy quyền được ghi riêng nhưng trong cùng ngữ cảnh giao dịch cơ sở dữ liệu
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // Tham số không sử dụng (giữ cho tương thích API)
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // Batch mới, nhưng cùng cơ sở dữ liệu
+    CDBBatch batch(*m_db);
 
-    // Ghi lịch sử ủy quyền
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // Xóa các ủy quyền đã xóa khỏi lịch sử
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // COMMIT NGUYÊN TỬ
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**Triển khai:** `src/txdb.cpp:332-348`
+**Triển khai:** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### Đảm bảo Nguyên tử
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**Triển khai:** `src/undo.h:63-105`
+**Triển khai:** `src/undo.h`
 
 ### Quy trình DisconnectBlock
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**Triển khai:** `src/validation.cpp:2381-2415`
+**Triển khai:** `src/validation.cpp:DisconnectBlock()`
 
 ### Quản lý Cache Trong Reorg
 
@@ -556,7 +562,7 @@ private:
     // Cache ủy quyền
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // Theo dõi plot đã sửa đổi
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // Theo dõi xóa
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // Theo dõi xóa
     mutable size_t cachedAssignmentsUsage{0};  // Theo dõi bộ nhớ
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**Triển khai:** `src/coins.cpp:494-565`
+**Triển khai:** `src/coins.cpp`
 
 ## Giao diện RPC
 
@@ -613,7 +617,7 @@ Trả về trạng thái ủy quyền hiện tại cho địa chỉ plot:
 }
 ```
 
-**Triển khai:** `src/pocx/rpc/assignments.cpp:31-126`
+**Triển khai:** `src/pocx/rpc/assignments.cpp`
 
 ### Lệnh Ví (Yêu cầu Ví)
 
@@ -628,7 +632,7 @@ Tạo giao dịch ủy quyền:
 - Ký với khóa chủ sở hữu plot
 - Phát sóng đến mạng
 
-**Triển khai:** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**Triển khai:** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ Tạo giao dịch thu hồi:
 - Ký với khóa chủ sở hữu plot
 - Phát sóng đến mạng
 
-**Triển khai:** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**Triển khai:** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### Tạo Giao dịch Ví
 
@@ -660,7 +664,7 @@ Quy trình tạo giao dịch ví:
 
 **Insight chính:** Ví phải chi tiêu từ địa chỉ plot để chứng minh quyền sở hữu, vì vậy nó tự động buộc chọn coin từ địa chỉ đó.
 
-**Triển khai:** `src/pocx/assignments/transactions.cpp:38-263`
+**Triển khai:** `src/pocx/assignments/transactions.cpp`
 
 ## Cấu trúc Tệp
 
@@ -668,11 +672,11 @@ Quy trình tạo giao dịch ví:
 
 ```
 src/
-├── coins.h                        # Struct ForgingAssignment, phương thức CCoinsViewCache [710 dòng]
-├── coins.cpp                      # Quản lý cache, ghi batch [603 dòng]
+├── coins.h                        # Struct ForgingAssignment, phương thức CCoinsViewCache
+├── coins.cpp                      # Quản lý cache, ghi batch
 │
-├── txdb.h                         # Phương thức ủy quyền CCoinsViewDB [90 dòng]
-├── txdb.cpp                       # Đọc/ghi cơ sở dữ liệu [349 dòng]
+├── txdb.h                         # Phương thức ủy quyền CCoinsViewDB
+├── txdb.cpp                       # Đọc/ghi cơ sở dữ liệu
 │
 ├── undo.h                         # Cấu trúc ForgingUndo cho reorg
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # Định dạng OP_RETURN, phân tích, xác minh
-    │   ├── opcodes.cpp            # [259 dòng] Định nghĩa marker, ops OP_RETURN, kiểm tra quyền sở hữu
+    │   ├── opcodes.cpp            # Định nghĩa marker, ops OP_RETURN, kiểm tra quyền sở hữu
     │   ├── assignment_state.h     # Helper GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Hàm truy vấn trạng thái ủy quyền
     │   ├── transactions.h         # API tạo giao dịch ví

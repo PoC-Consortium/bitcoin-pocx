@@ -49,7 +49,7 @@ PoCX-blokker utvider Bitcoins blokkstruktur med ekstra konsensusfelt:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plot-seed (32 bytes)
     std::array<uint8_t, 20> account_id;       // Plotadresse (20-byte hash160)
-    uint32_t compression;                     // Skaleringsnivå (1-255)
+    uint32_t compression;                     // Skaleringsnivå (1-6)
     uint64_t nonce;                           // Mining-nonce (64-bit)
     uint64_t quality;                         // Påstått kvalitet (PoC-hashutdata)
 };
@@ -87,12 +87,12 @@ Generasjonssignaturen skaper mining-entropi og forhindrer forhåndsberegningsang
 
 **Beregning:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Genesis-blokk:** Bruker en hardkodet initial generasjonssignatur
 
-**Implementasjon:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementasjon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base target (vanskelighetsgrad)
 
@@ -113,8 +113,8 @@ PoCX støtter skalerbar proof-of-work i plotfiler gjennom skaleringsnivåer (Xn)
 **Dynamiske grenser:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum akseptert nivå
-    uint8_t nPoCXTargetCompression;  // Anbefalt nivå
+    uint32_t nPoCXMinCompression;     // Minimum akseptert nivå
+    uint32_t nPoCXTargetCompression;  // Anbefalt nivå
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Opprettholder sikkerhetsmargin mellom plotoppretting og oppslagskostnader
 - Maksimum skaleringsnivå: 255
 
-**Implementasjon:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementasjon:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) avvis;
 
 **Tildelingsstøtte:** Ploteier kan tildele forging-rettigheter til en annen adresse. Lommeboken må ha nøkkel for den effektive signereren, ikke nødvendigvis ploteieren.
 
-#### Trinn 5: Bevisvalidering
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -232,9 +239,8 @@ bool success = pocx_validate_block(
     block_height,
     nonce,
     seed,                // 32 bytes
-    min_compression,
-    max_compression,
-    &result             // Utdata: quality, deadline
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Valider at kvalitet møter vanskelighetsgrad-krav
 4. Returner rå kvalitetsverdi
 
-**Implementasjon:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementasjon:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Trinn 6: Time Bending-beregning
 ```cpp
@@ -270,15 +276,15 @@ der:
 
 **Implementasjon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Trinn 7: Forger-innsending
+#### Step 8: Forger Submission: Forger-innsending
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // IKKE deadline - beregnes på nytt i forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Opprinnelig plotadresse
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Beregn merkle-rot på nytt:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementasjon:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementasjon:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Viktige designbeslutninger:**
 - Coinbase betaler effektiv signerer (respekterer tildelinger)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Verifiser at gjenopprettet pubkey samsvarer med lagret pubkey
 
 **Implementasjon:** `src/validation.cpp:CheckBlockHeader()`
-**Signaturlogikk:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Signaturlogikk:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Trinn 2: Blokkvalidering (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Trinn 1: Valider generasjonssignatur
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Trinn 2: Valider base target
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Trinn 3: Valider proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Trinn 4: Verifiser deadline-timing
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Valideringstrinn:**
-1. **Generasjonssignatur:** Må samsvare med beregnet verdi fra forrige blokk
-2. **Base target:** Må samsvare med vanskelighets-justeringsberegning
-3. **Skaleringsnivå:** Må møte nettverksminimum (`compression >= min_compression`)
-4. **Kvalitetspåstand:** Innsendt kvalitet må samsvare med beregnet kvalitet fra bevis
-5. **Proof of Capacity:** Kryptografisk bevisvalidering (SIMD-optimalisert)
-6. **Deadline-timing:** Time-bended deadline (`poc_time`) må være ≤ forløpt tid
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementasjon:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementasjon:**
 - Forbindelse: `src/validation.cpp:ConnectBlock()`
-- Utvidet validering: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Tildelingslogikk: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Utvidet validering: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Tildelingslogikk: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Trinn 5: Kjedeaktivering
 
@@ -668,7 +662,7 @@ Transaction {
 - Blir ASSIGNED etter forsinkelsesperiode (4 blokker regtest, 30 blokker mainnet)
 - Forsinkelse forhindrer raske omtildelinger under blokkras
 
-**Implementasjon:** `src/script/forging_assignment.h`, validering i ConnectBlock
+**Implementasjon:** `src/pocx/assignments/opcodes.h`, validering i ConnectBlock
 
 ### Oppheve tildelinger
 
@@ -826,12 +820,15 @@ Tråd B: cs_wallet → cs_main
 
 **Generasjonssignatur:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Blokksignaturhash:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompakt signaturformat:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Kjerneimplementasjoner:**
 - RPC-grensesnitt: `src/pocx/rpc/mining.cpp`
 - Forger-kø: `src/pocx/mining/scheduler.cpp`
-- Konsensusvalidering: `src/pocx/consensus/validation.cpp`
-- Bevisvalidering: `src/pocx/consensus/pocx.cpp`
+- Konsensusvalidering: `src/pocx/consensus/proof.cpp`
+- Bevisvalidering: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Blokkvalidering: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Tildelingslogikk: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Konteksthåndtering: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Tildelingslogikk: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Konteksthåndtering: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Datastrukturer:**
 - Blokkformat: `src/primitives/block.h`
@@ -902,7 +899,7 @@ der:
 **Prosess:**
 1. Generer scoop fra generasjonssignatur og høyde
 2. Les plotdata for beregnet scoop
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Test skaleringsnivåer fra min til maks
 5. Returner beste kvalitet funnet
 
@@ -925,7 +922,7 @@ der:
 avg_base_target = moving_average(nylige base targets)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

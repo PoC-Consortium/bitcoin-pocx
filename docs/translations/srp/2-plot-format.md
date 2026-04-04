@@ -77,12 +77,12 @@ XOR-transpose повезује сваки scoop са целим редом и ц
 1. **ACCOUNT_PAYLOAD** (40 хексадецималних карактера)
    - Сирови 20-бајтни payload налога као велика хексадецимала
    - Независно од мреже (без ID мреже или контролне суме)
-   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 хексадецимална карактера)
    - 32-бајтна seed вредност као мала хексадецимала
    - **Ново у PoCX**: Случајни 32-бајтни seed у имену датотеке замењује узастопно нумерисање nonce-ова — спречава преклапање плотова
-   - Пример: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Пример: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (децимални број)
    - **НОВА јединица величине у PoCX**: Замењује величину засновану на nonce-у из POC1/POC2
@@ -97,8 +97,8 @@ XOR-transpose повезује сваки scoop са целим редом и ц
 
 ### Примери имена датотека
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

@@ -21,40 +21,15 @@
 
 ## 設定
 
-### マイニングサーバーモード
+### Mining RPCs
 
-**フラグ**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**目的**: 外部マイナーがマイニング固有のRPCを呼び出すためのRPCアクセスを有効化
-
-**要件**:
-- `submit_nonce`の動作に必要
-- QTウォレットでのフォージング割り当てダイアログの表示に必要
-
-**使用法**:
-```bash
-# コマンドライン
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**セキュリティ考慮事項**:
-- 標準RPC認証情報以外の追加認証なし
-- マイニングRPCはキュー容量によってレート制限
-- 標準RPC認証は引き続き必要
-
-**実装**: `src/pocx/rpc/mining.cpp`
-
----
-
-## PoCXマイニングRPC
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **カテゴリ**: mining
-**マイニングサーバー必須**: いいえ
 **ウォレット必須**: いいえ
 
 **目的**: 外部マイナーがプロットファイルをスキャンしてデッドラインを計算するために必要な現在のマイニングパラメータを返す。
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // 16進数、64文字
-  "base_target": 36650387593,                // 数値
+  "base_target": 36650387592,                // 数値
   "height": 12345,                           // 数値、次のブロック高さ
   "block_hash": "def456...",                 // 16進数、前のブロック
   "target_quality": 18446744073709551615,    // uint64_max（すべての解を受け入れ）
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **カテゴリ**: mining
-**マイニングサーバー必須**: はい
 **ウォレット必須**: はい（秘密鍵用）
 
 **目的**: PoCXマイニング解を送信。証明を検証し、タイムベンドされたフォージング用にキューに入れ、予定時刻に自動的にブロックを作成。
 
-**パラメータ**:
-1. `height`（数値、必須）- ブロック高さ
-2. `generation_signature`（文字列16進数、必須）- 生成署名（64文字）
-3. `account_id`（文字列、必須）- プロットアカウントID（40進文字 = 20バイト）
-4. `seed`（文字列、必須）- プロットシード（64進文字 = 32バイト）
-5. `nonce`（数値、必須）- マイニングノンス
-6. `compression`（数値、必須）- 使用されたスケーリング/圧縮レベル（1-255）
-7. `quality`（数値、オプション）- 品質値（省略時は再計算）
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **戻り値**（成功時）:
 ```json
 {
   "accepted": true,
-  "quality": 120,           // 難易度調整済みデッドライン（秒）
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // タイムベンドされたフォージ時間（秒）
 }
 ```
@@ -134,8 +110,10 @@ bitcoin-cli get_mining_info
    - アカウントID: 正確に40進文字
    - シード: 正確に64進文字
 2. **コンテキスト検証**:
+   - Block hash must match current tip
    - 高さは現在のティップ + 1と一致必須
    - 生成署名は現在のものと一致必須
+   - Base target must match current
 3. **ウォレット検証**:
    - 有効な署名者を決定（アクティブな割り当てをチェック）
    - ウォレットが有効な署名者の秘密鍵を持っていることを確認
@@ -163,12 +141,16 @@ bitcoin-cli get_mining_info
 
 **例**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **注意**:
@@ -186,7 +168,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **カテゴリ**: mining
-**マイニングサーバー必須**: いいえ
 **ウォレット必須**: いいえ
 
 **目的**: プロットアドレスのフォージング割り当てステータスをクエリ。読み取り専用、ウォレット不要。
@@ -260,7 +241,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **カテゴリ**: wallet
-**マイニングサーバー必須**: いいえ
 **ウォレット必須**: はい（ロードおよびアンロック必須）
 
 **目的**: フォージング権限を別のアドレス（例: マイニングプール）に委譲するフォージング割り当てトランザクションを作成。
@@ -316,7 +296,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **カテゴリ**: wallet
-**マイニングサーバー必須**: いいえ
 **ウォレット必須**: はい（ロードおよびアンロック必須）
 
 **目的**: 既存のフォージング割り当てを取り消し、フォージング権限をプロット所有者に戻す。
@@ -377,7 +356,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX変更点**:
 - **計算**: `reference_base_target / current_base_target`
-- **参照**: 1 TiBネットワーク容量（base_target = 36650387593）
+- **参照**: 1 TiBネットワーク容量（base_target = 36650387592）
 - **解釈**: 推定ネットワークストレージ容量（TiB単位）
   - 例: `1.0` = 約1 TiB
   - 例: `1024.0` = 約1 PiB
@@ -494,10 +473,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **代替**: `get_mining_info`（PoCX固有）を使用
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **理由**: CPUマイニングはPoCXに適用されない（事前生成されたプロットが必要）
-- **代替**: 外部プロッター + マイナー + `submit_nonce`を使用
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**実装**: `src/rpc/mining.cpp`（ENABLE_POCX定義時にRPCはエラーを返す）
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +510,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. プロットファイルをスキャン（外部実装）
@@ -538,11 +518,15 @@ while True:
 
     # 3. 最良の解を送信
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +646,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **マイニングRPC**: `src/pocx/rpc/mining.cpp`
 **割り当てRPC**: `src/pocx/rpc/assignments.cpp`、`src/pocx/rpc/assignments_wallet.cpp`
 **ブロックチェーンRPC**: `src/rpc/blockchain.cpp`
-**証明検証**: `src/pocx/consensus/validation.cpp`、`src/pocx/consensus/pocx.cpp`
+**証明検証**: `src/pocx/consensus/proof.cpp`、`src/pocx/consensus/signature.cpp`
 **割り当て状態**: `src/pocx/assignments/assignment_state.cpp`
 **トランザクション作成**: `src/pocx/assignments/transactions.cpp`
 

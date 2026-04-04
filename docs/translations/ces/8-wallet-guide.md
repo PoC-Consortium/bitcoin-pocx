@@ -28,7 +28,7 @@ Kompletní průvodce Qt peněženkou Bitcoin-PoCX a správou forging přiřazen�
 Qt peněženka Bitcoin-PoCX (`bitcoin-qt`) poskytuje:
 - Standardní funkce peněženky Bitcoin Core (odesílání, příjem, správa transakcí)
 - **Správce forging přiřazení**: GUI pro vytváření/revokaci přiřazení plotů
-- **Režim těžebního serveru**: Příznak `-miningserver` povoluje funkce související s těžbou
+- **Režim těžebního serveru**: Příznak `` povoluje funkce související s těžbou
 - **Historie transakcí**: Zobrazení transakcí přiřazení a revokace
 
 ### Spuštění peněženky
@@ -40,18 +40,18 @@ Qt peněženka Bitcoin-PoCX (`bitcoin-qt`) poskytuje:
 
 **S těžbou** (povoluje dialog přiřazení):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternativa příkazového řádku**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Požadavky na těžbu
 
 **Pro těžební operace**:
-- Vyžadován příznak `-miningserver`
+- Vyžadován příznak ``
 - Peněženka s P2WPKH adresami a privátními klíči
 - Externí plotter (`pocx_plotter`) pro generování plotů
 - Externí miner (`pocx_miner`) pro těžbu
@@ -84,7 +84,7 @@ Bitcoin-PoCX používá měnovou jednotku **BTCX** (ne BTC):
 ### Přístup k dialogu
 
 **Menu**: `Peněženka → Forging přiřazení`
-**Panel nástrojů**: Ikona těžby (viditelná pouze s příznakem `-miningserver`)
+**Panel nástrojů**: Ikona těžby (viditelná pouze s příznakem ``)
 **Velikost okna**: 600×450 pixelů
 
 ### Režimy dialogu
@@ -296,8 +296,8 @@ Revokace účinná ve výšce: 13020
 ### Chybové zprávy validace
 
 **Chyby dialogu**:
-- "Adresa plotu musí být P2WPKH (bech32)"
-- "Forging adresa musí být P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Neplatný formát adresy"
 - "Na adrese plotu nejsou žádné coiny. Nelze prokázat vlastnictví."
 - "Nelze vytvářet transakce s watch-only peněženkou"
@@ -313,7 +313,6 @@ Revokace účinná ve výšce: 13020
 **Konfigurace uzlu**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Spustit uzel** s těžebním serverem:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Nakonfigurovat miner**:
@@ -450,8 +449,8 @@ server=1
 
 #### "Záložka forging přiřazení není viditelná"
 
-**Příčina**: Uzel spuštěn bez příznaku `-miningserver`
-**Řešení**: Restartujte s `bitcoin-qt -server -miningserver`
+**Příčina**: Uzel spuštěn bez příznaku ``
+**Řešení**: Restartujte s `bitcoin-qt -server`
 
 ### Kroky ladění
 

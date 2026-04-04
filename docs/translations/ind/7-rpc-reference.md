@@ -21,40 +21,15 @@ Referensi lengkap untuk perintah RPC Bitcoin-PoCX, termasuk RPC penambangan, man
 
 ## Konfigurasi
 
-### Mode Server Penambangan
+### Mining RPCs
 
-**Flag**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Tujuan**: Mengaktifkan akses RPC untuk miner eksternal untuk memanggil RPC khusus penambangan
-
-**Persyaratan**:
-- Diperlukan agar `submit_nonce` berfungsi
-- Diperlukan untuk visibilitas dialog penugasan forging di dompet Qt
-
-**Penggunaan**:
-```bash
-# Baris perintah
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Pertimbangan Keamanan**:
-- Tidak ada autentikasi tambahan di luar kredensial RPC standar
-- RPC penambangan dibatasi laju oleh kapasitas antrian
-- Autentikasi RPC standar tetap diperlukan
-
-**Implementasi**: `src/pocx/rpc/mining.cpp`
-
----
-
-## RPC Penambangan PoCX
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **Kategori**: mining
-**Memerlukan Server Penambangan**: Tidak
 **Memerlukan Dompet**: Tidak
 
 **Tujuan**: Mengembalikan parameter penambangan saat ini yang diperlukan untuk miner eksternal untuk memindai file plot dan menghitung deadline.
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 karakter
-  "base_target": 36650387593,                // numerik
+  "base_target": 36650387592,                // numerik
   "height": 12345,                           // numerik, tinggi blok berikutnya
   "block_hash": "def456...",                 // hex, blok sebelumnya
   "target_quality": 18446744073709551615,    // uint64_max (semua solusi diterima)
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategori**: mining
-**Memerlukan Server Penambangan**: Ya
 **Memerlukan Dompet**: Ya (untuk kunci privat)
 
 **Tujuan**: Mengirim solusi penambangan PoCX. Memvalidasi bukti, mengantri untuk forging time-bended, dan secara otomatis membuat blok pada waktu yang dijadwalkan.
 
-**Parameter**:
-1. `height` (numerik, wajib) - Tinggi blok
-2. `generation_signature` (string hex, wajib) - Tanda tangan generasi (64 karakter)
-3. `account_id` (string, wajib) - ID akun plot (40 karakter hex = 20 byte)
-4. `seed` (string, wajib) - Seed plot (64 karakter hex = 32 byte)
-5. `nonce` (numerik, wajib) - Nonce penambangan
-6. `compression` (numerik, wajib) - Tingkat penskalaan/kompresi yang digunakan (1-255)
-7. `quality` (numerik, opsional) - Nilai kualitas (dihitung ulang jika dihilangkan)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Nilai Kembalian** (sukses):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // deadline yang disesuaikan kesulitan dalam detik
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // waktu forge time-bended dalam detik
 }
 ```
@@ -134,8 +110,10 @@ bitcoin-cli get_mining_info
    - Account ID: tepat 40 karakter hex
    - Seed: tepat 64 karakter hex
 2. **Validasi Konteks**:
+   - Block hash must match current tip
    - Tinggi harus cocok dengan tip saat ini + 1
    - Tanda tangan generasi harus cocok dengan yang saat ini
+   - Base target must match current
 3. **Verifikasi Dompet**:
    - Tentukan penanda tangan efektif (periksa penugasan aktif)
    - Verifikasi dompet memiliki kunci privat untuk penanda tangan efektif
@@ -163,12 +141,16 @@ bitcoin-cli get_mining_info
 
 **Contoh**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Catatan**:
@@ -186,7 +168,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategori**: mining
-**Memerlukan Server Penambangan**: Tidak
 **Memerlukan Dompet**: Tidak
 
 **Tujuan**: Kueri status penugasan forging untuk alamat plot. Hanya-baca, tidak memerlukan dompet.
@@ -260,7 +241,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategori**: wallet
-**Memerlukan Server Penambangan**: Tidak
 **Memerlukan Dompet**: Ya (harus dimuat dan tidak terkunci)
 
 **Tujuan**: Membuat transaksi penugasan forging untuk mendelegasikan hak forging ke alamat lain (contoh, pool penambangan).
@@ -294,7 +274,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktivasi**:
 - Penugasan menjadi ASSIGNING pada konfirmasi
-- Menjadi ACTIVE setelah `nForgingAssignmentDelay` blok
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Penundaan mencegah penugasan ulang cepat selama fork rantai
 
 **Kode Kesalahan**:
@@ -316,7 +296,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategori**: wallet
-**Memerlukan Server Penambangan**: Tidak
 **Memerlukan Dompet**: Ya (harus dimuat dan tidak terkunci)
 
 **Tujuan**: Mencabut penugasan forging yang ada, mengembalikan hak forging ke pemilik plot.
@@ -377,7 +356,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **Modifikasi PoCX**:
 - **Kalkulasi**: `reference_base_target / current_base_target`
-- **Referensi**: Kapasitas jaringan 1 TiB (base_target = 36650387593)
+- **Referensi**: Kapasitas jaringan 1 TiB (base_target = 36650387592)
 - **Interpretasi**: Estimasi kapasitas penyimpanan jaringan dalam TiB
   - Contoh: `1.0` = ~1 TiB
   - Contoh: `1024.0` = ~1 PiB
@@ -401,7 +380,7 @@ bitcoin-cli getdifficulty
 - `base_target` (numerik) - Base target kesulitan PoCX
 - `generation_signature` (string hex) - Tanda tangan generasi
 - `pocx_proof` (objek):
-  - `account_id` (string hex) - ID akun plot (20 byte)
+  - `account_id` (string) - Plot account as bech32 address
   - `seed` (string hex) - Seed plot (32 byte)
   - `nonce` (numerik) - Nonce penambangan
   - `compression` (numerik) - Tingkat penskalaan yang digunakan
@@ -494,10 +473,11 @@ RPC khusus PoW berikut **dinonaktifkan** dalam mode PoCX:
 - **Alternatif**: Gunakan `get_mining_info` (khusus PoCX)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Alasan**: Penambangan CPU tidak berlaku untuk PoCX (memerlukan plot yang sudah dihasilkan)
-- **Alternatif**: Gunakan plotter eksternal + miner + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementasi**: `src/rpc/mining.cpp` (RPC mengembalikan kesalahan ketika ENABLE_POCX didefinisikan)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +510,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Pindai file plot (implementasi eksternal)
@@ -538,11 +518,15 @@ while True:
 
     # 3. Kirim solusi terbaik
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +646,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **RPC Penambangan**: `src/pocx/rpc/mining.cpp`
 **RPC Penugasan**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **RPC Blockchain**: `src/rpc/blockchain.cpp`
-**Validasi Bukti**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Validasi Bukti**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Status Penugasan**: `src/pocx/assignments/assignment_state.cpp`
 **Pembuatan Transaksi**: `src/pocx/assignments/transactions.cpp`
 

@@ -32,16 +32,16 @@
 
 **Конфигурация на Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 секунди
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 секунди
 ```
 
 ### Проверки за валидация
 
-**Валидация на времева марка на блок** (`src/validation.cpp:4547-4561`):
+**Валидация на времева марка на блок** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Монотонна проверка: времева марка >= времева марка на предишен блок
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Проверка на краен срок: изминало време >= краен срок
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX следи отклонението на времето между 
 ## Препратки към имплементация
 
 **Основни файлове**:
-- Валидация на време: `src/validation.cpp:4547-4561`
-- Константа за бъдещ толеранс: `src/chain.h:31`
-- Праг за предупреждение: `src/node/timeoffsets.h:27`
+- Валидация на време: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Константа за бъдещ толеранс: `src/chain.h`
+- Праг за предупреждение: `src/node/timeoffsets.h`
 - Наблюдение на отклонение на време: `src/node/timeoffsets.cpp`
 - Защитно подписване: `src/pocx/mining/scheduler.cpp`
 

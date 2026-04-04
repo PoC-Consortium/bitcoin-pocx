@@ -23,7 +23,7 @@ Pilnīga atsauce Bitcoin-PoCX RPC komandām, ieskaitot kalnrūpniecības RPC, pi
 
 ### Kalnrūpniecības servera režīms
 
-**Karodziņš**: `-miningserver`
+**Karodziņš**: ``
 
 **Mērķis**: Iespējo RPC piekļuvi ārējiem kalnračiem izsaukt kalnrūpniecībai specifiskas RPC
 
@@ -34,10 +34,9 @@ Pilnīga atsauce Bitcoin-PoCX RPC komandām, ieskaitot kalnrūpniecības RPC, pi
 **Lietošana**:
 ```bash
 # Komandrinda
-./bitcoind -miningserver
+./bitcoind
 
 # bitcoin.conf
-miningserver=1
 ```
 
 **Drošības apsvērumi**:
@@ -54,7 +53,6 @@ miningserver=1
 ### get_mining_info
 
 **Kategorija**: mining
-**Nepieciešams kalnrūpniecības serveris**: Nē
 **Nepieciešams maciņš**: Nē
 
 **Mērķis**: Atgriež pašreizējos kalnrūpniecības parametrus, kas nepieciešami ārējiem kalnračiem, lai skenētu plotfailus un aprēķinātu termiņus.
@@ -65,7 +63,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 simboli
-  "base_target": 36650387593,                // skaitlisks
+  "base_target": 36650387592,                // skaitlisks
   "height": 12345,                           // skaitlisks, nākamā bloka augstums
   "block_hash": "def456...",                 // hex, iepriekšējais bloks
   "target_quality": 18446744073709551615,    // uint64_max (visi risinājumi pieņemti)
@@ -98,25 +96,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategorija**: mining
-**Nepieciešams kalnrūpniecības serveris**: Jā
 **Nepieciešams maciņš**: Jā (privātajām atslēgām)
 
 **Mērķis**: Iesniegt PoCX kalnrūpniecības risinājumu. Validē pierādījumu, ievieto rindā laika līkumo kalšanai un automātiski izveido bloku plānotajā laikā.
 
-**Parametri**:
-1. `height` (skaitlisks, obligāts) - Bloka augstums
-2. `generation_signature` (virkne hex, obligāts) - Ģenerēšanas paraksts (64 simboli)
-3. `account_id` (virkne, obligāts) - Plotfaila konta ID (40 hex simboli = 20 baiti)
-4. `seed` (virkne, obligāts) - Plotfaila sēkla (64 hex simboli = 32 baiti)
-5. `nonce` (skaitlisks, obligāts) - Kalnrūpniecības nonce
-6. `compression` (skaitlisks, obligāts) - Izmantotais mērogošanas/kompresijas līmenis (1-255)
-7. `quality` (skaitlisks, neobligāts) - Kvalitātes vērtība (pārrēķināta, ja nav norādīta)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Atgriešanas vērtības** (veiksme):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // grūtībai pielāgots termiņš sekundēs
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // laika līkumo kalšanas laiks sekundēs
 }
 ```
@@ -163,12 +162,16 @@ bitcoin-cli get_mining_info
 
 **Piemērs**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_characters..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Piezīmes**:
@@ -186,7 +189,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategorija**: mining
-**Nepieciešams kalnrūpniecības serveris**: Nē
 **Nepieciešams maciņš**: Nē
 
 **Mērķis**: Vaicāt kalšanas piešķīruma statusu plotfaila adresei. Tikai lasīšana, nav nepieciešams maciņš.
@@ -260,7 +262,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategorija**: wallet
-**Nepieciešams kalnrūpniecības serveris**: Nē
 **Nepieciešams maciņš**: Jā (jābūt ielādētam un atbloķētam)
 
 **Mērķis**: Izveidot kalšanas piešķīruma darījumu, lai deleģētu kalšanas tiesības citai adresei (piem., kalnrūpniecības pūlam).
@@ -294,7 +295,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Aktivizācija**:
 - Piešķīrums kļūst ASSIGNING apstiprinājuma brīdī
-- Kļūst ACTIVE pēc `nForgingAssignmentDelay` blokiem
+- Becomes ASSIGNED after `nForgingAssignmentDelay` blocks
 - Aizkave novērš ātru pārpiešķiršanu ķēdes dakšu laikā
 
 **Kļūdu kodi**:
@@ -316,7 +317,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategorija**: wallet
-**Nepieciešams kalnrūpniecības serveris**: Nē
 **Nepieciešams maciņš**: Jā (jābūt ielādētam un atbloķētam)
 
 **Mērķis**: Atsaukt esošu kalšanas piešķīrumu, atgriežot kalšanas tiesības plotfaila īpašniekam.
@@ -377,7 +377,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX modifikācijas**:
 - **Aprēķins**: `reference_base_target / current_base_target`
-- **Atsauce**: 1 TiB tīkla jauda (base_target = 36650387593)
+- **Atsauce**: 1 TiB tīkla jauda (base_target = 36650387592)
 - **Interpretācija**: Aptuvena tīkla glabāšanas jauda TiB
   - Piemērs: `1.0` = ~1 TiB
   - Piemērs: `1024.0` = ~1 PiB
@@ -464,7 +464,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (skaitlisks) - Pūla kalnrūpniecībai
 
 **PoCX noņemtie lauki**:
-- `target` - Noņemts (PoW specifisks)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Noņemts (PoW specifisks)
 - `bits` - Noņemts (PoW specifisks)
 
@@ -494,10 +494,11 @@ bitcoin-cli getblocktemplate '{"rules": ["segwit"]}'
 - **Alternatīva**: Izmantojiet `get_mining_info` (PoCX specifiska)
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Iemesls**: CPU kalnrūpniecība nav piemērojama PoCX (nepieciešami iepriekš ģenerēti plotfaili)
-- **Alternatīva**: Izmantojiet ārēju ploteri + kalnraci + `submit_nonce`
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Implementācija**: `src/rpc/mining.cpp` (RPC atgriež kļūdu, kad definēts ENABLE_POCX)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +531,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Skenēt plotfailus (ārēja implementācija)
@@ -538,11 +539,15 @@ while True:
 
     # 3. Iesniegt labāko risinājumu
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +667,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Kalnrūpniecības RPC**: `src/pocx/rpc/mining.cpp`
 **Piešķīrumu RPC**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blokķēdes RPC**: `src/rpc/blockchain.cpp`
-**Pierādījuma validācija**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Pierādījuma validācija**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Piešķīrumu stāvoklis**: `src/pocx/assignments/assignment_state.cpp`
 **Darījumu izveide**: `src/pocx/assignments/transactions.cpp`
 

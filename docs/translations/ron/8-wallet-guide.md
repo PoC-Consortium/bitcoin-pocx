@@ -28,7 +28,7 @@ Ghid complet pentru portofelul Qt Bitcoin-PoCX și gestionarea atribuirilor de f
 Portofelul Qt Bitcoin-PoCX (`bitcoin-qt`) oferă:
 - Funcționalitatea standard a portofelului Bitcoin Core (trimitere, primire, gestionarea tranzacțiilor)
 - **Manager atribuiri forjare**: GUI pentru crearea/revocarea atribuirilor de plot-uri
-- **Mod server de minerit**: Flag-ul `-miningserver` activează funcționalitățile legate de minerit
+- **Mod server de minerit**: Flag-ul `` activează funcționalitățile legate de minerit
 - **Istoric tranzacții**: Afișarea tranzacțiilor de atribuire și revocare
 
 ### Pornirea portofelului
@@ -40,18 +40,18 @@ Portofelul Qt Bitcoin-PoCX (`bitcoin-qt`) oferă:
 
 **Cu minerit** (activează dialogul de atribuiri):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternativă linie de comandă**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Cerințe pentru minerit
 
 **Pentru operațiuni de minerit**:
-- Flag-ul `-miningserver` necesar
+- Flag-ul `` necesar
 - Portofel cu adrese P2WPKH și chei private
 - Plotter extern (`pocx_plotter`) pentru generarea plot-urilor
 - Miner extern (`pocx_miner`) pentru minerit
@@ -84,7 +84,7 @@ Bitcoin-PoCX folosește unitatea monetară **BTCX** (nu BTC):
 ### Accesarea dialogului
 
 **Meniu**: `Portofel → Atribuiri forjare`
-**Bara de instrumente**: Pictograma de minerit (vizibilă doar cu flag-ul `-miningserver`)
+**Bara de instrumente**: Pictograma de minerit (vizibilă doar cu flag-ul ``)
 **Dimensiune fereastră**: 600×450 pixeli
 
 ### Modurile dialogului
@@ -286,17 +286,7 @@ Revocare efectivă la înălțimea: 13020
 - Populat automat cu adresele de primire din portofel
 - Filtrează adresele non-P2WPKH
 - Afișează format: „Etichetă (adresă)" dacă are etichetă, altfel doar adresa
-- Primul element: „-- Introduceți adresă personalizată --" pentru introducere manuală
-
-**Introducere manuală**:
-- Validează formatul la introducere
-- Trebuie să fie bech32 P2WPKH valid
-- Butonul dezactivat dacă formatul este invalid
-
-### Mesaje de eroare de validare
-
-**Erori dialog**:
-- „Adresa plot trebuie să fie P2WPKH (bech32)"
+- Primul element: „-- Introduceți adresă personalizată --"Plot address must be segwit v0 (bech32)"
 - „Adresa de forjare trebuie să fie P2WPKH (bech32)"
 - „Format de adresă invalid"
 - „Fără monede disponibile la adresa plot. Nu se poate demonstra proprietatea."
@@ -313,7 +303,6 @@ Revocare efectivă la înălțimea: 13020
 **Configurare nod**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +326,7 @@ server=1
 
 2. **Porniți nodul** cu server de minerit:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configurați minerul**:
@@ -450,8 +439,8 @@ server=1
 
 #### „Tab-ul atribuire forjare nu este vizibil"
 
-**Cauză**: Nodul pornit fără flag-ul `-miningserver`
-**Soluție**: Reporniți cu `bitcoin-qt -server -miningserver`
+**Cauză**: Nodul pornit fără flag-ul ``
+**Soluție**: Reporniți cu `bitcoin-qt -server`
 
 ### Pași de depanare
 

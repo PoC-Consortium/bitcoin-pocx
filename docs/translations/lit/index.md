@@ -1,7 +1,7 @@
 # Bitcoin-PoCX techninė dokumentacija
 
 **Versija**: 1.0
-**Bitcoin Core pagrindas**: v30.0
+**Bitcoin Core pagrindas**: v30.2
 **Būsena**: Testinio tinklo fazė
 **Paskutinis atnaujinimas**: 2025-12-25
 
@@ -118,8 +118,8 @@ Bitcoin-PoCX Qt piniginės naudotojo vadovas: kalimo priskyrimo dialogas, transa
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfigūruoti su įjungtu PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Kompiliuoti
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Kompiliavimo variantai**:
 ```bash
 # Su Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Derinimo versija
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Priklausomybės**: Standartinės Bitcoin Core kompiliavimo priklausomybės. Žr. [Bitcoin Core kompiliavimo dokumentaciją](https://github.com/bitcoin/bitcoin/tree/master/doc#building) platformai būdingiems reikalavimams.
@@ -188,7 +188,7 @@ Prisidėjimai prie dokumentacijos laukiami. Prašome laikytis:
 
 ## Licencija
 
-Bitcoin-PoCX paveldi Bitcoin Core MIT licenciją. Žr. `COPYING` saugyklos šaknyje.
+Bitcoin-PoCX paveldi Bitcoin Core MIT licenciją. Žr. `bitcoin/COPYING` saugyklos šaknyje.
 
 PoCX pagrindinio karkaso autorystė dokumentuota [2 skyriuje: Grafiko formatas](2-plot-format.md).
 

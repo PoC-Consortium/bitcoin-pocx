@@ -16,7 +16,7 @@ Naše implementace zavádí několik klíčových inovací:
 (3) Mechanismus forging přiřazení založený na OP_RETURN umožňující non-custodial poolovou těžbu; a
 (4) Dynamické škálování komprese, které zvyšuje obtížnost generování plotů v souladu s harmonogramy halvingů pro udržení dlouhodobých bezpečnostních marží s tím, jak se hardware zlepšuje.
 
-Bitcoin-PoCX zachovává architekturu Bitcoin Core prostřednictvím minimálních, feature-flagovaných modifikací, izolujících logiku PoC od existujícího konsensuálního kódu. Systém zachovává měnovou politiku Bitcoinu cílením na 120sekundový interval bloků a úpravou subsidy bloků na 10 BTC. Snížená subsidy kompenzuje pětinásobné zvýšení frekvence bloků, udržujíc dlouhodobou míru emise v souladu s původním harmonogramem Bitcoinu a udržujíc maximální nabídku ~21 milionů.
+Bitcoin-PoCX zachovává architekturu Bitcoin Core prostřednictvím minimálních, feature-flagovaných modifikací, izolujících logiku PoC od existujícího konsensuálního kódu. Systém zachovává měnovou politiku Bitcoinu cílením na 120sekundový interval bloků a úpravou subsidy bloků na 10 BTCX. Snížená subsidy kompenzuje pětinásobné zvýšení frekvence bloků, udržujíc dlouhodobou míru emise v souladu s původním harmonogramem Bitcoinu a udržujíc maximální nabídku ~21 milionů.
 
 ---
 
@@ -211,9 +211,9 @@ Důkaz vkládá všechny informace relevantní pro konsenzus potřebné validát
 
 Generační podpis poskytuje nepředvídatelnost vyžadovanou pro bezpečnou těžbu Proof of Capacity. Každý blok odvozuje svůj generační podpis z podpisu a podpisujícího předchozího bloku, čímž zajišťuje, že těžaři nemohou předvídat budoucí výzvy nebo předpočítávat výhodné oblasti plotů:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Toto produkuje sekvenci kryptograficky silných, na těžaři závislých hodnot entropie. Protože veřejný klíč těžaře je neznámý, dokud není publikován předchozí blok, žádný účastník nemůže předpovídat budoucí výběry scoopů. Toto zabraňuje selektivnímu předpočítání nebo strategickému plottování a zajišťuje, že každý blok zavádí skutečně čerstvou těžební práci.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Toto produkuje sekvenci kryptograficky silných, na těžaři závislých hodnot entropie. Protože veřejný klíč těžaře je neznámý, dokud není publikován předchozí blok, žádný účastník nemůže předpovídat budoucí výběry scoopů. Toto zabraňuje selektivnímu předpočítání nebo strategickému plottování a zajišťuje, že každý blok zavádí skutečně čerstvou těžební práci.
 
 ### 4.3 Proces forgingu
 
@@ -231,7 +231,7 @@ Proof of Capacity produkuje exponenciálně distribuované deadliny. Po krátké
 
 Time Bending přetváří distribuci aplikací transformace třetí odmocniny:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Faktor měřítka zachovává očekávaný čas bloku (120 sekund) při dramatickém snížení variance. Krátké deadliny jsou rozšířeny, zlepšujíc propagaci bloků a bezpečnost sítě. Dlouhé deadliny jsou komprimovány, zabraňujíc outlierům ve zpožďování řetězce.
 
@@ -411,12 +411,12 @@ Tabulky níže shrnují výsledná nastavení pro mainnet, testnet a regtest, zd
 | Parametr | Hodnota |
 |----------|---------|
 | Magic bajty | `0xa7 0x3c 0x91 0x5e` |
-| Výchozí port | 8888 |
+| Výchozí port | 8338 |
 | Bech32 HRP | `pocx` |
 | Cílový čas bloku | 120 sekund |
-| Počáteční subsidy | 10 BTC |
+| Počáteční subsidy | 10 BTCX |
 | Interval halvingu | 1050000 bloků (~4 roky) |
-| Celková nabídka | ~21 milionů BTC |
+| Celková nabídka | ~21 milionů BTCX |
 | Aktivace přiřazení | 30 bloků |
 | Revokace přiřazení | 720 bloků |
 | Klouzavé okno | 24 bloků |
@@ -425,8 +425,8 @@ Tabulky níže shrnují výsledná nastavení pro mainnet, testnet a regtest, zd
 
 | Parametr | Hodnota |
 |----------|---------|
-| Magic bajty | `0x6d 0xf2 0x48 0xb3` |
-| Výchozí port | 18888 |
+| Magic bajty | `0x6d 0xf2 0x48 0xb4` |
+| Výchozí port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Cílový čas bloku | 120 sekund |
 | Ostatní parametry | Stejné jako mainnet |

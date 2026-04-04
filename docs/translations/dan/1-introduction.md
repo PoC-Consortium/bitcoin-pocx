@@ -42,7 +42,7 @@ Proof of Capacity (PoC) er en konsensusmekanisme, hvor miningkraft er proportion
 
 ```
 bitcoin-pocx/
--- bitcoin/             # Bitcoin Core v30.0 + PoCX-integration
+-- bitcoin/             # Bitcoin Core v30.2 + PoCX-integration
 |   -- src/pocx/        # PoCX-implementering
 -- pocx/                # PoCX core framework (submodul, skrivebeskyttet)
 -- docs/                # Denne dokumentation
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Losning**: Fordelingstransformation fra eksponentiel til chi-kvadrat ved hjaelp af kubikrod: `Y = skala x (X^(1/3))`.
 
-**Effekt**: Meget gode losninger forger senere (netvaerket har tid til at scanne alle diske, reducerer hurtige blokke), darlige losninger forbedres. Gennemsnitlig bloktid opretholdes pa 120 sekunder, lange blokke reduceres.
+**Effekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detaljer**: [Kapitel 3: Konsensus og mining](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Samme som Bitcoin Core**:
 - **CPU**: Moderne x86_64-processor
 - **Hukommelse**: 4-8 GB RAM
-- **Lagring**: Ny kaede, i oejeblikket tom (kan vokse ~4x hurtigere end Bitcoin pa grund af 2-minutters blokke og assignment-database)
+- **Lagring**: Ny kaede, i oejeblikket tom (kan vokse ~5x hurtigere end Bitcoin pa grund af 2-minutters blokke og assignment-database)
 - **Netvaerk**: Stabil internetforbindelse
 - **Ur**: NTP-synkronisering anbefales til optimal drift
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Byg med PoCX aktiveret
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detaljer**: Se `CLAUDE.md` i repository-roden
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Kor node
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Til mining** (aktiverer RPC-adgang for eksterne minere):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # eller
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detaljer**: [Kapitel 6: Netvaerksparametre](6-network-parameters.md)

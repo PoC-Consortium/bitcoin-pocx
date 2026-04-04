@@ -39,7 +39,7 @@
   [1]: 找零返回用户（可选，标准 P2WPKH）
 ```
 
-**实现：** `src/pocx/assignments/opcodes.cpp:25-52`
+**实现：** `src/pocx/assignments/opcodes.cpp`
 
 ### 撤销交易格式
 
@@ -58,14 +58,14 @@
   [1]: 找零返回用户（可选，标准 P2WPKH）
 ```
 
-**实现：** `src/pocx/assignments/opcodes.cpp:54-77`
+**实现：** `src/pocx/assignments/opcodes.cpp`
 
 ### 标记
 
 - **委派标记：** `POCX`（0x50, 0x4F, 0x43, 0x58）= "Proof of Capacity neXt"
 - **撤销标记：** `XCOP`（0x58, 0x43, 0x4F, 0x50）= "eXit Capacity OPeration"
 
-**实现：** `src/pocx/assignments/opcodes.cpp:15-19`
+**实现：** `src/pocx/assignments/opcodes.cpp`
 
 ### 关键交易特性
 
@@ -91,7 +91,7 @@ chainstate/ LevelDB：
        └─ 完整历史：每个绘图随时间的所有委派
 ```
 
-**实现：** `src/txdb.cpp:237-348`
+**实现：** `src/txdb.cpp`
 
 ### ForgingAssignment 结构
 
@@ -118,7 +118,7 @@ struct ForgingAssignment {
 };
 ```
 
-**实现：** `src/coins.h:111-178`
+**实现：** `src/coins.h`
 
 ### 委派状态
 
@@ -132,7 +132,7 @@ enum class ForgingState : uint8_t {
 };
 ```
 
-**实现：** `src/coins.h:98-104`
+**实现：** `src/coins.h`
 
 ### 数据库键
 
@@ -147,7 +147,7 @@ struct AssignmentHistoryKey {
 };
 ```
 
-**实现：** `src/txdb.cpp:245-262`
+**实现：** `src/txdb.cpp`
 
 ### 历史追踪
 
@@ -176,8 +176,8 @@ for (const auto& tx : block.vtx) {
                 return state.Invalid("bad-assignment-ownership");
 
             // 检查绘图状态（必须是 UNASSIGNED 或 REVOKED）
-            ForgingState state = GetPlotForgingState(plot_addr, height, view);
-            if (state != UNASSIGNED && state != REVOKED)
+            ForgingState plotState = pocx::assignments::GetAssignmentState(plot_addr, height, view);
+            if (plotState != UNASSIGNED && plotState != REVOKED)
                 return state.Invalid("plot-not-available-for-assignment");
 
             // 创建新委派
@@ -222,7 +222,7 @@ for (const auto& tx : block.vtx) {
 // UpdateCoins 正常进行（自动跳过 OP_RETURN 输出）
 ```
 
-**实现：** `src/validation.cpp:2775-2878`
+**实现：** `src/validation.cpp:ConnectBlock()`
 
 ### 所有权验证
 
@@ -233,27 +233,25 @@ bool VerifyPlotOwnership(const CTransaction& tx,
 {
     // 检查至少一个输入由绘图所有者签名
     for (const auto& input : tx.vin) {
-        Coin coin = view.GetCoin(input.prevout);
-        if (!coin) continue;
+        auto coin = view.GetCoin(input.prevout);
+        if (!coin.has_value()) continue;
 
-        // 提取目标地址
-        CTxDestination dest;
-        if (!ExtractDestination(coin.out.scriptPubKey, dest)) continue;
+        // Check if P2WPKH witness program matches plot address
+        int wit_version;
+        std::vector<unsigned char> wit_program;
+        if (!coin->out.scriptPubKey.IsWitnessProgram(wit_version, wit_program)) continue;
+        if (wit_version != 0 || wit_program.size() != 20) continue;
 
-        // 检查是否是绘图地址的 P2WPKH
-        if (auto* witness_addr = std::get_if<WitnessV0KeyHash>(&dest)) {
-            if (std::equal(witness_addr->begin(), witness_addr->end(),
-                          plotAddress.begin())) {
-                // Bitcoin Core 已验证签名
-                return true;
-            }
+        if (std::equal(wit_program.begin(), wit_program.end(),
+                      plotAddress.begin())) {
+            return true;  // Bitcoin Core already validated signature
         }
     }
     return false;
 }
 ```
 
-**实现：** `src/pocx/assignments/opcodes.cpp:217-256`
+**实现：** `src/pocx/assignments/opcodes.cpp:VerifyPlotOwnership()`
 
 ### 激活延迟
 
@@ -282,7 +280,7 @@ consensus.nForgingRevocationDelay;   // 撤销激活延迟
 
 1. **最多一个 POCX OP_RETURN：** 交易不能包含多个 POCX/XCOP 标记
 
-**实现：** `src/consensus/tx_check.cpp:63-77`
+**实现：** `src/consensus/tx_check.cpp`
 
 ### 内存池接受检查（PreChecks）
 
@@ -300,7 +298,7 @@ consensus.nForgingRevocationDelay;   // 撤销激活延迟
 2. **活跃委派：** 绘图必须仅处于 ASSIGNED (2) 状态
 3. **内存池冲突：** 内存池中没有此绘图的其他撤销
 
-**实现：** `src/validation.cpp:898-993`
+**实现：** `src/validation.cpp:PreChecks()`
 
 ### 验证流程
 
@@ -374,31 +372,37 @@ bool CCoinsViewCache::Flush() {
     if (fOk && !dirtyPlots.empty()) {
         // 收集脏委派
         ForgingAssignmentsMap assignmentsToWrite;
-        PlotAddressAssignmentMap currentToWrite;  // 空 - 未使用
+        DeletedAssignmentsSet deletedToWrite;
+
+        // Collect dirty assignments
 
         for (const auto& plotAddr : dirtyPlots) {
             auto it = pendingAssignments.find(plotAddr);
             if (it != pendingAssignments.end()) {
                 for (const auto& assignment : it->second) {
-                    assignmentsToWrite[{plotAddr, assignment}] = assignment;
+                    auto key = std::make_pair(plotAddr, assignment.assignment_txid);
+                    assignmentsToWrite[key] = assignment;
                 }
             }
         }
 
         // 写入数据库
-        fOk = base->BatchWriteAssignments(assignmentsToWrite, currentToWrite,
-                                         deletedAssignments);
-
-        if (fOk) {
-            // 清除跟踪
-            dirtyPlots.clear();
-            deletedAssignments.clear();
+        // Merge deleted assignments into assignmentsToWrite (needed for height lookup)
+        // and build deletedToWrite set (plain key pairs)
+        for (const auto& [key, assignment] : deletedAssignments) {
+            assignmentsToWrite[key] = assignment;  // Provide assignment data for height
+            deletedToWrite.insert(key);             // Mark for deletion
         }
+
+        fOk = base->BatchWriteAssignments(assignmentsToWrite, deletedToWrite);
     }
 
     if (fOk) {
-        cacheCoins.clear();  // 释放内存
+        cacheCoins.clear();
+        ReallocateCache();
         pendingAssignments.clear();
+        deletedAssignments.clear();
+        dirtyPlots.clear();
         cachedAssignmentsUsage = 0;
     }
 
@@ -406,7 +410,7 @@ bool CCoinsViewCache::Flush() {
 }
 ```
 
-**实现：** `src/coins.cpp:278-315`
+**实现：** `src/coins.cpp:Flush()`
 
 ### 数据库批量写入
 
@@ -437,28 +441,30 @@ bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256& hashB
 // 委派单独写入但在相同的数据库事务上下文中
 bool CCoinsViewDB::BatchWriteAssignments(
     const ForgingAssignmentsMap& assignments,
-    const PlotAddressAssignmentMap& currentAssignments,  // 未使用参数（保留 API 兼容性）
-    const DeletedAssignmentsSet& deletedAssignments)
+    const DeletedAssignmentsSet& deletedAssignments)  // set of (plot_addr, txid) pairs
 {
-    CDBBatch batch(*m_db);  // 新批次，但相同数据库
+    CDBBatch batch(*m_db);
 
-    // 写入委派历史
+    // Write all assignment history entries
     for (const auto& [key, assignment] : assignments) {
         const auto& [plot_addr, txid] = key;
-        batch.Write(AssignmentHistoryKey(plot_addr, txid), assignment);
+        batch.Write(AssignmentHistoryKey(plot_addr, assignment.assignment_height, txid), assignment);
     }
 
-    // 从历史中删除已删除的委派
+    // Erase deleted assignments — look up height from assignments map
     for (const auto& [plot_addr, txid] : deletedAssignments) {
-        batch.Erase(AssignmentHistoryKey(plot_addr, txid));
+        auto it = assignments.find({plot_addr, txid});
+        if (it != assignments.end()) {
+            batch.Erase(AssignmentHistoryKey(plot_addr, it->second.assignment_height, txid));
+        }
     }
 
-    // 原子提交
+    // ATOMIC COMMIT
     return m_db->WriteBatch(batch);
 }
 ```
 
-**实现：** `src/txdb.cpp:332-348`
+**实现：** `src/txdb.cpp:BatchWriteAssignments()`
 
 ### 原子性保证
 
@@ -497,7 +503,7 @@ struct CBlockUndo {
 };
 ```
 
-**实现：** `src/undo.h:63-105`
+**实现：** `src/undo.h`
 
 ### DisconnectBlock 流程
 
@@ -546,7 +552,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block,
 }
 ```
 
-**实现：** `src/validation.cpp:2381-2415`
+**实现：** `src/validation.cpp:DisconnectBlock()`
 
 ### 重组期间的缓存管理
 
@@ -556,7 +562,7 @@ private:
     // 委派缓存
     mutable std::map<std::array<uint8_t, 20>, std::vector<ForgingAssignment>> pendingAssignments;
     mutable std::set<std::array<uint8_t, 20>> dirtyPlots;  // 追踪修改的绘图
-    mutable std::set<std::pair<std::array<uint8_t, 20>, uint256>> deletedAssignments;  // 追踪删除
+    mutable ForgingAssignmentsMap deletedAssignments;  // Track deletions (map, not set)  // 追踪删除
     mutable size_t cachedAssignmentsUsage{0};  // 内存追踪
 
 public:
@@ -569,7 +575,7 @@ public:
     void RemoveForgingAssignment(const std::array<uint8_t, 20>& plotAddress,
                                  const uint256& assignment_txid) {
         auto key = std::make_pair(plotAddress, assignment_txid);
-        deletedAssignments.insert(key);
+        deletedAssignments[key] = assignment;
         dirtyPlots.insert(plotAddress);
         if (cachedAssignmentsUsage >= sizeof(ForgingAssignment)) {
             cachedAssignmentsUsage -= sizeof(ForgingAssignment);
@@ -581,14 +587,12 @@ public:
         dirtyPlots.insert(assignment.plotAddress);
         auto key = std::make_pair(assignment.plotAddress, assignment.assignment_txid);
         deletedAssignments.erase(key);
-        if (true) {
-            cachedAssignmentsUsage += sizeof(ForgingAssignment);
-        }
+        cachedAssignmentsUsage += sizeof(ForgingAssignment);
     }
 };
 ```
 
-**实现：** `src/coins.cpp:494-565`
+**实现：** `src/coins.cpp`
 
 ## RPC 接口
 
@@ -613,7 +617,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
 }
 ```
 
-**实现：** `src/pocx/rpc/assignments.cpp:31-126`
+**实现：** `src/pocx/rpc/assignments.cpp`
 
 ### 钱包命令（需要钱包）
 
@@ -628,7 +632,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..."
 - 使用绘图所有者的密钥签名
 - 广播到网络
 
-**实现：** `src/pocx/rpc/assignments_wallet.cpp:29-93`
+**实现：** `src/pocx/rpc/assignments_wallet.cpp`
 
 #### revoke_assignment
 ```bash
@@ -641,7 +645,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 - 使用绘图所有者的密钥签名
 - 广播到网络
 
-**实现：** `src/pocx/rpc/assignments_wallet.cpp:95-154`
+**实现：** `src/pocx/rpc/assignments_wallet.cpp`
 
 ### 钱包交易创建
 
@@ -660,7 +664,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 **关键洞察：** 钱包必须从绘图地址花费以证明所有权，因此它自动强制从该地址进行币选择。
 
-**实现：** `src/pocx/assignments/transactions.cpp:38-263`
+**实现：** `src/pocx/assignments/transactions.cpp`
 
 ## 文件结构
 
@@ -668,11 +672,11 @@ bitcoin-cli revoke_assignment "pocx1qplot..."
 
 ```
 src/
-├── coins.h                        # ForgingAssignment 结构，CCoinsViewCache 方法 [710 行]
-├── coins.cpp                      # 缓存管理，批量写入 [603 行]
+├── coins.h                        # ForgingAssignment 结构，CCoinsViewCache 方法
+├── coins.cpp                      # 缓存管理，批量写入
 │
-├── txdb.h                         # CCoinsViewDB 委派方法 [90 行]
-├── txdb.cpp                       # 数据库读写 [349 行]
+├── txdb.h                         # CCoinsViewDB 委派方法
+├── txdb.cpp                       # 数据库读写
 │
 ├── undo.h                         # 重组用的 ForgingUndo 结构
 │
@@ -681,7 +685,7 @@ src/
 └── pocx/
     ├── assignments/
     │   ├── opcodes.h              # OP_RETURN 格式，解析，验证
-    │   ├── opcodes.cpp            # [259 行] 标记定义，OP_RETURN 操作，所有权检查
+    │   ├── opcodes.cpp            # 标记定义，OP_RETURN 操作，所有权检查
     │   ├── assignment_state.h     # GetEffectiveSigner，GetAssignmentState 辅助函数
     │   ├── assignment_state.cpp   # 委派状态查询函数
     │   ├── transactions.h         # 钱包交易创建 API

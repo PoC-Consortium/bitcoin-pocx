@@ -1,7 +1,7 @@
 # Технічна документація Bitcoin-PoCX
 
 **Версія**: 1.0
-**Базова версія Bitcoin Core**: v30.0
+**Базова версія Bitcoin Core**: v30.2
 **Статус**: Фаза тестової мережі
 **Останнє оновлення**: 25 грудня 2025
 
@@ -114,8 +114,8 @@
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Конфігурація з увімкненим PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Збірка
 cmake --build build -j$(nproc)
@@ -124,10 +124,10 @@ cmake --build build -j$(nproc)
 **Варіанти збірки**:
 ```bash
 # З графічним інтерфейсом Qt
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Налагоджувальна збірка
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Залежності**: Стандартні залежності для збірки Bitcoin Core. Див. [документацію збірки Bitcoin Core](https://github.com/bitcoin/bitcoin/tree/master/doc#building) для вимог, специфічних для платформи.
@@ -184,7 +184,7 @@ cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
 
 ## Ліцензія
 
-Bitcoin-PoCX успадковує ліцензію MIT від Bitcoin Core. Див. `COPYING` у корені репозиторію.
+Bitcoin-PoCX успадковує ліцензію MIT від Bitcoin Core. Див. `bitcoin/COPYING` у корені репозиторію.
 
 Атрибуція базового фреймворку PoCX задокументована в [Розділі 2: Формат плотів](2-plot-format.md).
 

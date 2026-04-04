@@ -21,40 +21,15 @@ Madencilik RPC'leri, atama yönetimi ve değiştirilmiş blok zinciri RPC'leri d
 
 ## Yapılandırma
 
-### Madencilik Sunucu Modu
+### Mining RPCs
 
-**Bayrak**: `-miningserver`
+Mining RPCs are always available when compiled with `ENABLE_POCX=ON`. Standard RPC authentication is required. Mining RPCs are rate-limited by queue capacity.
 
-**Amaç**: Harici madencilerin madenciliğe özgü RPC'leri çağırması için RPC erişimini etkinleştirir
-
-**Gereksinimler**:
-- `submit_nonce`'un çalışması için gerekli
-- Qt cüzdanında dövme atama penceresinin görünürlüğü için gerekli
-
-**Kullanım**:
-```bash
-# Komut satırı
-./bitcoind -miningserver
-
-# bitcoin.conf
-miningserver=1
-```
-
-**Güvenlik Değerlendirmeleri**:
-- Standart RPC kimlik bilgilerinin ötesinde ek kimlik doğrulama yok
-- Madencilik RPC'leri kuyruk kapasitesiyle hız sınırlı
-- Standart RPC kimlik doğrulaması hala gerekli
-
-**Uygulama**: `src/pocx/rpc/mining.cpp`
-
----
-
-## PoCX Madencilik RPC'leri
+**Implementation**: `src/pocx/rpc/mining.cpp`
 
 ### get_mining_info
 
 **Kategori**: mining
-**Madencilik Sunucusu Gerekli**: Hayır
 **Cüzdan Gerekli**: Hayır
 
 **Amaç**: Harici madencilerin plot dosyalarını taraması ve son tarihleri hesaplaması için gereken mevcut madencilik parametrelerini döndürür.
@@ -65,7 +40,7 @@ miningserver=1
 ```json
 {
   "generation_signature": "abc123...",       // hex, 64 karakter
-  "base_target": 36650387593,                // sayısal
+  "base_target": 36650387592,                // sayısal
   "height": 12345,                           // sayısal, sonraki blok yüksekliği
   "block_hash": "def456...",                 // hex, önceki blok
   "target_quality": 18446744073709551615,    // uint64_max (tüm çözümler kabul edilir)
@@ -98,25 +73,26 @@ bitcoin-cli get_mining_info
 ### submit_nonce
 
 **Kategori**: mining
-**Madencilik Sunucusu Gerekli**: Evet
 **Cüzdan Gerekli**: Evet (özel anahtarlar için)
 
 **Amaç**: Bir PoCX madencilik çözümü gönderir. Kanıtı doğrular, zaman bükülmüş dövme için kuyruğa alır ve planlanan zamanda otomatik olarak blok oluşturur.
 
-**Parametreler**:
-1. `height` (sayısal, gerekli) - Blok yüksekliği
-2. `generation_signature` (string hex, gerekli) - Üretim imzası (64 karakter)
-3. `account_id` (string, gerekli) - Plot hesap kimliği (40 hex karakter = 20 bayt)
-4. `seed` (string, gerekli) - Plot seed'i (64 hex karakter = 32 bayt)
-5. `nonce` (sayısal, gerekli) - Madencilik nonce'u
-6. `compression` (sayısal, gerekli) - Kullanılan ölçeklendirme/sıkıştırma seviyesi (1-255)
-7. `quality` (sayısal, isteğe bağlı) - Kalite değeri (atlanırsa yeniden hesaplanır)
+**Parameters**:
+1. `block_hash` (string hex, required) - Previous block hash
+2. `height` (numeric, required) - Block height
+3. `generation_signature` (string hex, required) - Generation signature (64 characters)
+4. `base_target` (numeric, required) - Base target for this block
+5. `account_id` (string, required) - Account ID (20-byte hex or address)
+6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
+7. `nonce` (numeric, required) - Mining nonce
+8. `compression` (numeric, required) - Compression level used (1-6)
+9. `raw_quality` (numeric, required) - Raw quality from proof validation
 
 **Dönüş Değerleri** (başarılı):
 ```json
 {
   "accepted": true,
-  "quality": 120,           // zorluk ayarlı son tarih (saniye)
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // zaman bükülmüş dövme süresi (saniye)
 }
 ```
@@ -134,8 +110,10 @@ bitcoin-cli get_mining_info
    - Hesap Kimliği: tam 40 hex karakter
    - Seed: tam 64 hex karakter
 2. **Bağlam Doğrulaması**:
+   - Block hash must match current tip
    - Yükseklik mevcut uç + 1 ile eşleşmeli
    - Üretim imzası mevcut ile eşleşmeli
+   - Base target must match current
 3. **Cüzdan Doğrulaması**:
    - Etkin imzalayanı belirle (aktif atamaları kontrol et)
    - Cüzdanın etkin imzalayan için özel anahtara sahip olduğunu doğrula
@@ -163,12 +141,16 @@ bitcoin-cli get_mining_info
 
 **Örnek**:
 ```bash
-bitcoin-cli submit_nonce 12345 \
-  "abc123..." \
+bitcoin-cli submit_nonce \
+  "blockhash..." \
+  12345 \
+  "gensig..." \
+  18325193796 \
   "1234567890abcdef1234567890abcdef12345678" \
-  "plot_seed_64_hex_karakter..." \
+  "seed..." \
   999888777 \
-  1
+  1 \
+  123456789
 ```
 
 **Notlar**:
@@ -186,7 +168,6 @@ bitcoin-cli submit_nonce 12345 \
 ### get_assignment
 
 **Kategori**: mining
-**Madencilik Sunucusu Gerekli**: Hayır
 **Cüzdan Gerekli**: Hayır
 
 **Amaç**: Bir plot adresi için dövme atama durumunu sorgular. Salt okunur, cüzdan gerekmez.
@@ -260,7 +241,6 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 ### create_assignment
 
 **Kategori**: wallet
-**Madencilik Sunucusu Gerekli**: Hayır
 **Cüzdan Gerekli**: Evet (yüklenmiş ve kilidi açık olmalı)
 
 **Amaç**: Dövme haklarını başka bir adrese (örn., madencilik havuzu) devretmek için dövme atama işlemi oluşturur.
@@ -316,7 +296,6 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 ### revoke_assignment
 
 **Kategori**: wallet
-**Madencilik Sunucusu Gerekli**: Hayır
 **Cüzdan Gerekli**: Evet (yüklenmiş ve kilidi açık olmalı)
 
 **Amaç**: Mevcut dövme atamasını iptal eder, dövme haklarını plot sahibine döndürür.
@@ -377,7 +356,7 @@ bitcoin-cli revoke_assignment "pocx1qplot..." 0.0001
 
 **PoCX Değişiklikleri**:
 - **Hesaplama**: `reference_base_target / current_base_target`
-- **Referans**: 1 TiB ağ kapasitesi (base_target = 36650387593)
+- **Referans**: 1 TiB ağ kapasitesi (base_target = 36650387592)
 - **Yorum**: Tahmini ağ depolama kapasitesi (TiB cinsinden)
   - Örnek: `1.0` = ~1 TiB
   - Örnek: `1024.0` = ~1 PiB
@@ -464,7 +443,7 @@ bitcoin-cli getblockchaininfo
 - `base_target` (sayısal) - Havuz madenciliği için
 
 **PoCX Kaldırılan Alanlar**:
-- `target` - Kaldırıldı (PoW'a özgü)
+- `target` - Removed (replaced by `base_target`)
 - `noncerange` - Kaldırıldı (PoW'a özgü)
 - `bits` - Kaldırıldı (PoW'a özgü)
 
@@ -494,10 +473,11 @@ Aşağıdaki PoW'a özgü RPC'ler PoCX modunda **devre dışıdır**:
 - **Alternatif**: `get_mining_info` (PoCX'e özgü) kullanın
 
 ### generate, generatetoaddress, generatetodescriptor, generateblock
-- **Neden**: CPU madenciliği PoCX'e uygulanamaz (önceden oluşturulmuş plot'lar gerektirir)
-- **Alternatif**: Harici plotter + madenci + `submit_nonce` kullanın
+- **Status**: Available as hidden commands (functional in regtest for testing)
+- **Note**: In regtest PoCX mode, these commands scan for valid PoCX proofs on-the-fly
+- **Production**: Use external plotter + miner + `submit_nonce`
 
-**Uygulama**: `src/rpc/mining.cpp` (ENABLE_POCX tanımlı olduğunda RPC'ler hata döndürür)
+**Implementation**: `src/rpc/mining.cpp`
 
 ---
 
@@ -530,7 +510,7 @@ while True:
     gen_sig = info["generation_signature"]
     base_target = info["base_target"]
     height = info["height"]
-    min_compression = info["minimum_compression_level"]
+    compression_bounds.nPoCXMinCompression = info["minimum_compression_level"]
     target_compression = info["target_compression_level"]
 
     # 2. Plot dosyalarını tara (harici uygulama)
@@ -538,11 +518,15 @@ while True:
 
     # 3. En iyi çözümü gönder
     result = rpc_call("submit_nonce", [
+        info["block_hash"],
         height,
         gen_sig,
+        base_target,
         best_nonce["account_id"],
         best_nonce["seed"],
-        best_nonce["nonce"]
+        best_nonce["nonce"],
+        best_nonce["compression"],
+        best_nonce["raw_quality"]
     ])
 
     if result["accepted"]:
@@ -662,7 +646,7 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 **Madencilik RPC'leri**: `src/pocx/rpc/mining.cpp`
 **Atama RPC'leri**: `src/pocx/rpc/assignments.cpp`, `src/pocx/rpc/assignments_wallet.cpp`
 **Blok Zinciri RPC'leri**: `src/rpc/blockchain.cpp`
-**Kanıt Doğrulaması**: `src/pocx/consensus/validation.cpp`, `src/pocx/consensus/pocx.cpp`
+**Kanıt Doğrulaması**: `src/pocx/consensus/proof.cpp`, `src/pocx/consensus/signature.cpp`
 **Atama Durumu**: `src/pocx/assignments/assignment_state.cpp`
 **İşlem Oluşturma**: `src/pocx/assignments/transactions.cpp`
 

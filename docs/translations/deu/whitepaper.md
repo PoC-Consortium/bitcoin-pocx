@@ -16,7 +16,7 @@ Unsere Implementierung führt mehrere wichtige Innovationen ein:
 (3) Einen OP_RETURN-basierten Forging-Zuweisungsmechanismus für nicht-verwahrtes Pool-Mining; und
 (4) Dynamische Kompressionsskalierung, die die Plot-Generierungsschwierigkeit entsprechend der Halving-Zeitpläne erhöht, um langfristige Sicherheitsmargen bei fortschreitender Hardware-Entwicklung zu erhalten.
 
-Bitcoin-PoCX behält die Architektur von Bitcoin Core durch minimale, feature-gekennzeichnete Modifikationen bei und isoliert die PoC-Logik vom bestehenden Konsenscode. Das System bewahrt Bitcoins Geldpolitik durch ein Ziel-Blockintervall von 120 Sekunden und passt die Blocksubvention auf 10 BTC an. Die reduzierte Subvention gleicht die fünffache Erhöhung der Blockfrequenz aus, hält die langfristige Emissionsrate im Einklang mit Bitcoins ursprünglichem Zeitplan und erhält das Maximum von ca. 21 Millionen Einheiten.
+Bitcoin-PoCX behält die Architektur von Bitcoin Core durch minimale, feature-gekennzeichnete Modifikationen bei und isoliert die PoC-Logik vom bestehenden Konsenscode. Das System bewahrt Bitcoins Geldpolitik durch ein Ziel-Blockintervall von 120 Sekunden und passt die Blocksubvention auf 10 BTCX an. Die reduzierte Subvention gleicht die fünffache Erhöhung der Blockfrequenz aus, hält die langfristige Emissionsrate im Einklang mit Bitcoins ursprünglichem Zeitplan und erhält das Maximum von ca. 21 Millionen Einheiten.
 
 ---
 
@@ -211,9 +211,9 @@ Der Beweis bettet alle konsensrelevanten Informationen ein, die Validatoren ben�
 
 Die Generierungssignatur liefert die für sicheres Proof of Capacity Mining erforderliche Unvorhersagbarkeit. Jeder Block leitet seine Generierungssignatur von der Signatur und dem Unterzeichner des vorherigen Blocks ab, sodass Miner zukünftige Herausforderungen nicht voraussehen oder vorteilhafte Plot-Regionen vorberechnen können:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Dies erzeugt eine Sequenz kryptografisch starker, minerabhängiger Entropiewerte. Da der öffentliche Schlüssel eines Miners erst bei Veröffentlichung des vorherigen Blocks bekannt wird, kann kein Teilnehmer zukünftige Scoop-Auswahlen vorhersagen. Dies verhindert selektive Vorberechnung oder strategisches Plotten und stellt sicher, dass jeder Block wirklich frische Mining-Arbeit einführt.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Dies erzeugt eine Sequenz kryptografisch starker, minerabhängiger Entropiewerte. Da der öffentliche Schlüssel eines Miners erst bei Veröffentlichung des vorherigen Blocks bekannt wird, kann kein Teilnehmer zukünftige Scoop-Auswahlen vorhersagen. Dies verhindert selektive Vorberechnung oder strategisches Plotten und stellt sicher, dass jeder Block wirklich frische Mining-Arbeit einführt.
 
 ### 4.3 Forging-Prozess
 
@@ -231,7 +231,7 @@ Proof of Capacity erzeugt exponentiell verteilte Deadlines. Nach einer kurzen Ze
 
 Time Bending formt die Verteilung um, indem es eine Kubikwurzel-Transformation anwendet:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Der Skalierungsfaktor bewahrt die erwartete Blockzeit (120 Sekunden) bei dramatischer Varianzreduzierung. Kurze Deadlines werden erweitert, was die Blockpropagation und Netzwerksicherheit verbessert. Lange Deadlines werden komprimiert, um zu verhindern, dass Ausreißer die Chain verzögern.
 
@@ -411,12 +411,12 @@ Die folgenden Tabellen fassen die resultierenden Mainnet-, Testnet- und Regtest-
 | Parameter | Wert |
 |-----------|------|
 | Magic Bytes | `0xa7 0x3c 0x91 0x5e` |
-| Standardport | 8888 |
+| Standardport | 8338 |
 | Bech32 HRP | `pocx` |
 | Blockzeit-Ziel | 120 Sekunden |
-| Initiale Subvention | 10 BTC |
+| Initiale Subvention | 10 BTCX |
 | Halving-Intervall | 1050000 Blöcke (~4 Jahre) |
-| Gesamtangebot | ~21 Millionen BTC |
+| Gesamtangebot | ~21 Millionen BTCX |
 | Zuweisungsaktivierung | 30 Blöcke |
 | Zuweisungswiderruf | 720 Blöcke |
 | Rollierendes Fenster | 24 Blöcke |
@@ -425,8 +425,8 @@ Die folgenden Tabellen fassen die resultierenden Mainnet-, Testnet- und Regtest-
 
 | Parameter | Wert |
 |-----------|------|
-| Magic Bytes | `0x6d 0xf2 0x48 0xb3` |
-| Standardport | 18888 |
+| Magic Bytes | `0x6d 0xf2 0x48 0xb4` |
+| Standardport | 18338 |
 | Bech32 HRP | `tpocx` |
 | Blockzeit-Ziel | 120 Sekunden |
 | Andere Parameter | Wie Mainnet |

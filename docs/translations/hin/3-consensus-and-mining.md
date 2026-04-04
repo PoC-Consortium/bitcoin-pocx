@@ -49,7 +49,7 @@ PoCX ब्लॉक अतिरिक्त सहमति फ़ील्ड
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plot seed (32 बाइट्स)
     std::array<uint8_t, 20> account_id;       // Plot पता (20-बाइट hash160)
-    uint32_t compression;                     // स्केलिंग स्तर (1-255)
+    uint32_t compression;                     // स्केलिंग स्तर (1-6)
     uint64_t nonce;                           // माइनिंग nonce (64-bit)
     uint64_t quality;                         // दावा की गई गुणवत्ता (PoC हैश आउटपुट)
 };
@@ -87,12 +87,12 @@ Generation signature माइनिंग एन्ट्रॉपी बना
 
 **गणना:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Genesis ब्लॉक:** हार्डकोडेड प्रारंभिक generation signature का उपयोग करता है
 
-**कार्यान्वयन:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**कार्यान्वयन:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Base Target (कठिनाई)
 
@@ -113,8 +113,8 @@ PoCX स्केलिंग स्तरों (Xn) के माध्यम 
 **डायनामिक सीमाएं:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // न्यूनतम स्वीकृत स्तर
-    uint8_t nPoCXTargetCompression;  // अनुशंसित स्तर
+    uint32_t nPoCXMinCompression;     // न्यूनतम स्वीकृत स्तर
+    uint32_t nPoCXTargetCompression;  // अनुशंसित स्तर
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Plot निर्माण और लुकअप लागत के बीच सुरक्षा मार्जिन बनाए रखता है
 - अधिकतम स्केलिंग स्तर: 255
 
-**कार्यान्वयन:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**कार्यान्वयन:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **असाइनमेंट समर्थन:** Plot मालिक दूसरे पते को फोर्जिंग अधिकार असाइन कर सकता है। वॉलेट के पास प्रभावी हस्ताक्षरकर्ता के लिए कुंजी होनी चाहिए, जरूरी नहीं कि plot मालिक के लिए।
 
-#### चरण 5: प्रमाण सत्यापन
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 बाइट्स
     block_height,
     nonce,
-    seed,                // 32 बाइट्स
-    min_compression,
-    max_compression,
-    &result             // आउटपुट: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. सत्यापित करें कि गुणवत्ता कठिनाई आवश्यकताओं को पूरा करती है
 4. रॉ गुणवत्ता मान लौटाएं
 
-**कार्यान्वयन:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**कार्यान्वयन:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### चरण 6: Time Bending गणना
 ```cpp
@@ -270,15 +276,15 @@ Y = scale * (X^(1/3))
 
 **कार्यान्वयन:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### चरण 7: Forger सबमिशन
+#### Step 8: Forger Submission: Forger सबमिशन
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // deadline नहीं - forger में पुनर्गणना
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // मूल plot पता
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Merkle root पुनर्गणना करें:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**कार्यान्वयन:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**कार्यान्वयन:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **मुख्य डिज़ाइन निर्णय:**
 - Coinbase प्रभावी हस्ताक्षरकर्ता को भुगतान करता है (असाइनमेंट का सम्मान)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. सत्यापित करें कि पुनर्प्राप्त pubkey संग्रहीत pubkey से मेल खाता है
 
 **कार्यान्वयन:** `src/validation.cpp:CheckBlockHeader()`
-**हस्ताक्षर लॉजिक:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**हस्ताक्षर लॉजिक:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### चरण 2: ब्लॉक सत्यापन (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // चरण 1: Generation signature सत्यापित करें
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // चरण 2: Base target सत्यापित करें
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // चरण 3: Proof of capacity सत्यापित करें
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // चरण 4: Deadline समय सत्यापित करें
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**सत्यापन चरण:**
-1. **Generation Signature:** पिछले ब्लॉक से गणना किए गए मान से मेल खाना चाहिए
-2. **Base Target:** कठिनाई समायोजन गणना से मेल खाना चाहिए
-3. **स्केलिंग स्तर:** नेटवर्क न्यूनतम को पूरा करना चाहिए (`compression >= min_compression`)
-4. **गुणवत्ता दावा:** सबमिट की गई गुणवत्ता प्रमाण से गणना की गई गुणवत्ता से मेल खानी चाहिए
-5. **Proof of Capacity:** क्रिप्टोग्राफिक प्रमाण सत्यापन (SIMD-अनुकूलित)
-6. **Deadline समय:** Time-bended deadline (`poc_time`) ≤ बीता हुआ समय होना चाहिए
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **कार्यान्वयन:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **कार्यान्वयन:**
 - कनेक्शन: `src/validation.cpp:ConnectBlock()`
-- विस्तारित सत्यापन: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- असाइनमेंट लॉजिक: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- विस्तारित सत्यापन: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- असाइनमेंट लॉजिक: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### चरण 5: चेन सक्रियण
 
@@ -603,7 +597,7 @@ CheckBlockHeader (बुनियादी हस्ताक्षर)
     ↓
 CheckBlock (लेनदेन, merkle)
     ↓
-ContextualCheckBlockHeader (gen sig, base target, PoC proof, deadline)
+ContextualCheckBlockHeader (height, gen sig, base target, deadline)
     ↓
 ConnectBlock (असाइनमेंट के साथ विस्तारित हस्ताक्षर, स्थिति संक्रमण)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - विलंब अवधि के बाद ASSIGNED बन जाता है (4 ब्लॉक regtest, 30 ब्लॉक mainnet)
 - विलंब ब्लॉक दौड़ के दौरान त्वरित पुनर्असाइनमेंट रोकता है
 
-**कार्यान्वयन:** `src/script/forging_assignment.h`, ConnectBlock में सत्यापन
+**कार्यान्वयन:** `src/pocx/assignments/opcodes.h`, ConnectBlock में सत्यापन
 
 ### असाइनमेंट निरस्त करना
 
@@ -826,12 +820,15 @@ Thread B: cs_wallet → cs_main
 
 **Generation Signature:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **ब्लॉक हस्ताक्षर हैश:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **कॉम्पैक्ट हस्ताक्षर प्रारूप:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **कोर कार्यान्वयन:**
 - RPC इंटरफ़ेस: `src/pocx/rpc/mining.cpp`
 - Forger कतार: `src/pocx/mining/scheduler.cpp`
-- सहमति सत्यापन: `src/pocx/consensus/validation.cpp`
-- प्रमाण सत्यापन: `src/pocx/consensus/pocx.cpp`
+- सहमति सत्यापन: `src/pocx/consensus/proof.cpp`
+- प्रमाण सत्यापन: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - ब्लॉक सत्यापन: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- असाइनमेंट लॉजिक: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- संदर्भ प्रबंधन: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- असाइनमेंट लॉजिक: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- संदर्भ प्रबंधन: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **डेटा संरचनाएं:**
 - ब्लॉक प्रारूप: `src/primitives/block.h`
@@ -902,7 +899,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **प्रक्रिया:**
 1. Generation signature और ऊंचाई से scoop उत्पन्न करें
 2. गणना किए गए scoop के लिए plot डेटा पढ़ें
-3. हैश: `SHABAL256(generation_signature || scoop_data)`
+3. हैश: `Shabal256Lite(scoop_data, generation_signature)`
 4. Min से max तक स्केलिंग स्तरों का परीक्षण करें
 5. मिली सर्वोत्तम गुणवत्ता लौटाएं
 
@@ -923,9 +920,13 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **सूत्र:**
 ```
 avg_base_target = moving_average(recent base targets)
+
+// Hybrid correction: wall-clock time adjusted by bended deadlines
+actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)
+
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

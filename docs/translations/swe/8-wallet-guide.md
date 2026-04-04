@@ -28,7 +28,7 @@ Fullständig guide till Bitcoin-PoCX Qt-plånboken och forging assignment-hanter
 Bitcoin-PoCX Qt-plånboken (`bitcoin-qt`) tillhandahåller:
 - Standard Bitcoin Core-plånboksfunktionalitet (skicka, ta emot, transaktionshantering)
 - **Forging Assignment Manager**: GUI för att skapa/återkalla plottilldelningar
-- **Miningserverläge**: `-miningserver`-flagga aktiverar miningrelaterade funktioner
+- **Miningserverläge**: ``-flagga aktiverar miningrelaterade funktioner
 - **Transaktionshistorik**: Visning av tilldelnings- och återkallelsetransaktioner
 
 ### Starta plånboken
@@ -38,20 +38,20 @@ Bitcoin-PoCX Qt-plånboken (`bitcoin-qt`) tillhandahåller:
 ./build/bin/bitcoin-qt
 ```
 
-**Med mining** (aktiverar tilldelningsdialog):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Kommandoradsalternativ**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Miningkrav
 
 **För miningoperationer**:
-- `-miningserver`-flagga krävs
+- ``-flagga krävs
 - Plånbok med P2WPKH-adresser och privata nycklar
 - Extern plotter (`pocx_plotter`) för plotgenerering
 - Extern miner (`pocx_miner`) för mining
@@ -83,8 +83,7 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 
 ### Åtkomst till dialogen
 
-**Meny**: `Plånbok -> Forging Assignments`
-**Verktygsfält**: Miningikon (synlig endast med `-miningserver`-flagga)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Fönsterstorlek**: 600×450 pixlar
 
 ### Dialoglägen
@@ -118,7 +117,7 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- OP_RETURN-utdata: `POCX`-markör + plot_address + forging_address (46 bytes)
+- OP_RETURN-utdata: `POCX`-markör + plot_address + forging_address (44 bytes)
 - Växelutdata: Returneras till plånbok
 
 #### Läge 2: Återkalla tilldelning
@@ -146,7 +145,7 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- OP_RETURN-utdata: `XCOP`-markör + plot_address (26 bytes)
+- OP_RETURN-utdata: `XCOP`-markör + plot_address (24 bytes)
 - Växelutdata: Returneras till plånbok
 
 #### Läge 3: Kontrollera tilldelningsstatus
@@ -296,8 +295,8 @@ Tilldelning skapad vid höjd: 12000
 ### Valideringsfelmeddelanden
 
 **Dialogfel**:
-- "Plotadress måste vara P2WPKH (bech32)"
-- "Forgingsadress måste vara P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Ogiltigt adressformat"
 - "Inga coins tillgängliga på plotadressen. Kan inte bevisa ägarskap."
 - "Kan inte skapa transaktioner med watch-only-plånbok"
@@ -313,7 +312,6 @@ Tilldelning skapad vid höjd: 12000
 **Nodkonfiguration**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -335,9 +333,8 @@ server=1
    pocx_plotter --account <plot_address_hash160> --seed <32_bytes> --nonces <antal>
    ```
 
-2. **Starta nod** med miningserver:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigurera miner**:
@@ -365,7 +362,7 @@ server=1
    - Välj plotadress
    - Ange poolens forgingsadress
    - Klicka "Skicka tilldelning"
-   - Vänta på aktiveringsfördröjning (30 block testnet)
+   - Vänta på aktiveringsfördröjning (30 blocks mainnet/testnet))
 
 3. **Konfigurera miner**:
    - Peka på **pool**-endpoint (inte lokal nod)
@@ -399,19 +396,14 @@ server=1
 
 ### Vanliga problem
 
-#### "Plånbok har inte privat nyckel för plotadress"
-
-**Orsak**: Plånbok äger inte adressen
-**Lösning**:
-- Importera privat nyckel via `importprivkey` RPC
-- Eller använd annan plotadress som plånboken äger
+- Or use different plot address owned by wallet
 
 #### "Tilldelning existerar redan för denna plot"
 
 **Orsak**: Plot redan tilldelad till annan adress
 **Lösning**:
 1. Återkalla befintlig tilldelning
-2. Vänta på återkallelsefördröjning (720 block testnet)
+2. Vänta på återkallelsefördröjning (720 blocks mainnet/testnet))
 3. Skapa ny tilldelning
 
 #### "Adressformat stöds inte"
@@ -442,16 +434,6 @@ server=1
 1. Skicka medel till plotadress
 2. Vänta på 1 bekräftelse
 3. Försök skapa tilldelning igen
-
-#### "Kan inte skapa transaktioner med watch-only-plånbok"
-
-**Orsak**: Plånbok importerade adress utan privat nyckel
-**Lösning**: Importera fullständig privat nyckel, inte bara adress
-
-#### "Forging Assignment-flik inte synlig"
-
-**Orsak**: Nod startad utan `-miningserver`-flagga
-**Lösning**: Starta om med `bitcoin-qt -server -miningserver`
 
 ### Felsökningssteg
 
@@ -525,12 +507,12 @@ server=1
 
 ### Tilldelningsfördröjningar
 
-**Aktiveringsfördröjning** (30 block testnet):
+**Aktiveringsfördröjning** (30 blocks mainnet/testnet)):
 - Förhindrar snabb omtilldelning under kedjeforks
 - Tillåter nätverk att nå konsensus
 - Kan inte förbigås
 
-**Återkallelsefördröjning** (720 block testnet):
+**Återkallelsefördröjning** (720 blocks mainnet/testnet)):
 - Ger stabilitet för miningpooler
 - Förhindrar tilldelnings-"griefing"-attacker
 - Forgingsadress förblir aktiv under fördröjning

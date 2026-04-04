@@ -28,7 +28,7 @@ Guida completa al wallet Qt di Bitcoin-PoCX e alla gestione delle assegnazioni d
 Il wallet Qt di Bitcoin-PoCX (`bitcoin-qt`) fornisce:
 - Funzionalità standard del wallet Bitcoin Core (invio, ricezione, gestione transazioni)
 - **Gestore delle assegnazioni di forging**: GUI per creare/revocare assegnazioni dei plot
-- **Modalità server di mining**: Il flag `-miningserver` abilita le funzionalità relative al mining
+- **Start Node** with RPC enabled: Il flag `` abilita le funzionalità relative al mining
 - **Cronologia transazioni**: Visualizzazione delle transazioni di assegnazione e revoca
 
 ### Avvio del wallet
@@ -38,20 +38,20 @@ Il wallet Qt di Bitcoin-PoCX (`bitcoin-qt`) fornisce:
 ./build/bin/bitcoin-qt
 ```
 
-**Con mining** (abilita la finestra di dialogo delle assegnazioni):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Alternativa da riga di comando**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Requisiti per il mining
 
 **Per le operazioni di mining**:
-- Flag `-miningserver` richiesto
+- Flag `` richiesto
 - Wallet con indirizzi P2WPKH e chiavi private
 - Plotter esterno (`pocx_plotter`) per la generazione dei plot
 - Miner esterno (`pocx_miner`) per il mining
@@ -83,8 +83,7 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 
 ### Accedere alla finestra di dialogo
 
-**Menu**: `Wallet → Assegnazioni di forging`
-**Barra degli strumenti**: Icona del mining (visibile solo con il flag `-miningserver`)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Dimensione finestra**: 600×450 pixel
 
 ### Modalità della finestra di dialogo
@@ -118,7 +117,7 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 
 **Struttura della transazione**:
 - Input: UTXO dall'indirizzo del plot (dimostra la proprietà)
-- Output OP_RETURN: marcatore `POCX` + plot_address + forging_address (46 byte)
+- Output OP_RETURN: marcatore `POCX` + plot_address + forging_address (44 byte)
 - Output resto: Restituito al wallet
 
 #### Modalità 2: Revoca assegnazione
@@ -146,7 +145,7 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 
 **Struttura della transazione**:
 - Input: UTXO dall'indirizzo del plot (dimostra la proprietà)
-- Output OP_RETURN: marcatore `XCOP` + plot_address (26 byte)
+- Output OP_RETURN: marcatore `XCOP` + plot_address (24 byte)
 - Output resto: Restituito al wallet
 
 #### Modalità 3: Controlla stato assegnazione
@@ -296,8 +295,8 @@ Revoca effettiva all'altezza: 13020
 ### Messaggi di errore di validazione
 
 **Errori della finestra di dialogo**:
-- "L'indirizzo del plot deve essere P2WPKH (bech32)"
-- "L'indirizzo di forging deve essere P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Formato indirizzo non valido"
 - "Nessuna coin disponibile all'indirizzo del plot. Impossibile dimostrare la proprietà."
 - "Impossibile creare transazioni con wallet in sola lettura"
@@ -313,7 +312,6 @@ Revoca effettiva all'altezza: 13020
 **Configurazione del nodo**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Avviare il nodo** con server di mining:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Configurare il miner**:
@@ -365,7 +363,7 @@ server=1
    - Selezionare l'indirizzo del plot
    - Inserire l'indirizzo di forging del pool
    - Cliccare "Invia assegnazione"
-   - Attendere il ritardo di attivazione (30 blocchi testnet)
+   - Attendere il ritardo di attivazione (30 blocks mainnet/testnet))
 
 3. **Configurare il miner**:
    - Puntare all'endpoint del **pool** (non al nodo locale)
@@ -399,19 +397,14 @@ server=1
 
 ### Problemi comuni
 
-#### "Il wallet non ha la chiave privata per l'indirizzo del plot"
-
-**Causa**: Il wallet non possiede l'indirizzo
-**Soluzione**:
-- Importare la chiave privata tramite RPC `importprivkey`
-- Oppure usare un indirizzo del plot diverso posseduto dal wallet
+- Or use different plot address owned by wallet
 
 #### "Esiste già un'assegnazione per questo plot"
 
 **Causa**: Il plot è già assegnato a un altro indirizzo
 **Soluzione**:
 1. Revocare l'assegnazione esistente
-2. Attendere il ritardo di revoca (720 blocchi testnet)
+2. Attendere il ritardo di revoca (720 blocks mainnet/testnet))
 3. Creare la nuova assegnazione
 
 #### "Formato indirizzo non supportato"
@@ -443,15 +436,10 @@ server=1
 2. Attendere 1 conferma
 3. Riprovare la creazione dell'assegnazione
 
-#### "Impossibile creare transazioni con wallet in sola lettura"
-
-**Causa**: Il wallet ha importato l'indirizzo senza chiave privata
-**Soluzione**: Importare la chiave privata completa, non solo l'indirizzo
-
 #### "La scheda Assegnazione di forging non è visibile"
 
-**Causa**: Il nodo è stato avviato senza il flag `-miningserver`
-**Soluzione**: Riavviare con `bitcoin-qt -server -miningserver`
+**Causa**: Il nodo è stato avviato senza il flag ``
+**Soluzione**: Riavviare con `bitcoin-qt -server`
 
 ### Passi di debug
 
@@ -525,12 +513,12 @@ server=1
 
 ### Ritardi delle assegnazioni
 
-**Ritardo di attivazione** (30 blocchi testnet):
+**Ritardo di attivazione** (30 blocks mainnet/testnet)):
 - Previene la rapida riassegnazione durante i fork della catena
 - Permette alla rete di raggiungere il consenso
 - Non può essere bypassato
 
-**Ritardo di revoca** (720 blocchi testnet):
+**Ritardo di revoca** (720 blocks mainnet/testnet)):
 - Fornisce stabilità per i pool di mining
 - Previene attacchi di "griefing" sulle assegnazioni
 - L'indirizzo di forging rimane attivo durante il ritardo

@@ -49,7 +49,7 @@ PoCX-lohkot laajentavat Bitcoinin lohkorakennetta lisäkonsensuskentillä:
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Plotin seed (32 tavua)
     std::array<uint8_t, 20> account_id;       // Plotin osoite (20-tavuinen hash160)
-    uint32_t compression;                     // Skaalaustaso (1-255)
+    uint32_t compression;                     // Skaalaustaso (1-6)
     uint64_t nonce;                           // Louhinnan nonce (64-bittinen)
     uint64_t quality;                         // Väitetty laatu (PoC-tiivisteen tuloste)
 };
@@ -87,12 +87,12 @@ Generoinnin allekirjoitus luo louhinnan entropian ja estää esivalmisteluyhyök
 
 **Laskenta:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Genesis-lohko:** Käyttää kovakoodattua alkuperäistä generoinnin allekirjoitusta
 
-**Toteutus:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Toteutus:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Perustavoite (vaikeus)
 
@@ -113,8 +113,8 @@ PoCX tukee skaalautuvaa proof-of-workia plottitiedostoissa skaalaustason (Xn) ka
 **Dynaamiset rajat:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Vähimmäishyväksytty taso
-    uint8_t nPoCXTargetCompression;  // Suositeltu taso
+    uint32_t nPoCXMinCompression;     // Vähimmäishyväksytty taso
+    uint32_t nPoCXTargetCompression;  // Suositeltu taso
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Ylläpitää turvamarginaalia plotin luomis- ja hakukustannusten välillä
 - Maksimiskaalaustaso: 255
 
-**Toteutus:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Toteutus:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,30 +223,36 @@ if (!HaveAccountKey(effective_signer, wallet)) hylkää;
 
 **Delegointituki:** Plotin omistaja voi delegoida forging-oikeudet toiselle osoitteelle. Lompakolla on oltava avain tehokkaalle allekirjoittajalle, ei välttämättä plotin omistajalle.
 
-#### Vaihe 5: Todisteen validointi
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 6: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
+    account_id_hex,
     base_target,
-    account_payload,     // 20 tavua
     block_height,
     nonce,
-    seed,                // 32 tavua
-    min_compression,
-    max_compression,
-    &result             // Tuloste: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
-**Algoritmi:**
-1. Dekoodaa generoinnin allekirjoitus heksasta
-2. Laske paras laatu pakkausväillä SIMD-optimoituja algoritmeja käyttäen
-3. Validoi laatu täyttää vaikeusvaatimukset
-4. Palauta raaka laatuarvo
+**Algorithm:**
+1. Decode generation signature from hex
+2. Calculate quality at specified compression level
+3. Validate quality meets difficulty requirements
+4. Return raw quality value
 
-**Toteutus:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementation:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
-#### Vaihe 6: Aikataivutuksen laskenta
+#### Step 7: Time Bendingtaivutuksen laskenta
 ```cpp
 // Raaka vaikeussäädetty deadline (sekunteja)
 uint64_t deadline_seconds = quality / base_target;
@@ -270,15 +276,15 @@ missä:
 
 **Toteutus:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Vaihe 7: Forger-lähetys
+#### Step 8: Forger Submission-lähetys
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // EI deadline – lasketaan uudelleen forgerissa
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,7 +330,7 @@ while (!shutdown) {
    - Generoinnin allekirjoitusero → hylkää
    - Kärkilohkon tiiviste muuttunut (reorg) → nollaa forging-tila
 
-3. Laatuvertailu:
+3. Quality comparison (lower = better):
    - Jos quality >= current_best → hylkää
 
 4. Laske aikataivutettu deadline:
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Alkuperäinen plotin osoite
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Laske merkle-juuri uudelleen:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Toteutus:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Toteutus:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Keskeiset suunnittelupäätökset:**
 - Coinbase maksaa tehokkaalle allekirjoittajalle (kunnioittaa delegointeja)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Varmenna palautettu pubkey vastaa tallennettua pubkeytä
 
 **Toteutus:** `src/validation.cpp:CheckBlockHeader()`
-**Allekirjoituslogiikka:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Allekirjoituslogiikka:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Vaihe 2: Lohkon validointi (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Vaihe 1: Validoi generoinnin allekirjoitus
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Vaihe 2: Validoi perustavoite
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Vaihe 3: Validoi kapasiteetin todiste
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Vaihe 4: Varmenna deadlinen ajoitus
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Validointivaiheet:**
-1. **Generoinnin allekirjoitus:** On vastattava laskettua arvoa edellisestä lohkosta
-2. **Perustavoite:** On vastattava vaikeuden säätölaskentaa
-3. **Skaalaustaso:** On täytettävä verkon minimi (`compression >= min_compression`)
-4. **Laatuväite:** Lähetetyn laadun on vastattava todisteen laskettua laatua
-5. **Kapasiteetin todiste:** Kryptografinen todisteen validointi (SIMD-optimoitu)
-6. **Deadlinen ajoitus:** Aikataivutetun deadlinen (`poc_time`) on oltava ≤ kulunut aika
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Toteutus:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Toteutus:**
 - Liittäminen: `src/validation.cpp:ConnectBlock()`
-- Laajennettu validointi: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Delegointilogiikka: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Laajennettu validointi: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Delegointilogiikka: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Vaihe 5: Ketjun aktivointi
 
@@ -599,7 +593,7 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& block,
 ```
 Vastaanota lohko
     ↓
-CheckBlockHeader (perus allekirjoitus)
+CheckBlockHeader (signature, compression, PoC proof, quality match)
     ↓
 CheckBlock (transaktiot, merkle)
     ↓
@@ -668,7 +662,7 @@ Transaction {
 - Muuttuu ASSIGNED:ksi viivejakson jälkeen (4 lohkoa regtest, 30 lohkoa mainnet)
 - Viive estää nopeat uudelleendelegoinnit lohkokiistojen aikana
 
-**Toteutus:** `src/script/forging_assignment.h`, validointi ConnectBlockissa
+**Toteutus:** `src/pocx/assignments/opcodes.h`, validointi ConnectBlockissa
 
 ### Delegointien peruuttaminen
 
@@ -683,9 +677,10 @@ Transaction {
 ```
 
 **Vaikutus:**
-- Välitön tilasiirtymä REVOKED:ksi
-- Plotin omistaja voi forgata välittömästi
-- Voi luoda uuden delegoinnin sen jälkeen
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### Delegoinnin validointi louhinnan aikana
 
@@ -826,12 +821,15 @@ Säie B: cs_wallet → cs_main
 
 **Generoinnin allekirjoitus:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Lohkon allekirjoituksen tiiviste:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Kompakti allekirjoitusmuoto:**
@@ -863,12 +861,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Ydintoteutukset:**
 - RPC-rajapinta: `src/pocx/rpc/mining.cpp`
 - Forger-jono: `src/pocx/mining/scheduler.cpp`
-- Konsensusvalidointi: `src/pocx/consensus/validation.cpp`
-- Todisteen validointi: `src/pocx/consensus/pocx.cpp`
+- Konsensusvalidointi: `src/pocx/consensus/proof.cpp`
+- Todisteen validointi: `src/pocx/consensus/signature.cpp`
 - Aikataivutus: `src/pocx/algorithms/time_bending.cpp`
 - Lohkon validointi: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Delegointilogiikka: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Kontekstin hallinta: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Delegointilogiikka: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Kontekstin hallinta: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Datarakenteet:**
 - Lohkomuoto: `src/primitives/block.h`
@@ -902,7 +900,7 @@ missä:
 **Prosessi:**
 1. Generoi scoop generoinnin allekirjoituksesta ja korkeudesta
 2. Lue plottidataa lasketulle scoopille
-3. Tiivistä: `SHABAL256(generation_signature || scoop_data)`
+3. Tiivistä: `Shabal256Lite(scoop_data, generation_signature)`
 4. Testaa skaalaustasot minimistä maksimiin
 5. Palauta paras löydetty laatu
 
@@ -925,7 +923,7 @@ missä:
 avg_base_target = moving_average(viimeaikaiset perustavoitteet)
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

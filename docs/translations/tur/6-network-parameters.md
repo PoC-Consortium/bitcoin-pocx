@@ -39,12 +39,7 @@ Tüm ağ türlerinde Bitcoin-PoCX ağ yapılandırması için eksiksiz referans.
 
 ### Genesis Mesajı
 
-Tüm ağlar Bitcoin genesis mesajını paylaşır:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Uygulama**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Tüm ağlar Bitcoin genesis mesajını paylaşır:
 
 **Ağ Kimliği**:
 - **Sihirli Baytlar**: `0xa7 0x3c 0x91 0x5e`
-- **Varsayılan Port**: `8888`
+- **Varsayılan Port**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Adres Önekleri** (Base58):
@@ -84,14 +79,14 @@ Tüm ağlar Bitcoin genesis mesajını paylaşır:
 ### Testnet Parametreleri
 
 **Ağ Kimliği**:
-- **Sihirli Baytlar**: `0x6d 0xf2 0x48 0xb3`
-- **Varsayılan Port**: `18888`
+- **Sihirli Baytlar**: `0x6d 0xf2 0x48 0xb4`
+- **Varsayılan Port**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Adres Önekleri** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Blok Zamanlaması**:
 - **Blok Süresi Hedefi**: `120` saniye
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Uygulama**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Uygulama**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Yapı**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Kabul edilen minimum seviye
-    uint8_t nPoCXTargetCompression;  // Önerilen seviye
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Kabul edilen minimum seviye
+    uint32_t nPoCXTargetCompression;  // Önerilen seviye
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Uygulama**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Uygulama**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Protokol Sürümü
 
-**Temel**: Bitcoin Core v30.0 protokolü
+**Temel**: Bitcoin Core v30.2 protokolü
 - **Protokol Sürümü**: Bitcoin Core'dan miras
 - **Servis Bitleri**: Standart Bitcoin servisleri
 - **Mesaj Türleri**: Standart Bitcoin P2P mesajları
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX madencilik sunucusu (harici madenciler için gerekli)
-miningserver=1
 
 # RPC ayarları
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Bağlantı ayarları
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Blok süresi hedefi (bilgilendirme, konsensüs tarafından zorunlu)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konsensüs Parametreleri**: `src/consensus/params.h`
-**Sıkıştırma Sınırları**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Sıkıştırma Sınırları**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesis Temel Hedef Hesaplaması**: `src/pocx/consensus/params.cpp`
-**Coinbase Ödeme Mantığı**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase Ödeme Mantığı**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Atama Durumu Depolama**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache uzantıları)
 
 ---

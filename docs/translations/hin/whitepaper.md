@@ -16,7 +16,7 @@ Bitcoin का Proof-of-Work (PoW) सहमति मजबूत सुरक�
 (3) एक OP_RETURN-आधारित forging-assignment तंत्र जो non-custodial पूल माइनिंग सक्षम करता है; और
 (4) Dynamic compression scaling, जो hardware में सुधार के साथ दीर्घकालिक सुरक्षा मार्जिन बनाए रखने के लिए halving अनुसूचियों के अनुरूप plot-generation कठिनाई बढ़ाता है।
 
-Bitcoin-PoCX न्यूनतम, feature-flagged संशोधनों के माध्यम से Bitcoin Core की वास्तुकला बनाए रखता है, PoC तर्क को मौजूदा consensus कोड से अलग करता है। सिस्टम 120-सेकंड block interval को लक्षित करके और block subsidy को 10 BTC में समायोजित करके Bitcoin की मौद्रिक नीति को संरक्षित करता है। कम subsidy block आवृत्ति में पाँच गुना वृद्धि की भरपाई करता है, दीर्घकालिक जारी दर को Bitcoin की मूल अनुसूची के साथ संरेखित रखता है और ~21 मिलियन अधिकतम आपूर्ति बनाए रखता है।
+Bitcoin-PoCX न्यूनतम, feature-flagged संशोधनों के माध्यम से Bitcoin Core की वास्तुकला बनाए रखता है, PoC तर्क को मौजूदा consensus कोड से अलग करता है। सिस्टम 120-सेकंड block interval को लक्षित करके और block subsidy को 10 BTCX में समायोजित करके Bitcoin की मौद्रिक नीति को संरक्षित करता है। कम subsidy block आवृत्ति में पाँच गुना वृद्धि की भरपाई करता है, दीर्घकालिक जारी दर को Bitcoin की मूल अनुसूची के साथ संरेखित रखता है और ~21 मिलियन अधिकतम आपूर्ति बनाए रखता है।
 
 ---
 
@@ -211,9 +211,9 @@ Proof में validators द्वारा चुनौती की पु�
 
 Generation signature सुरक्षित Proof of Capacity माइनिंग के लिए आवश्यक अप्रत्याशितता प्रदान करता है। प्रत्येक block अपना generation signature पिछले block के signature और signer से व्युत्पन्न करता है, यह सुनिश्चित करते हुए कि miners भविष्य की चुनौतियों का अनुमान नहीं लगा सकते या लाभदायक plot क्षेत्रों की पूर्व-गणना नहीं कर सकते:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-यह cryptographically मजबूत, miner-dependent entropy मानों का एक अनुक्रम उत्पन्न करता है। क्योंकि miner की public key पिछला block प्रकाशित होने तक अज्ञात है, कोई भी प्रतिभागी भविष्य के scoop selections की भविष्यवाणी नहीं कर सकता। यह चुनिंदा precomputation या रणनीतिक plotting को रोकता है और सुनिश्चित करता है कि प्रत्येक block वास्तव में ताज़ा माइनिंग कार्य प्रस्तुत करता है।
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. यह cryptographically मजबूत, miner-dependent entropy मानों का एक अनुक्रम उत्पन्न करता है। क्योंकि miner की public key पिछला block प्रकाशित होने तक अज्ञात है, कोई भी प्रतिभागी भविष्य के scoop selections की भविष्यवाणी नहीं कर सकता। यह चुनिंदा precomputation या रणनीतिक plotting को रोकता है और सुनिश्चित करता है कि प्रत्येक block वास्तव में ताज़ा माइनिंग कार्य प्रस्तुत करता है।
 
 ### 4.3 Forging प्रक्रिया
 
@@ -231,7 +231,7 @@ Proof of Capacity exponentially वितरित deadlines उत्पन्�
 
 Time Bending cube root transformation लागू करके वितरण को reshape करता है:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Scale factor अपेक्षित block समय (120 सेकंड) को संरक्षित करता है जबकि variance को नाटकीय रूप से कम करता है। छोटी deadlines का विस्तार किया जाता है, block propagation और नेटवर्क सुरक्षा में सुधार करता है। लंबी deadlines को संपीड़ित किया जाता है, outliers को chain में देरी करने से रोकता है।
 
@@ -411,12 +411,12 @@ PoCX Bitcoin के network infrastructure पर build करता है औ�
 | पैरामीटर | मान |
 |----------|-----|
 | Magic bytes | `0xa7 0x3c 0x91 0x5e` |
-| Default port | 8888 |
+| Default port | 8338 |
 | Bech32 HRP | `pocx` |
 | Block time target | 120 सेकंड |
-| Initial subsidy | 10 BTC |
+| Initial subsidy | 10 BTCX |
 | Halving interval | 1050000 blocks (~4 वर्ष) |
-| Total supply | ~21 मिलियन BTC |
+| Total supply | ~21 मिलियन BTCX |
 | Assignment activation | 30 blocks |
 | Assignment revocation | 720 blocks |
 | Rolling window | 24 blocks |
@@ -425,8 +425,8 @@ PoCX Bitcoin के network infrastructure पर build करता है औ�
 
 | पैरामीटर | मान |
 |----------|-----|
-| Magic bytes | `0x6d 0xf2 0x48 0xb3` |
-| Default port | 18888 |
+| Magic bytes | `0x6d 0xf2 0x48 0xb4` |
+| Default port | 18338 |
 | Bech32 HRP | `tpocx` |
 | Block time target | 120 सेकंड |
 | अन्य पैरामीटर | Mainnet जैसे |

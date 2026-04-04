@@ -28,30 +28,25 @@ Mwongozo kamili wa pochi ya Bitcoin-PoCX Qt na usimamizi wa ugawaji wa kuunda.
 Pochi ya Bitcoin-PoCX Qt (`bitcoin-qt`) inatoa:
 - Utendaji wa kawaida wa pochi ya Bitcoin Core (kutuma, kupokea, usimamizi wa miamala)
 - **Meneja wa Ugawaji wa Kuunda**: GUI ya kuunda/kubatilisha ugawaji wa plot
-- **Hali ya Seva ya Uchimbaji**: Bendera ya `-miningserver` inawezesha vipengele vinavyohusiana na uchimbaji
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Historia ya Miamala**: Kuonyesha miamala ya ugawaji na kubatilisha
 
 ### Kuanzisha Pochi
 
-**Nodi Pekee** (hakuna uchimbaji):
+**Nodi Pekee**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt
-```
-
-**Na Uchimbaji** (inawezesha kisanduku cha mazungumzo cha ugawaji):
-```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Mbadala wa Mstari wa Amri**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Mahitaji ya Uchimbaji
 
 **Kwa Operesheni za Uchimbaji**:
-- Bendera ya `-miningserver` inahitajika
+- Bendera ya `` inahitajika
 - Pochi na anwani za P2WPKH na funguo za kibinafsi
 - Plotter wa nje (`pocx_plotter`) kwa uzalishaji wa plot
 - Miner wa nje (`pocx_miner`) kwa uchimbaji
@@ -84,7 +79,7 @@ Bitcoin-PoCX inatumia kitengo cha sarafu **BTCX** (sio BTC):
 ### Kufikia Kisanduku cha Mazungumzo
 
 **Menyu**: `Pochi → Ugawaji wa Kuunda`
-**Toolbar**: Ikoni ya uchimbaji (inaonekana tu na bendera ya `-miningserver`)
+**Toolbar**: Ikoni ya uchimbaji (inaonekana tu na bendera ya ``)
 **Ukubwa wa Dirisha**: Pikseli 600×450
 
 ### Hali za Kisanduku cha Mazungumzo
@@ -296,7 +291,7 @@ Kubatilisha kulikuwa hai katika urefu: 13020
 ### Ujumbe wa Kosa wa Uthibitishaji
 
 **Makosa ya Kisanduku cha Mazungumzo**:
-- "Anwani ya plot lazima iwe P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
 - "Anwani ya kuunda lazima iwe P2WPKH (bech32)"
 - "Muundo wa anwani si sahihi"
 - "Hakuna sarafu zinazopatikana kwenye anwani ya plot. Haiwezi kuthibitisha umiliki."
@@ -313,7 +308,6 @@ Kubatilisha kulikuwa hai katika urefu: 13020
 **Usanidi wa Nodi**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +331,7 @@ server=1
 
 2. **Anzisha Nodi** na seva ya uchimbaji:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Sanidi Miner**:
@@ -450,8 +444,8 @@ server=1
 
 #### "Kichupo cha Ugawaji wa Kuunda hakionekani"
 
-**Sababu**: Nodi ilianzishwa bila bendera ya `-miningserver`
-**Suluhisho**: Anzisha tena na `bitcoin-qt -server -miningserver`
+**Sababu**: Nodi ilianzishwa bila bendera ya ``
+**Suluhisho**: Anzisha tena na `bitcoin-qt -server`
 
 ### Hatua za Utatuzi
 

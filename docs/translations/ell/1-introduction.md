@@ -42,7 +42,7 @@
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + ενσωμάτωση PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + ενσωμάτωση PoCX
 │   └── src/pocx/        # Υλοποίηση PoCX
 ├── pocx/                # Πλαίσιο πυρήνα PoCX (submodule, μόνο ανάγνωση)
 └── docs/                # Αυτή η τεκμηρίωση
@@ -67,7 +67,7 @@ bitcoin-pocx/
 - **Δομή Block**: Πεδία ειδικά για PoCX αντικαθιστούν το PoW nonce και τα difficulty bits
   - Generation signature (ντετερμινιστική εντροπία εξόρυξης)
   - Base target (αντίστροφο της δυσκολίας)
-  - PoCX proof (account ID, seed, nonce)
+  - PoCX proof (account ID, seed, nonce, compression, quality)
   - Block signature (αποδεικνύει ιδιοκτησία plot)
 
 - **Επικύρωση**: Pipeline επικύρωσης 5 σταδίων από τον έλεγχο κεφαλίδας έως τη σύνδεση block
@@ -78,9 +78,9 @@ bitcoin-pocx/
 
 **Πρόβλημα**: Οι παραδοσιακοί χρόνοι block PoC ακολουθούν εκθετική κατανομή, οδηγώντας σε μεγάλα blocks όταν κανένας εξορύκτης δεν βρίσκει καλή λύση.
 
-**Λύση**: Μετασχηματισμός κατανομής από εκθετική σε chi-squared χρησιμοποιώντας κυβική ρίζα: `Y = scale × (X^(1/3))`.
+**Λύση**: Μετασχηματισμός κατανομής από εκθετική σε chi-squared χρησιμοποιώντας κυβική ρίζα: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
-**Αποτέλεσμα**: Πολύ καλές λύσεις σφυρηλατούνται αργότερα (το δίκτυο έχει χρόνο να σαρώσει όλους τους δίσκους, μειώνει τα γρήγορα blocks), οι κακές λύσεις βελτιώνονται. Ο μέσος χρόνος block διατηρείται στα 120 δευτερόλεπτα, τα μεγάλα blocks μειώνονται.
+**Αποτέλεσμα**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Λεπτομέρειες**: [Κεφάλαιο 3: Συναίνεση και Εξόρυξη](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Ίδιες με το Bitcoin Core**:
 - **CPU**: Σύγχρονος επεξεργαστής x86_64
 - **Μνήμη**: 4-8 GB RAM
-- **Αποθήκευση**: Νέα αλυσίδα, αυτή τη στιγμή κενή (μπορεί να αυξηθεί ~4× πιο γρήγορα από το Bitcoin λόγω blocks 2 λεπτών και βάσης δεδομένων αναθέσεων)
+- **Αποθήκευση**: Νέα αλυσίδα, αυτή τη στιγμή κενή (μπορεί να αυξηθεί ~5× πιο γρήγορα από το Bitcoin λόγω blocks 2 λεπτών και βάσης δεδομένων αναθέσεων)
 - **Δίκτυο**: Σταθερή σύνδεση στο διαδίκτυο
 - **Ρολόι**: Συνιστάται συγχρονισμός NTP για βέλτιστη λειτουργία
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Μεταγλώττιση με ενεργοποιημένο το PoCX
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Λεπτομέρειες**: Δείτε `CLAUDE.md` στη ρίζα του αποθετηρίου
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Εκτέλεση Κόμβου
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Για εξόρυξη** (ενεργοποιεί πρόσβαση RPC για εξωτερικούς εξορύκτες):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # ή
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Λεπτομέρειες**: [Κεφάλαιο 6: Παράμετροι Δικτύου](6-network-parameters.md)

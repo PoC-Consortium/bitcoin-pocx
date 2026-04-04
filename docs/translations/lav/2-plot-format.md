@@ -77,12 +77,12 @@ Visi plotfaila metadati ir kodēti faila nosaukumā, izmantojot šo precīzo for
 1. **KONTA_DATI** (40 heksadecimālie simboli)
    - Neapstrādāti 20 baitu konta dati kā lielais heksadecimālais
    - Neatkarīgs no tīkla (nav tīkla ID vai kontrolsummas)
-   - Piemērs: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Piemērs: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SĒKLA** (64 heksadecimālie simboli)
    - 32 baitu sēklas vērtība kā mazais heksadecimālais
    - **Jauns PoCX**: Nejauša 32 baitu sēkla faila nosaukumā aizstāj secīgo nonču numerāciju — novērš plotfailu pārklāšanos
-   - Piemērs: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Piemērs: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPI** (decimālskaitlis)
    - **JAUNA izmēra vienība PoCX**: Aizstāj uz noncēm balstīto izmēru no POC1/POC2
@@ -97,8 +97,8 @@ Visi plotfaila metadati ir kodēti faila nosaukumā, izmantojot šo precīzo for
 
 ### Faila nosaukumu piemēri
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

@@ -77,12 +77,12 @@ XOR-transpose свързва всеки scoop с цял ред и цяла ко�
 1. **ACCOUNT_PAYLOAD** (40 шестнадесетични символа)
    - Сурови 20-байтови данни за акаунт като главни шестнадесетични символи
    - Независими от мрежата (без мрежов ID или контролна сума)
-   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD`
+   - Пример: `DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD0`
 
 2. **SEED** (64 шестнадесетични символа)
    - 32-байтова стойност на seed като малки шестнадесетични символи
    - **Ново в PoCX**: Случаен 32-байтов seed в името на файла заменя последователното номериране на nonces — предотвратява припокриване на plot файлове
-   - Пример: `c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea`
+   - Пример: `C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D`
 
 3. **WARPS** (десетично число)
    - **НОВА единица за размер в PoCX**: Заменя базираното на nonce оразмеряване от POC1/POC2
@@ -97,8 +97,8 @@ XOR-transpose свързва всеки scoop с цял ред и цяла ко�
 
 ### Примерни имена на файлове
 ```
-DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_c0ffeebeefcafebabedeadbeef1337c0de42424242feedfacecafed00dabad1dea_1024_X4.pocx
-FEEDFACEDEADC0DE123456789ABCDEF012345678_b00b1e5feedc0debabeface5dea1deadc0de1337c0ffeebabeface5bad1dea5_2048_X1.pocx
+DEADBEEFCAFEBABE1337C0DEBADC0FFEE15DEAD_C0FFEEBEEFCAFEBABEDEADBEEF1337C0DE42424242FEEDFACECAFED00DABAD1D_1024_X4.pocx
+FEEDFACEDEADC0DE123456789ABCDEF012345678_B00B1E5FEEDC0DEBABEFACE5DEA1DEADC0DE1337C0FFEEBABEFACE5BAD1DEA50_2048_X1.pocx
 ```
 
 

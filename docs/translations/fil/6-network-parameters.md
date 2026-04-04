@@ -39,12 +39,7 @@ Kumpletong sanggunian para sa configuration ng network ng Bitcoin-PoCX sa lahat 
 
 ### Genesis Message
 
-Lahat ng network ay nagbabahagi ng Bitcoin genesis message:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementasyon**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Lahat ng network ay nagbabahagi ng Bitcoin genesis message:
 
 **Pagkakakilanlan ng Network**:
 - **Magic Bytes**: `0xa7 0x3c 0x91 0x5e`
-- **Default Port**: `8888`
+- **Default Port**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Mga Address Prefix** (Base58):
@@ -84,14 +79,14 @@ Lahat ng network ay nagbabahagi ng Bitcoin genesis message:
 ### Mga Parameter ng Testnet
 
 **Pagkakakilanlan ng Network**:
-- **Magic Bytes**: `0x6d 0xf2 0x48 0xb3`
-- **Default Port**: `18888`
+- **Magic Bytes**: `0x6d 0xf2 0x48 0xb4`
+- **Default Port**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Mga Address Prefix** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Block Timing**:
 - **Target na Block Time**: `120` segundo
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementasyon**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementasyon**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Istruktura**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimum na tinatanggap na level
-    uint8_t nPoCXTargetCompression;  // Inirerekomendang level
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimum na tinatanggap na level
+    uint32_t nPoCXTargetCompression;  // Inirerekomendang level
 };
 ```
 
@@ -313,7 +308,7 @@ Ang mga scaling level ay tumataas sa **exponential na iskedyul** batay sa mga ha
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementasyon**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementasyon**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Bersyon ng Protocol
 
-**Base**: Bitcoin Core v30.0 protocol
+**Base**: Bitcoin Core v30.2 protocol
 - **Protocol Version**: Minana mula sa Bitcoin Core
 - **Service Bits**: Mga standard Bitcoin service
 - **Mga Uri ng Mensahe**: Mga standard Bitcoin P2P message
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX mining server (kinakailangan para sa mga external miner)
-miningserver=1
 
 # Mga setting ng RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Mga setting ng koneksyon
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Target na block time (pang-impormasyon, ipinatutupad ng consensus)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Mga Parameter ng Consensus**: `src/consensus/params.h`
-**Mga Compression Bound**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Mga Compression Bound**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Genesis Base Target Calculation**: `src/pocx/consensus/params.cpp`
-**Coinbase Payment Logic**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase Payment Logic**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Assignment State Storage**: `src/coins.h`, `src/coins.cpp` (mga extension ng CCoinsViewCache)
 
 ---

@@ -28,7 +28,7 @@ Teljes útmutató a Bitcoin-PoCX Qt tárcához és a kovácsolási megbízások 
 A Bitcoin-PoCX Qt tárca (`bitcoin-qt`) biztosítja:
 - Szabványos Bitcoin Core tárca funkcionalitás (küldés, fogadás, tranzakció kezelés)
 - **Kovácsolási Megbízás Kezelő**: GUI megbízások létrehozásához/visszavonásához
-- **Bányász Szerver Mód**: `-miningserver` jelző engedélyezi a bányászattal kapcsolatos funkciókat
+- **Mining Features**: Mining RPCs and forging assignments are always available when compiled with `ENABLE_POCX=ON`
 - **Tranzakciótörténet**: Megbízás és visszavonás tranzakciók megjelenítése
 
 ### Tárca Indítása
@@ -38,20 +38,20 @@ A Bitcoin-PoCX Qt tárca (`bitcoin-qt`) biztosítja:
 ./build/bin/bitcoin-qt
 ```
 
-**Bányászattal** (engedélyezi a megbízás párbeszédpanelt):
+**With RPC** (for external miners):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Parancssori Alternatíva**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Bányászati Követelmények
 
 **Bányászati Műveletekhez**:
-- `-miningserver` jelző szükséges
+- `` jelző szükséges
 - Tárca P2WPKH címekkel és privát kulcsokkal
 - Külső plotter (`pocx_plotter`) a plotfájl generáláshoz
 - Külső bányász (`pocx_miner`) a bányászathoz
@@ -84,7 +84,7 @@ A Bitcoin-PoCX **BTCX** pénznem egységet használ (nem BTC):
 ### Párbeszédpanel Elérése
 
 **Menü**: `Tárca → Kovácsolási Megbízások`
-**Eszköztár**: Bányászat ikon (csak `-miningserver` jelzővel látható)
+**Eszköztár**: Bányászat ikon (csak `` jelzővel látható)
 **Ablak Méret**: 600×450 pixel
 
 ### Párbeszédpanel Módok
@@ -297,7 +297,7 @@ Visszavonás hatályos a magasságon: 13020
 
 **Párbeszédpanel Hibák**:
 - "Plot címnek P2WPKH-nak (bech32) kell lennie"
-- "Kovácsolási címnek P2WPKH-nak (bech32) kell lennie"
+- Invalid forging address silently disables the Send button
 - "Érvénytelen cím formátum"
 - "Nincs elérhető érme a plot címen. Nem lehet bizonyítani a tulajdonjogot."
 - "Nem lehet tranzakciókat létrehozni csak-figyelő tárcával"
@@ -313,7 +313,6 @@ Visszavonás hatályos a magasságon: 13020
 **Csomópont Konfiguráció**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +336,7 @@ server=1
 
 2. **Csomópont Indítása** bányász szerverrel:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Bányász Konfigurálása**:
@@ -365,7 +364,7 @@ server=1
    - Válassza ki a plot címet
    - Adja meg a pool kovácsolási címét
    - Kattintson a "Megbízás Küldése" gombra
-   - Várjon az aktiválási késleltetésre (30 blokk testnet)
+   - Várjon az aktiválási késleltetésre (30 blocks mainnet/testnet))
 
 3. **Bányász Konfigurálása**:
    - Mutasson a **pool** végpontra (nem a helyi csomópontra)
@@ -411,7 +410,7 @@ server=1
 **Ok**: Plot már megbízva másik címre
 **Megoldás**:
 1. Vonja vissza a meglévő megbízást
-2. Várjon a visszavonási késleltetésre (720 blokk testnet)
+2. Várjon a visszavonási késleltetésre (720 blocks mainnet/testnet))
 3. Hozzon létre új megbízást
 
 #### "Cím formátum nem támogatott"
@@ -447,11 +446,6 @@ server=1
 
 **Ok**: Tárca privát kulcs nélkül importálta a címet
 **Megoldás**: Importálja a teljes privát kulcsot, nem csak a címet
-
-#### "Kovácsolási Megbízás fül nem látható"
-
-**Ok**: Csomópont `-miningserver` jelző nélkül indítva
-**Megoldás**: Indítsa újra `bitcoin-qt -server -miningserver` paranccsal
 
 ### Hibakeresési Lépések
 
@@ -525,12 +519,12 @@ server=1
 
 ### Megbízás Késleltetések
 
-**Aktiválási Késleltetés** (30 blokk testnet):
+**Aktiválási Késleltetés** (30 blocks mainnet/testnet)):
 - Megakadályozza a gyors újrahozzárendelést lánc elágazások során
 - Lehetővé teszi a hálózat konszenzusának elérését
 - Nem kerülhető meg
 
-**Visszavonási Késleltetés** (720 blokk testnet):
+**Visszavonási Késleltetés** (720 blocks mainnet/testnet)):
 - Stabilitást biztosít bányász pool-oknak
 - Megakadályozza a megbízás "griefing" támadásokat
 - Kovácsolási cím aktív marad a késleltetés alatt

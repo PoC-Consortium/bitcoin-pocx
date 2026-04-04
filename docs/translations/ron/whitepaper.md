@@ -16,7 +16,7 @@ Implementarea noastră introduce mai multe inovații cheie:
 (3) Un mecanism de atribuire a forjării bazat pe OP_RETURN care permite mineritul în pool non-custodial; și
 (4) Scalarea dinamică a compresiei, care crește dificultatea generării plot-urilor în aliniere cu calendarele de înjumătățire pentru a menține marjele de securitate pe termen lung pe măsură ce hardware-ul se îmbunătățește.
 
-Bitcoin-PoCX menține arhitectura Bitcoin Core prin modificări minime, marcate cu flag-uri de funcționalitate, izolând logica PoC de codul de consens existent. Sistemul păstrează politica monetară a Bitcoin prin țintirea unui interval de bloc de 120 de secunde și ajustarea subvenției de bloc la 10 BTC. Subvenția redusă compensează creșterea de cinci ori a frecvenței blocurilor, păstrând rata de emisie pe termen lung aliniată cu calendarul original al Bitcoin și menținând oferta maximă de ~21 milioane.
+Bitcoin-PoCX menține arhitectura Bitcoin Core prin modificări minime, marcate cu flag-uri de funcționalitate, izolând logica PoC de codul de consens existent. Sistemul păstrează politica monetară a Bitcoin prin țintirea unui interval de bloc de 120 de secunde și ajustarea subvenției de bloc la 10 BTCX. Subvenția redusă compensează creșterea de cinci ori a frecvenței blocurilor, păstrând rata de emisie pe termen lung aliniată cu calendarul original al Bitcoin și menținând oferta maximă de ~21 milioane.
 
 ---
 
@@ -211,9 +211,9 @@ Dovada încorporează toate informațiile relevante pentru consens necesare vali
 
 Semnătura de generare furnizează imprevizibilitatea necesară pentru mineritul Proof of Capacity sigur. Fiecare bloc derivă semnătura sa de generare din semnătura și semnatarul blocului anterior, asigurând că minerii nu pot anticipa provocările viitoare sau precalcula regiuni de plot avantajoase:
 
-`generationSignature[n] = SHA256(generationSignature[n-1] || miner_pubkey[n-1])`
+`generationSignature[n] = dSHA256(generationSignature[n-1] || account_id[n-1])`
 
-Aceasta produce o secvență de valori de entropie puternice criptografic, dependente de miner. Deoarece cheia publică a unui miner este necunoscută până când blocul anterior este publicat, niciun participant nu poate prezice selecțiile de scoop viitoare. Aceasta previne precalcularea selectivă sau crearea strategică de plot-uri și asigură că fiecare bloc introduce muncă de minerit cu adevărat proaspătă.
+Where `account_id` is the 20-byte HASH160 of the miner\'s public key. Aceasta produce o secvență de valori de entropie puternice criptografic, dependente de miner. Deoarece cheia publică a unui miner este necunoscută până când blocul anterior este publicat, niciun participant nu poate prezice selecțiile de scoop viitoare. Aceasta previne precalcularea selectivă sau crearea strategică de plot-uri și asigură că fiecare bloc introduce muncă de minerit cu adevărat proaspătă.
 
 ### 4.3 Procesul de forjare
 
@@ -231,7 +231,7 @@ Proof of Capacity produce deadline-uri distribuite exponențial. După o perioad
 
 Time Bending reformează distribuția prin aplicarea unei transformări cu rădăcină cubică:
 
-`deadline_bended = scale × (quality / base_target)^(1/3)`
+`deadline_bended = scale × (raw_quality / base_target)^(1/3)`
 
 Factorul de scalare păstrează timpul de bloc așteptat (120 secunde) reducând dramatic varianța. Deadline-urile scurte sunt extinse, îmbunătățind propagarea blocurilor și siguranța rețelei. Deadline-urile lungi sunt comprimate, prevenind valorile extreme să întârzie lanțul.
 
@@ -411,12 +411,12 @@ Tabelele de mai jos rezumă setările rezultate pentru mainnet, testnet și regt
 | Parametru | Valoare |
 |-----------|---------|
 | Octeți magici | `0xa7 0x3c 0x91 0x5e` |
-| Port implicit | 8888 |
+| Port implicit | 8338 |
 | HRP Bech32 | `pocx` |
 | Ținta timp bloc | 120 secunde |
-| Subvenție inițială | 10 BTC |
+| Subvenție inițială | 10 BTCX |
 | Interval înjumătățire | 1050000 blocuri (~4 ani) |
-| Ofertă totală | ~21 milioane BTC |
+| Ofertă totală | ~21 milioane BTCX |
 | Activare atribuire | 30 blocuri |
 | Revocare atribuire | 720 blocuri |
 | Fereastră rulantă | 24 blocuri |
@@ -425,8 +425,8 @@ Tabelele de mai jos rezumă setările rezultate pentru mainnet, testnet și regt
 
 | Parametru | Valoare |
 |-----------|---------|
-| Octeți magici | `0x6d 0xf2 0x48 0xb3` |
-| Port implicit | 18888 |
+| Octeți magici | `0x6d 0xf2 0x48 0xb4` |
+| Port implicit | 18338 |
 | HRP Bech32 | `tpocx` |
 | Ținta timp bloc | 120 secunde |
 | Alți parametri | La fel ca mainnet |

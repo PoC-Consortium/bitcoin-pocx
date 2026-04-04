@@ -28,7 +28,7 @@ Išsamus Bitcoin-PoCX Qt piniginės ir kalimo priskyrimo valdymo vadovas.
 Bitcoin-PoCX Qt piniginė (`bitcoin-qt`) teikia:
 - Standartines Bitcoin Core piniginės funkcijas (siųsti, gauti, transakcijų valdymas)
 - **Kalimo priskyrimo valdytojas**: GUI priskyrimų kūrimui/atšaukimui
-- **Kasimo serverio režimas**: `-miningserver` vėliavė įjungia su kasimu susijusias funkcijas
+- **Kasimo serverio režimas**: `` vėliavė įjungia su kasimu susijusias funkcijas
 - **Transakcijų istorija**: Priskyrimo ir atšaukimo transakcijų rodymas
 
 ### Piniginės paleidimas
@@ -40,18 +40,18 @@ Bitcoin-PoCX Qt piniginė (`bitcoin-qt`) teikia:
 
 **Su kasimu** (įjungia priskyrimo dialogą):
 ```bash
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Komandų eilutės alternatyva**:
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 ```
 
 ### Kasimo reikalavimai
 
 **Kasimo operacijoms**:
-- `-miningserver` vėliavė reikalinga
+- `` vėliavė reikalinga
 - Piniginė su P2WPKH adresais ir privačiais raktais
 - Išorinis grafikų kūrėjas (`pocx_plotter`) grafikų generavimui
 - Išorinis kasėjas (`pocx_miner`) kasimui
@@ -83,8 +83,7 @@ Bitcoin-PoCX naudoja **BTCX** valiutos vienetą (ne BTC):
 
 ### Prieiga prie dialogo
 
-**Meniu**: `Piniginė → Kalimo priskyrimai`
-**Įrankių juosta**: Kasimo piktograma (matoma tik su `-miningserver` vėliavėle)
+**Toolbar Tab**: Mining icon in the main toolbar (visible when compiled with `ENABLE_POCX=ON`)
 **Lango dydis**: 600×450 pikselių
 
 ### Dialogo režimai
@@ -296,8 +295,8 @@ Atšaukimas įsigaliojo aukštyje: 13020
 ### Validacijos klaidų pranešimai
 
 **Dialogo klaidos**:
-- "Grafiko adresas turi būti P2WPKH (bech32)"
-- "Kalimo adresas turi būti P2WPKH (bech32)"
+- "Plot address must be segwit v0 (bech32)"
+- Invalid forging address silently disables the Send button
 - "Neteisingas adreso formatas"
 - "Nėra monetų grafiko adrese. Negalima įrodyti nuosavybės."
 - "Negalima sukurti transakcijų su tik stebėjimo pinigine"
@@ -313,7 +312,6 @@ Atšaukimas įsigaliojo aukštyje: 13020
 **Mazgo konfigūracija**:
 ```bash
 # bitcoin.conf
-miningserver=1
 server=1
 ```
 
@@ -337,7 +335,7 @@ server=1
 
 2. **Paleisti mazgą** su kasimo serveriu:
    ```bash
-   bitcoin-qt -server -miningserver
+   bitcoin-qt -server
    ```
 
 3. **Konfigūruoti kasėją**:
@@ -406,13 +404,13 @@ server=1
 - Importuoti privatų raktą per `importprivkey` RPC
 - Arba naudoti kitą grafiko adresą, valdomą piniginės
 
-#### "Priskyrimas jau egzistuoja šiam grafikui"
+#### "Cannot create assignment: plot is in ... state"
 
-**Priežastis**: Grafikas jau priskirtas kitam adresui
-**Sprendimas**:
-1. Atšaukti esamą priskyrimą
-2. Laukti atšaukimo atidėjimo (720 blokų testiniame tinkle)
-3. Sukurti naują priskyrimą
+**Cause**: Plot is not in UNASSIGNED or REVOKED state
+**Solution**:
+1. Revoke existing assignment
+2. Wait for revocation delay (720 blocks mainnet/testnet, 8 blocks regtest)
+3. Create new assignment
 
 #### "Adreso formatas nepalaikomas"
 
@@ -447,11 +445,6 @@ server=1
 
 **Priežastis**: Piniginė importavo adresą be privataus rakto
 **Sprendimas**: Importuoti pilną privatų raktą, ne tik adresą
-
-#### "Kalimo priskyrimo skirtukas nematomas"
-
-**Priežastis**: Mazgas paleistas be `-miningserver` vėliavėlės
-**Sprendimas**: Paleisti iš naujo su `bitcoin-qt -server -miningserver`
 
 ### Derinimo žingsniai
 

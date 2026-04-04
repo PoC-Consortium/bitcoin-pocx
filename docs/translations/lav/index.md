@@ -1,7 +1,7 @@
 # Bitcoin-PoCX tehniskā dokumentācija
 
 **Versija**: 1.0
-**Bitcoin Core bāze**: v30.0
+**Bitcoin Core bāze**: v30.2
 **Statuss**: Testnet fāze
 **Pēdējais atjauninājums**: 2025-12-25
 
@@ -118,8 +118,8 @@ Bitcoin-PoCX Qt maka lietotāja ceļvedis: kalšanas piešķīrumu dialogs, dar�
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Konfigurēt ar iespējotu PoCX
-cmake -B build -DENABLE_POCX=ON
+# Configure
+cmake -B build
 
 # Būvēt
 cmake --build build -j$(nproc)
@@ -128,10 +128,10 @@ cmake --build build -j$(nproc)
 **Būvējumu varianti**:
 ```bash
 # Ar Qt GUI
-cmake -B build -DENABLE_POCX=ON -DBUILD_GUI=ON
+cmake -B build -DBUILD_GUI=ON
 
 # Atkļūdošanas būvējums
-cmake -B build -DENABLE_POCX=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
 **Atkarības**: Standarta Bitcoin Core būvēšanas atkarības. Skatiet [Bitcoin Core būvēšanas dokumentāciju](https://github.com/bitcoin/bitcoin/tree/master/doc#building) platformai specifiskām prasībām.
@@ -188,7 +188,7 @@ Ieguldījumi dokumentācijā ir laipni gaidīti. Lūdzu, ievērojiet:
 
 ## Licence
 
-Bitcoin-PoCX pārmanto Bitcoin Core MIT licenci. Skatiet `COPYING` repozitorija saknē.
+Bitcoin-PoCX pārmanto Bitcoin Core MIT licenci. Skatiet `bitcoin/COPYING` repozitorija saknē.
 
 PoCX pamata ietvara atsauces ir dokumentētas [2. nodaļā: Plotfaila formāts](2-plot-format.md).
 

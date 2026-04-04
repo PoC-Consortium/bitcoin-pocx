@@ -49,7 +49,7 @@ Blocurile PoCX extind structura blocului Bitcoin cu câmpuri de consens suplimen
 struct PoCXProof {
     std::array<uint8_t, 32> seed;             // Seed plot (32 octeți)
     std::array<uint8_t, 20> account_id;       // Adresa plot (hash160 de 20 octeți)
-    uint32_t compression;                     // Nivel de scalare (1-255)
+    uint32_t compression;                     // Nivel de scalare (1-6)
     uint64_t nonce;                           // Nonce de minerit (64 biți)
     uint64_t quality;                         // Calitate declarată (ieșirea hash-ului PoC)
 };
@@ -87,12 +87,12 @@ Semnătura de generare creează entropia pentru minerit și previne atacurile de
 
 **Calcul:**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **Blocul genesis:** Folosește o semnătură de generare inițială codificată static
 
-**Implementare:** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**Implementare:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### Ținta de bază (Dificultatea)
 
@@ -113,8 +113,8 @@ PoCX suportă proof-of-work scalabil în fișierele plot prin niveluri de scalar
 **Limite dinamice:**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Nivel minim acceptat
-    uint8_t nPoCXTargetCompression;  // Nivel recomandat
+    uint32_t nPoCXMinCompression;     // Nivel minim acceptat
+    uint32_t nPoCXTargetCompression;  // Nivel recomandat
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - Menține marja de siguranță între costurile de creare și căutare a plot-urilor
 - Nivel maxim de scalare: 255
 
-**Implementare:** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**Implementare:** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -223,7 +223,14 @@ if (!HaveAccountKey(effective_signer, wallet)) reject;
 
 **Suport pentru atribuiri:** Proprietarul plot-ului poate atribui drepturile de forjare unei alte adrese. Portofelul trebuie să aibă cheia pentru semnatarul efectiv, nu neapărat proprietarul plot-ului.
 
-#### Pasul 5: Validarea dovezii
+#### Step 5: Compression Validation
+```cpp
+auto bounds = GetPoCXCompressionBounds(height, halving_interval);
+if (compression < bounds.nPoCXMinCompression || compression > bounds.nPoCXTargetCompression)
+    reject;
+```
+
+#### Step 7: Time Bending: Proof Validation
 ```cpp
 bool success = pocx_validate_block(
     generation_signature_hex,
@@ -231,10 +238,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 octeți
     block_height,
     nonce,
-    seed,                // 32 octeți
-    min_compression,
-    max_compression,
-    &result             // Ieșire: quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +250,7 @@ bool success = pocx_validate_block(
 3. Validează că calitatea îndeplinește cerințele de dificultate
 4. Returnează valoarea brută a calității
 
-**Implementare:** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**Implementare:** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### Pasul 6: Calculul Time Bending
 ```cpp
@@ -270,15 +276,15 @@ unde:
 
 **Implementare:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
-#### Pasul 7: Trimiterea la forjare
+#### Step 8: Forger Submission: Trimiterea la forjare
 ```cpp
 g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // NU deadline - recalculat în forger
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -397,6 +403,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // Adresa plot-ului original
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. Recalculează rădăcina Merkle:
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +428,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**Implementare:** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementare:** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **Decizii de design cheie:**
 - Coinbase plătește semnatarului efectiv (respectă atribuirile)
@@ -468,7 +475,7 @@ if (block.nHeight > 0 && fCheckPOW) {
 5. Verifică că pubkey-ul recuperat corespunde cu cel stocat
 
 **Implementare:** `src/validation.cpp:CheckBlockHeader()`
-**Logica semnăturii:** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Logica semnăturii:** `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 
 ### Etapa 2: Validarea blocului (CheckBlock)
 
@@ -487,49 +494,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // Pasul 1: Validează semnătura de generare
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // Pasul 2: Validează ținta de bază
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // Pasul 3: Validează proof of capacity
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // Pasul 4: Verifică sincronizarea deadline-ului
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**Pașii de validare:**
-1. **Semnătura de generare:** Trebuie să corespundă cu valoarea calculată din blocul anterior
-2. **Ținta de bază:** Trebuie să corespundă cu calculul ajustării dificultății
-3. **Nivel de scalare:** Trebuie să îndeplinească minimul rețelei (`compression >= min_compression`)
-4. **Declarația calității:** Calitatea trimisă trebuie să corespundă cu calitatea calculată din dovadă
-5. **Proof of Capacity:** Validarea criptografică a dovezii (optimizată SIMD)
-6. **Sincronizarea deadline-ului:** Deadline-ul time-bended (`poc_time`) trebuie să fie ≤ timpul scurs
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **Implementare:** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +567,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **Implementare:**
 - Conectare: `src/validation.cpp:ConnectBlock()`
-- Validare extinsă: `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- Logica atribuirilor: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- Validare extinsă: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- Logica atribuirilor: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### Etapa 5: Activarea lanțului
 
@@ -668,7 +662,7 @@ Transaction {
 - Devine ASSIGNED după perioada de întârziere (4 blocuri regtest, 30 blocuri mainnet)
 - Întârzierea previne reatribuirile rapide în timpul curselor de blocuri
 
-**Implementare:** `src/script/forging_assignment.h`, validare în ConnectBlock
+**Implementare:** `src/pocx/assignments/opcodes.h`, validare în ConnectBlock
 
 ### Revocarea atribuirilor
 
@@ -826,12 +820,15 @@ Thread B: cs_wallet → cs_main
 
 **Semnătura de generare:**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **Hash-ul semnăturii blocului:**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **Format semnătură compactă:**
@@ -863,12 +860,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **Implementări de bază:**
 - Interfață RPC: `src/pocx/rpc/mining.cpp`
 - Coadă forger: `src/pocx/mining/scheduler.cpp`
-- Validare consens: `src/pocx/consensus/validation.cpp`
-- Validare dovadă: `src/pocx/consensus/pocx.cpp`
+- Validare consens: `src/pocx/consensus/proof.cpp`
+- Validare dovadă: `src/pocx/consensus/signature.cpp`
 - Time Bending: `src/pocx/algorithms/time_bending.cpp`
 - Validare bloc: `src/validation.cpp` (CheckBlockHeader, ConnectBlock)
-- Logica atribuirilor: `src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- Gestionare context: `src/pocx/node/node.cpp:GetNewBlockContext()`
+- Logica atribuirilor: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- Gestionare context: `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **Structuri de date:**
 - Format bloc: `src/primitives/block.h`
@@ -902,7 +899,7 @@ unde:
 **Proces:**
 1. Generează scoop din semnătura de generare și înălțime
 2. Citește datele plot pentru scoop-ul calculat
-3. Hash: `SHABAL256(generation_signature || scoop_data)`
+3. Hash: `Shabal256Lite(scoop_data, generation_signature)`
 4. Testează nivelurile de scalare de la min la max
 5. Returnează cea mai bună calitate găsită
 
@@ -925,7 +922,7 @@ unde:
 avg_base_target = medie_mobilă(ținte de bază recente)
 factor_ajustare = interval_timp_real / interval_timp_țintă
 new_base_target = avg_base_target * factor_ajustare
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

@@ -32,16 +32,16 @@ Le consensus PoCX nécessite une synchronisation temporelle précise à travers 
 
 **Configuration Bitcoin-PoCX :**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 secondes
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 secondes
 ```
 
 ### Vérifications de validation
 
-**Validation d'horodatage de bloc** (`src/validation.cpp:4547-4561`) :
+**Validation d'horodatage de bloc** (`src/validation.cpp:ContextualCheckBlockHeader()`) :
 ```cpp
 // 1. Vérification monotone : horodatage >= horodatage du bloc précédent
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Vérification de deadline : temps écoulé >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Votre hauteur de minage 100, concurrent publie le bloc 99
 - La validation se termine en millisecondes
 
 **Utilisation des ressources :** Minimale
-- ~20 lignes de logique principale
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Réutilise l'infrastructure de validation existante
 - Acquisition de verrou unique
 
@@ -372,9 +372,9 @@ Un nœud **>15s en retard** est catastrophique :
 ## Références d'implémentation
 
 **Fichiers principaux** :
-- Validation temporelle : `src/validation.cpp:4547-4561`
-- Constante de tolérance future : `src/chain.h:31`
-- Seuil d'avertissement : `src/node/timeoffsets.h:27`
+- Validation temporelle : `src/validation.cpp:ContextualCheckBlockHeader()`
+- Constante de tolérance future : `src/chain.h`
+- Seuil d'avertissement : `src/node/timeoffsets.h`
 - Surveillance du décalage temporel : `src/node/timeoffsets.cpp`
 - Forge défensive : `src/pocx/mining/scheduler.cpp`
 

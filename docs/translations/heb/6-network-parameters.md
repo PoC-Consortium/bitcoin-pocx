@@ -39,12 +39,7 @@
 
 ### הודעת בראשית
 
-כל הרשתות חולקות את הודעת בראשית של Bitcoin:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**יישום**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@
 
 **זהות רשת**:
 - **בתי קסם**: `0xa7 0x3c 0x91 0x5e`
-- **פורט ברירת מחדל**: `8888`
+- **פורט ברירת מחדל**: `8338`
 - **HRP של Bech32**: `pocx`
 
 **קידומות כתובות** (Base58):
@@ -84,14 +79,14 @@
 ### פרמטרי Testnet
 
 **זהות רשת**:
-- **בתי קסם**: `0x6d 0xf2 0x48 0xb3`
-- **פורט ברירת מחדל**: `18888`
+- **בתי קסם**: `0x6d 0xf2 0x48 0xb4`
+- **פורט ברירת מחדל**: `18338`
 - **HRP של Bech32**: `tpocx`
 
 **קידומות כתובות** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **תזמון בלוק**:
 - **יעד זמן בלוק**: `120` שניות
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**יישום**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**יישום**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **מבנה**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // רמה מינימלית מתקבלת
-    uint8_t nPoCXTargetCompression;  // רמה מומלצת
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // רמה מינימלית מתקבלת
+    uint32_t nPoCXTargetCompression;  // רמה מומלצת
 };
 ```
 
@@ -313,7 +308,7 @@ struct CompressionBounds {
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**יישום**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**יישום**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### גרסת פרוטוקול
 
-**בסיס**: פרוטוקול Bitcoin Core v30.0
+**בסיס**: פרוטוקול Bitcoin Core v30.2
 - **גרסת פרוטוקול**: ירושה מ-Bitcoin Core
 - **סיביות שירות**: שירותי Bitcoin סטנדרטיים
 - **סוגי הודעות**: הודעות P2P Bitcoin סטנדרטיות
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # שרת כריית PoCX (נדרש לכורים חיצוניים)
-miningserver=1
 
 # הגדרות RPC
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # הגדרות חיבור
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # יעד זמן בלוק (מידע, נאכף על ידי קונצנזוס)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **פרמטרי קונצנזוס**: `src/consensus/params.h`
-**גבולות דחיסה**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**גבולות דחיסה**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **חישוב Base Target בראשית**: `src/pocx/consensus/params.cpp`
-**לוגיקת תשלום Coinbase**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**לוגיקת תשלום Coinbase**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **אחסון מצב הקצאה**: `src/coins.h`, `src/coins.cpp` (הרחבות CCoinsViewCache)
 
 ---

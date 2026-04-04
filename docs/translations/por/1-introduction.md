@@ -42,7 +42,7 @@ Proof of Capacity (PoC) é um mecanismo de consenso onde o poder de mineração 
 
 ```
 bitcoin-pocx/
-├── bitcoin/             # Bitcoin Core v30.0 + integração PoCX
+├── bitcoin/             # Bitcoin Core v30.2 + integração PoCX
 │   └── src/pocx/        # Implementação PoCX
 ├── pocx/                # Framework core do PoCX (submódulo, somente leitura)
 └── docs/                # Esta documentação
@@ -80,7 +80,7 @@ bitcoin-pocx/
 
 **Solução**: Transformação de distribuição de exponencial para qui-quadrado usando raiz cúbica: `Y = escala × (X^(1/3))`.
 
-**Efeito**: Soluções muito boas são forjadas mais tarde (a rede tem tempo para escanear todos os discos, reduz blocos rápidos), soluções fracas são melhoradas. Tempo médio de bloco mantido em 120 segundos, blocos longos reduzidos.
+**Efeito**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
 **Detalhes**: [Capítulo 3: Consenso e Mineração](3-consensus-and-mining.md)
 
@@ -170,7 +170,7 @@ bitcoin-pocx/
 **Mesmo que o Bitcoin Core**:
 - **CPU**: Processador x86_64 moderno
 - **Memória**: 4-8 GB RAM
-- **Armazenamento**: Nova cadeia, atualmente vazia (pode crescer ~4× mais rápido que o Bitcoin devido a blocos de 2 minutos e banco de dados de atribuições)
+- **Armazenamento**: Nova cadeia, atualmente vazia (pode crescer ~5× mais rápido que o Bitcoin devido a blocos de 2 minutos e banco de dados de atribuições)
 - **Rede**: Conexão estável com a internet
 - **Relógio**: Sincronização NTP recomendada para operação ideal
 
@@ -194,12 +194,12 @@ bitcoin-pocx/
 git clone --recursive https://github.com/PoC-Consortium/bitcoin-pocx.git
 cd bitcoin-pocx/bitcoin
 
-# Compile com PoCX habilitado
-cmake -B build -DENABLE_POCX=ON
+# Build
+cmake -B build
 cmake --build build
 ```
 
-**Detalhes**: Veja `CLAUDE.md` na raiz do repositório
+**Details**: See `bitcoin/doc/build-*.md` for platform-specific build instructions
 
 ### 2. Executar o Nó
 
@@ -212,9 +212,9 @@ cmake --build build
 
 **Para mineração** (habilita acesso RPC para mineradores externos):
 ```bash
-./build/bin/bitcoind -miningserver
+./build/bin/bitcoind
 # ou
-./build/bin/bitcoin-qt -server -miningserver
+./build/bin/bitcoin-qt -server
 ```
 
 **Detalhes**: [Capítulo 6: Parâmetros de Rede](6-network-parameters.md)

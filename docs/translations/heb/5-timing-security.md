@@ -32,16 +32,16 @@
 
 **תצורת Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 שניות
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 שניות
 ```
 
 ### בדיקות אימות
 
-**אימות חותמת זמן בלוק** (`src/validation.cpp:4547-4561`):
+**אימות חותמת זמן בלוק** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. בדיקת מונוטוניות: חותמת זמן >= חותמת זמן בלוק קודם
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. בדיקת deadline: זמן שעבר >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ Bitcoin-PoCX מנטר היסט זמן בין הצומת שלכם לעמיתי ר
 ## הפניות ליישום
 
 **קובצי ליבה**:
-- אימות זמן: `src/validation.cpp:4547-4561`
-- קבוע סבילות עתיד: `src/chain.h:31`
-- סף אזהרה: `src/node/timeoffsets.h:27`
+- אימות זמן: `src/validation.cpp:ContextualCheckBlockHeader()`
+- קבוע סבילות עתיד: `src/chain.h`
+- סף אזהרה: `src/node/timeoffsets.h`
 - ניטור היסט זמן: `src/node/timeoffsets.cpp`
 - כרייה הגנתית: `src/pocx/mining/scheduler.cpp`
 

@@ -32,16 +32,16 @@
 
 **تكوين Bitcoin-PoCX:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 ثانية
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 ثوانٍ
 ```
 
 ### فحوصات التحقق
 
-**التحقق من طابع وقت الكتلة** (`src/validation.cpp:4547-4561`):
+**التحقق من طابع وقت الكتلة** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. فحص رتيب: طابع الوقت >= طابع وقت الكتلة السابقة
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. فحص الموعد النهائي: الوقت المنقضي >= الموعد النهائي
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -372,9 +372,9 @@ time_bended_deadline = scale × (deadline_seconds)^(1/3)
 ## مراجع التنفيذ
 
 **الملفات الأساسية**:
-- التحقق من الوقت: `src/validation.cpp:4547-4561`
-- ثابت تحمّل المستقبل: `src/chain.h:31`
-- عتبة التحذير: `src/node/timeoffsets.h:27`
+- التحقق من الوقت: `src/validation.cpp:ContextualCheckBlockHeader()`
+- ثابت تحمّل المستقبل: `src/chain.h`
+- عتبة التحذير: `src/node/timeoffsets.h`
 - مراقبة إزاحة الوقت: `src/node/timeoffsets.cpp`
 - الصياغة الدفاعية: `src/pocx/mining/scheduler.cpp`
 

@@ -87,12 +87,12 @@ class CBlock : public CBlockHeader {
 
 **计算：**
 ```
-generationSignature = SHA256(prev_generationSignature || prev_miner_pubkey)
+generationSignature = dSHA256(prev_generationSignature || prev_account_id_20bytes)
 ```
 
 **创世区块：** 使用硬编码的初始生成签名
 
-**实现：** `src/pocx/node/node.cpp:GetNewBlockContext()`
+**实现：** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 ### 基础目标值（难度）
 
@@ -113,8 +113,8 @@ PoCX 通过扩展级别（Xn）支持绘图文件中可扩展的工作量证明�
 **动态边界：**
 ```cpp
 struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // 接受的最低级别
-    uint8_t nPoCXTargetCompression;  // 推荐级别
+    uint32_t nPoCXMinCompression;     // 接受的最低级别
+    uint32_t nPoCXTargetCompression;  // 推荐级别
 };
 ```
 
@@ -125,7 +125,7 @@ struct CompressionBounds {
 - 保持绘图创建和查找成本之间的安全边际
 - 最高扩展级别：255
 
-**实现：** `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`
+**实现：** `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`
 
 ---
 
@@ -148,8 +148,8 @@ struct CompressionBounds {
   "height": 12345,
   "block_hash": "def456...",
   "target_quality": 18446744073709551615,
-  "minimum_compression_level": 0,
-  "target_compression_level": 0
+  "minimum_compression_level": 1,
+  "target_compression_level": 2
 }
 ```
 
@@ -231,10 +231,9 @@ bool success = pocx_validate_block(
     account_payload,     // 20 字节
     block_height,
     nonce,
-    seed,                // 32 字节
-    min_compression,
-    max_compression,
-    &result             // 输出：quality, deadline
+    seed,                // 32 bytes
+    compression,
+    &result             // Output: quality
 );
 ```
 
@@ -244,7 +243,7 @@ bool success = pocx_validate_block(
 3. 验证质量满足难度要求
 4. 返回原始质量值
 
-**实现：** `src/pocx/consensus/validation.cpp:pocx_validate_block()`
+**实现：** `src/pocx/consensus/proof.cpp:pocx_validate_block()`
 
 #### 步骤 6：时间弯曲计算
 ```cpp
@@ -276,9 +275,9 @@ g_pocx_scheduler->SubmitNonce(
     account_id,
     seed,
     nonce,
-    raw_quality,      // 不是截止时间——在锻造器中重新计算
-    height,
-    generation_signature
+    raw_quality,
+    compression,
+    block_hash        // sole staleness indicator
 );
 ```
 
@@ -324,20 +323,7 @@ while (!shutdown) {
    - 生成签名不匹配 → 丢弃
    - 链顶端区块哈希改变（重组） → 重置锻造状态
 
-3. 质量比较：
-   - 如果 quality >= current_best → 丢弃
-
-4. 计算时间弯曲截止时间：
-   deadline = CalculateTimeBendedDeadline(quality, base_target, block_time)
-
-5. 更新锻造状态：
-   - 取消现有锻造（如果找到更好的）
-   - 存储：account_id, seed, nonce, quality, deadline
-   - 计算：forge_time = block_time + deadline_seconds
-   - 存储链顶端哈希用于重组检测
-```
-
-**实现：** `src/pocx/mining/scheduler.cpp:ProcessSubmission()`
+3. Quality comparison (lower = better):ProcessSubmission()`
 
 ### 5. 截止时间等待和区块锻造
 
@@ -397,6 +383,7 @@ condition_variable.wait_until(forge_time, [&] {
    block.pocxProof.account_id = plot_address;    // 原始绘图地址
    block.pocxProof.seed = seed;
    block.pocxProof.nonce = nonce;
+   block.pocxProof.compression = compression;
 
 5. 重新计算 merkle 根：
    block.hashMerkleRoot = BlockMerkleRoot(block);
@@ -421,7 +408,7 @@ condition_variable.wait_until(forge_time, [&] {
    }
 ```
 
-**实现：** `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**实现：** `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 **关键设计决策：**
 - Coinbase 支付给有效签名者（尊重委派）
@@ -450,25 +437,14 @@ static bool CheckBlockHeader(
 )
 ```
 
-**PoCX 验证（当定义 ENABLE_POCX 时）：**
-```cpp
-if (block.nHeight > 0 && fCheckPOW) {
-    // 基本签名验证（尚无委派支持）
-    if (!VerifyPoCXBlockCompactSignature(block)) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-sig");
-    }
-}
-```
+**PoCX Validation (when ENABLE_POCX defined and fCheckPOW):**
 
-**基本签名验证：**
-1. 检查公钥和签名字段是否存在
-2. 验证公钥大小（33 字节压缩格式）
-3. 验证签名大小（65 字节紧凑格式）
-4. 从签名恢复公钥：`pubkey.RecoverCompact(hash, signature)`
-5. 验证恢复的公钥与存储的公钥匹配
+1. **Signature Validation**: Verify block signature via `VerifyPoCXBlockCompactSignature()`
+2. **Compression Range Check**: Verify `compression` within bounds from `GetPoCXCompressionBounds()` (error: `"bad-pocx-compression"`)
+3. **Proof of Capacity**: Full PoC proof validation via `ValidateProofOfCapacity()` (error: `"bad-pocx-proof"`)
+4. **Quality Match**: Submitted quality must match computed quality (error: `"bad-pocx-quality-mismatch"`)
 
-**实现：** `src/validation.cpp:CheckBlockHeader()`
-**签名逻辑：** `src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
+**Implementation:** `src/validation.cpp:CheckBlockHeader()`, `src/pocx/consensus/signature.cpp`, `src/pocx/consensus/proof.cpp`
 
 ### 阶段 2：区块验证（CheckBlock）
 
@@ -487,49 +463,36 @@ if (block.nHeight > 0 && fCheckPOW) {
 
 ```cpp
 #ifdef ENABLE_POCX
-    // 步骤 1：验证生成签名
-    uint256 expected_gen_sig = CalculateGenerationSignature(pindexPrev);
-    if (block.generationSignature != expected_gen_sig) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gen-sig");
+    // Step 1: Validate block height
+    if (block.nHeight != pindexPrev->nHeight + 1) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-height");
     }
 
-    // 步骤 2：验证基础目标值
-    uint64_t expected_base_target = CalculateNextBaseTarget(pindexPrev, block.nTime);
+    // Step 2: Validate generation signature
+    uint256 expected_gen_sig = GetNextGenerationSignature(pindexPrev);
+    if (block.generationSignature != expected_gen_sig) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-gensig");
+    }
+
+    // Step 3: Validate base target
+    uint64_t expected_base_target = pindexPrev->nNextBaseTarget;
     if (block.nBaseTarget != expected_base_target) {
         return state.Invalid(BLOCK_INVALID_HEADER, "bad-diff");
     }
 
-    // 步骤 3：验证容量证明
-    auto compression_bounds = GetPoCXCompressionBounds(block.nHeight, halving_interval);
-    auto result = ValidateProofOfCapacity(
-        block.generationSignature,
-        block.pocxProof,
-        block.nBaseTarget,
-        block.nHeight,
-        compression_bounds.nPoCXMinCompression,
-        compression_bounds.nPoCXTargetCompression,
-        block_time
-    );
-
-    if (!result.is_valid) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-proof");
-    }
-
-    // 步骤 4：验证截止时间
+    // Step 4: Verify deadline timing
     uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-    if (result.deadline > elapsed_time) {
-        return state.Invalid(BLOCK_INVALID_HEADER, "pocx-deadline-not-met");
+    if (poc_time > elapsed_time) {
+        return state.Invalid(BLOCK_INVALID_HEADER, "bad-pocx-timing");
     }
 #endif
 ```
 
-**验证步骤：**
-1. **生成签名：** 必须与从前一个区块计算的值匹配
-2. **基础目标值：** 必须与难度调整计算匹配
-3. **扩展级别：** 必须满足网络最低要求（`compression >= min_compression`）
-4. **质量声称：** 提交的质量必须与从证明计算的质量匹配
-5. **容量证明：** 加密证明验证（SIMD 优化）
-6. **截止时间：** 时间弯曲截止时间（`poc_time`）必须 ≤ 经过时间
+**Validation Steps:**
+1. **Height:** Must be previous height + 1
+2. **Generation Signature:** Must match calculated value from previous block
+3. **Base Target:** Must match pre-computed value from previous block
+4. **Deadline Timing:** Time-bended deadline (`poc_time`) must be ≤ elapsed time
 
 **实现：** `src/validation.cpp:ContextualCheckBlockHeader()`
 
@@ -573,8 +536,8 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 
 **实现：**
 - 连接：`src/validation.cpp:ConnectBlock()`
-- 扩展验证：`src/pocx/consensus/pocx.cpp:VerifyPoCXBlockCompactSignature()`
-- 委派逻辑：`src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
+- 扩展验证：`src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
+- 委派逻辑：`src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
 
 ### 阶段 5：链激活
 
@@ -668,7 +631,7 @@ Transaction {
 - 延迟期后（regtest 4 个区块，主网 30 个区块）变为 ASSIGNED
 - 延迟防止区块竞争期间的快速重新分配
 
-**实现：** `src/script/forging_assignment.h`，ConnectBlock 中的验证
+**实现：** `src/pocx/assignments/opcodes.h`，ConnectBlock 中的验证
 
 ### 撤销委派
 
@@ -683,9 +646,10 @@ Transaction {
 ```
 
 **效果：**
-- 立即状态转换为 REVOKED
-- 绘图所有者可以立即锻造
-- 之后可以创建新的委派
+- State transitions to REVOKING
+- After `nForgingRevocationDelay` blocks (720 mainnet, 8 regtest), transitions to REVOKED
+- Plot owner can forge again after revocation becomes effective
+- Can create new assignment afterward
 
 ### 挖矿期间的委派验证
 
@@ -826,12 +790,15 @@ if (current_tip_hash != stored_tip_hash) {
 
 **生成签名：**
 ```cpp
-SHA256(prev_generation_signature || prev_miner_pubkey_33bytes)
+dSHA256(prev_generation_signature || prev_account_id_20bytes)
 ```
 
 **区块签名哈希：**
 ```cpp
-hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
+// Uses HashWriter (double-SHA256) with Bitcoin serialization (length-prefixed strings)
+HashWriter hasher{};
+hasher << POCX_BLOCK_MAGIC << block_hash.ToString();
+hash = hasher.GetHash();  // double-SHA256
 ```
 
 **紧凑签名格式：**
@@ -863,12 +830,12 @@ hash = SHA256(SHA256("POCX Signed Block:\n" || block_hash_hex))
 **核心实现：**
 - RPC 接口：`src/pocx/rpc/mining.cpp`
 - 锻造队列：`src/pocx/mining/scheduler.cpp`
-- 共识验证：`src/pocx/consensus/validation.cpp`
-- 证明验证：`src/pocx/consensus/pocx.cpp`
+- 共识验证：`src/pocx/consensus/proof.cpp`
+- 证明验证：`src/pocx/consensus/signature.cpp`
 - 时间弯曲：`src/pocx/algorithms/time_bending.cpp`
 - 区块验证：`src/validation.cpp`（CheckBlockHeader、ConnectBlock）
-- 委派逻辑：`src/pocx/consensus/validation.cpp:GetEffectiveSigner()`
-- 上下文管理：`src/pocx/node/node.cpp:GetNewBlockContext()`
+- 委派逻辑：`src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
+- 上下文管理：`src/pocx/mining/block_context.cpp:GetNewBlockContext()`
 
 **数据结构：**
 - 区块格式：`src/primitives/block.h`
@@ -902,7 +869,7 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **流程：**
 1. 从生成签名和高度生成 scoop
 2. 读取计算的 scoop 的绘图数据
-3. 哈希：`SHABAL256(generation_signature || scoop_data)`
+3. 哈希：`Shabal256Lite(scoop_data, generation_signature)`
 4. 测试从 min 到 max 的扩展级别
 5. 返回找到的最佳质量
 
@@ -923,9 +890,13 @@ time_bended_deadline = scale * (deadline_seconds)^(1/3)
 **公式：**
 ```
 avg_base_target = moving_average(recent base targets)
+
+// Hybrid correction: wall-clock time adjusted by bended deadlines
+actual_timespan = total_wait - Σ(bended_deadlines) + Σ(quality_adj)
+
 adjustment_factor = actual_timespan / target_timespan
 new_base_target = avg_base_target * adjustment_factor
-new_base_target = clamp(new_base_target, min, max)
+new_base_target = clamp(new_base_target, ±20% of prev_base_target)
 ```
 
 ---

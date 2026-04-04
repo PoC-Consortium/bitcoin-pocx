@@ -32,16 +32,16 @@ PoCX-konsensus vaatii tarkkaa aikasynkronointia koko verkon kesken. Tämä luku 
 
 **Bitcoin-PoCX-konfiguraatio:**
 ```cpp
-// src/chain.h:31
+// src/chain.h
 static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 15;  // 15 sekuntia
 
-// src/node/timeoffsets.h:27
+// src/node/timeoffsets.h
 static constexpr std::chrono::seconds WARN_THRESHOLD{10};  // 10 sekuntia
 ```
 
 ### Validointitarkistukset
 
-**Lohkon aikaleiman validointi** (`src/validation.cpp:4547-4561`):
+**Lohkon aikaleiman validointi** (`src/validation.cpp:ContextualCheckBlockHeader()`):
 ```cpp
 // 1. Monotonisuustarkistus: aikaleima >= edellisen lohkon aikaleima
 if (block.nTime < pindexPrev->nTime) {
@@ -55,7 +55,7 @@ if (block.Time() > NodeClock::now() + std::chrono::seconds{MAX_FUTURE_BLOCK_TIME
 
 // 3. Deadlinen tarkistus: kulunut aika >= deadline
 uint32_t elapsed_time = block.nTime - pindexPrev->nTime;
-if (result.deadline > elapsed_time) {
+if (poc_time > elapsed_time) {
     return state.Invalid("bad-pocx-timing");
 }
 ```
@@ -213,7 +213,7 @@ Louhintakorkeusi 100, kilpailija julkaisee lohkon 99
 - Validointi valmistuu millisekunneissa
 
 **Resurssinkäyttö:** Minimaalinen
-- ~20 riviä ydinlogiikkaa
+- Compact implementation in `scheduler.cpp` and `defensive_forge.cpp`
 - Uudelleenkäyttää olemassa olevaa validointi-infrastruktuuria
 - Yksi lukon hankinta
 
@@ -372,9 +372,9 @@ Solmu **>15s jäljessä** on katastrofaalinen:
 ## Toteutusviittaukset
 
 **Ydintiedostot**:
-- Aikavalidointi: `src/validation.cpp:4547-4561`
-- Tulevaisuustoleranssivakio: `src/chain.h:31`
-- Varoituskynnys: `src/node/timeoffsets.h:27`
+- Aikavalidointi: `src/validation.cpp:ContextualCheckBlockHeader()`
+- Tulevaisuustoleranssivakio: `src/chain.h`
+- Varoituskynnys: `src/node/timeoffsets.h`
 - Aikaeron seuranta: `src/node/timeoffsets.cpp`
 - Puolustava forging: `src/pocx/mining/scheduler.cpp`
 

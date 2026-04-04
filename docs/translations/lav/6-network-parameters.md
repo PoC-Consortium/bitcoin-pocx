@@ -39,12 +39,7 @@ Pilnīga atsauce Bitcoin-PoCX tīkla konfigurācijai visos tīkla tipos.
 
 ### Ģenēzes ziņojums
 
-Visi tīkli dalās ar Bitcoin ģenēzes ziņojumu:
-```
-"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-```
-
-**Implementācija**: `src/kernel/chainparams.cpp`
+Each network has its own genesis message. See `src/kernel/chainparams.cpp` for details.
 
 ---
 
@@ -54,7 +49,7 @@ Visi tīkli dalās ar Bitcoin ģenēzes ziņojumu:
 
 **Tīkla identitāte**:
 - **Maģiskie baiti**: `0xa7 0x3c 0x91 0x5e`
-- **Noklusējuma ports**: `8888`
+- **Noklusējuma ports**: `8338`
 - **Bech32 HRP**: `pocx`
 
 **Adrešu prefiksi** (Base58):
@@ -84,14 +79,14 @@ Visi tīkli dalās ar Bitcoin ģenēzes ziņojumu:
 ### Testnet parametri
 
 **Tīkla identitāte**:
-- **Maģiskie baiti**: `0x6d 0xf2 0x48 0xb3`
-- **Noklusējuma ports**: `18888`
+- **Maģiskie baiti**: `0x6d 0xf2 0x48 0xb4`
+- **Noklusējuma ports**: `18338`
 - **Bech32 HRP**: `tpocx`
 
 **Adrešu prefiksi** (Base58):
 - PUBKEY_ADDRESS: `127`
 - SCRIPT_ADDRESS: `132`
-- SECRET_KEY: `255`
+- SECRET_KEY: `239`
 
 **Bloku laiks**:
 - **Bloka laika mērķis**: `120` sekundes
@@ -248,7 +243,7 @@ effective_signer = GetEffectiveSigner(plot_address, height, view);
 coinbase_script = P2WPKH(effective_signer);
 ```
 
-**Implementācija**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Implementācija**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 
 ---
 
@@ -260,9 +255,9 @@ coinbase_script = P2WPKH(effective_signer);
 
 **Struktūra**:
 ```cpp
-struct CompressionBounds {
-    uint8_t nPoCXMinCompression;     // Minimālais pieņemtais līmenis
-    uint8_t nPoCXTargetCompression;  // Ieteicamais līmenis
+struct PoCXCompressionBounds {
+    uint32_t nPoCXMinCompression;     // Minimālais pieņemtais līmenis
+    uint32_t nPoCXTargetCompression;  // Ieteicamais līmenis
 };
 ```
 
@@ -313,7 +308,7 @@ Mērogošanas līmeņi palielinās pēc **eksponenciāla grafika**, balstoties u
 auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 ```
 
-**Implementācija**: `src/pocx/algorithms/algorithms.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
+**Implementācija**: `src/pocx/consensus/params.h:GetPoCXCompressionBounds()`, `src/pocx/consensus/params.cpp`
 
 ---
 
@@ -347,7 +342,7 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Protokola versija
 
-**Bāze**: Bitcoin Core v30.0 protokols
+**Bāze**: Bitcoin Core v30.2 protokols
 - **Protokola versija**: Mantota no Bitcoin Core
 - **Pakalpojumu biti**: Standarta Bitcoin pakalpojumi
 - **Ziņojumu tipi**: Standarta Bitcoin P2P ziņojumi
@@ -411,7 +406,6 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 #regtest=1
 
 # PoCX kalnrūpniecības serveris (nepieciešams ārējiem kalnračiem)
-miningserver=1
 
 # RPC iestatījumi
 server=1
@@ -422,7 +416,7 @@ rpcport=8332
 
 # Savienojuma iestatījumi
 listen=1
-port=8888
+port=8338
 maxconnections=125
 
 # Bloka laika mērķis (informatīvs, konsensuss izpildīts)
@@ -435,9 +429,9 @@ maxconnections=125
 
 **Chainparams**: `src/kernel/chainparams.cpp`
 **Konsensa parametri**: `src/consensus/params.h`
-**Kompresijas robežas**: `src/pocx/algorithms/algorithms.h`, `src/pocx/consensus/params.cpp`
+**Kompresijas robežas**: `src/pocx/consensus/params.h`, `src/pocx/consensus/params.cpp`
 **Ģenēzes bāzes mērķa aprēķins**: `src/pocx/consensus/params.cpp`
-**Coinbase maksājuma loģika**: `src/pocx/mining/scheduler.cpp:ForgeBlock()`
+**Coinbase maksājuma loģika**: `src/pocx/mining/block_builder.cpp:BuildBlock()`
 **Piešķīrumu stāvokļa glabāšana**: `src/coins.h`, `src/coins.cpp` (CCoinsViewCache paplašinājumi)
 
 ---
