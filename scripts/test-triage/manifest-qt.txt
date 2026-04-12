@@ -1,0 +1,8 @@
+# Qt test classes. One per line: <name> <STATUS> [# note]
+# STATUS: PENDING | PASS | FIX-TRIVIAL | FIX-SUBSTANTIVE | DISABLE-INAPPLICABLE | DISABLE-DEFERRED
+AddressBookTests    PASS
+AppTests            PASS
+OptionTests         PASS
+RPCNestedTests      PASS    # fixed: genesis coinbase txid derived via Params().GenesisBlock()
+URITests            PASS
+WalletTests         PASS
