@@ -1,7 +1,7 @@
 [submodule "bitcoin"]
 	path = bitcoin
 	url = https://github.com/PoC-Consortium/bitcoin.git
-	branch = master
+	branch = pocx-master
 [submodule "pocx"]
 	path = pocx
 	url = https://github.com/PoC-Consortium/pocx.git
