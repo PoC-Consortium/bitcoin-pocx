@@ -558,10 +558,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Mpokeaji wa Coinbase** (haitekelezwi na consensus):
-
-Mchimbaji huweka pato la coinbase kulipa msaini halisi (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), lakini hili **haithibitishwi** na consensus. Consensus inatekeleza tu kwamba *sahihi ya bloku* itolewe na msaini halisi — ukaguzi wa `bad-pocx-assignment-sig` hapo juu. Hakuna kanuni ya `bad-pocx-coinbase`; mpokeaji wa coinbase huchaguliwa na mchimbaji.
-
 **Utekelezaji:**
 - Muunganisho: `src/validation.cpp:ConnectBlock()`
 - Uthibitishaji ulioongezwa: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

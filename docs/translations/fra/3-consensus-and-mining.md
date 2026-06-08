@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Destinataire de la coinbase** (non imposé par le consensus) :
-
-Le mineur définit la sortie coinbase pour payer le signataire effectif (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mais cela n'est **pas** validé par le consensus. Le consensus impose uniquement que la *signature de bloc* soit produite par le signataire effectif — la vérification `bad-pocx-assignment-sig` ci-dessus. Il n'existe aucune règle `bad-pocx-coinbase` ; le destinataire de la coinbase est choisi par le mineur.
-
 **Implémentation :**
 - Connexion : `src/validation.cpp:ConnectBlock()`
 - Validation étendue : `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

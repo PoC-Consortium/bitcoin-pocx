@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase-saaja** (ei konsensuksen valvoma):
-
-Louhija asettaa coinbase-tulosteen maksamaan tehokkaalle allekirjoittajalle (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mutta konsensus **ei** validoi tätä. Konsensus valvoo vain sitä, että *lohkon allekirjoituksen* tuottaa tehokas allekirjoittaja — yllä oleva `bad-pocx-assignment-sig`-tarkistus. `bad-pocx-coinbase`-sääntöä ei ole olemassa; coinbase-saajan valitsee louhija.
-
 **Toteutus:**
 - Liittäminen: `src/validation.cpp:ConnectBlock()`
 - Laajennettu validointi: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

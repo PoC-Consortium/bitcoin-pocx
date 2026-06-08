@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase Alıcısı** (konsensüs tarafından zorunlu kılınmaz):
-
-Madenci, coinbase çıktısını etkin imzalayana ödeme yapacak şekilde ayarlar (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ancak bu konsensüs tarafından **doğrulanmaz**. Konsensüs yalnızca *blok imzasının* etkin imzalayan tarafından üretilmesini zorunlu kılar — yukarıdaki `bad-pocx-assignment-sig` kontrolü. `bad-pocx-coinbase` kuralı yoktur; coinbase alıcısı madenci tarafından seçilir.
-
 **Uygulama:**
 - Bağlantı: `src/validation.cpp:ConnectBlock()`
 - Genişletilmiş doğrulama: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

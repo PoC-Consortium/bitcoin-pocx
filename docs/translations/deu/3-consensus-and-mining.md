@@ -552,10 +552,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase-Empfänger** (nicht konsensdurchgesetzt):
-
-Der Miner setzt die Coinbase-Ausgabe so, dass sie an den effektiven Unterzeichner zahlt (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), aber dies wird **nicht** vom Konsens geprüft. Der Konsens erzwingt nur, dass die *Blocksignatur* vom effektiven Unterzeichner erzeugt wird — die obige `bad-pocx-assignment-sig`-Prüfung. Es gibt keine `bad-pocx-coinbase`-Regel; der Coinbase-Empfänger wird vom Miner gewählt.
-
 **Implementierung:**
 - Verbindung: `src/validation.cpp:ConnectBlock()`
 - Erweiterte Validierung: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

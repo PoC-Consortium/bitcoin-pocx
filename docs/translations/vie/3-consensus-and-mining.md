@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Người nhận Coinbase** (không được đồng thuận thực thi):
-
-Thợ đào đặt đầu ra coinbase để trả cho người ký hiệu quả (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), nhưng điều này **không** được đồng thuận xác thực. Đồng thuận chỉ thực thi rằng *chữ ký khối* được tạo bởi người ký hiệu quả — kiểm tra `bad-pocx-assignment-sig` ở trên. Không có quy tắc `bad-pocx-coinbase`; người nhận coinbase do thợ đào lựa chọn.
-
 **Triển khai:**
 - Kết nối: `src/validation.cpp:ConnectBlock()`
 - Xác thực mở rộng: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

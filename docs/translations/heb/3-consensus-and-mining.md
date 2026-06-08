@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**נמען Coinbase** (לא נאכף על ידי הקונצנזוס):
-
-הכורה מגדיר את פלט ה-coinbase לשלם לחותם האפקטיבי (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), אך הקונצנזוס **אינו** מאמת זאת. הקונצנזוס אוכף רק שה-*חתימת הבלוק* נוצרה על ידי החותם האפקטיבי — בדיקת `bad-pocx-assignment-sig` שלמעלה. אין כלל `bad-pocx-coinbase`; נמען ה-coinbase נבחר על ידי הכורה.
-
 **יישום:**
 - חיבור: `src/validation.cpp:ConnectBlock()`
 - אימות מורחב: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

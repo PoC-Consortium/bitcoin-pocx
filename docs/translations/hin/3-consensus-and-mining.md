@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase प्राप्तकर्ता** (कंसेंसस द्वारा लागू नहीं):
-
-माइनर coinbase आउटपुट को प्रभावी हस्ताक्षरकर्ता को भुगतान करने के लिए सेट करता है (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), लेकिन कंसेंसस इसे सत्यापित **नहीं** करता। कंसेंसस केवल यह लागू करता है कि *ब्लॉक हस्ताक्षर* प्रभावी हस्ताक्षरकर्ता द्वारा उत्पन्न हो — ऊपर दी गई `bad-pocx-assignment-sig` जाँच। कोई `bad-pocx-coinbase` नियम नहीं है; coinbase प्राप्तकर्ता माइनर द्वारा चुना जाता है।
-
 **कार्यान्वयन:**
 - कनेक्शन: `src/validation.cpp:ConnectBlock()`
 - विस्तारित सत्यापन: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

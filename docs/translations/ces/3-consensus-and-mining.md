@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Příjemce Coinbase** (není vynucováno konsenzem):
-
-Těžař nastaví coinbase výstup tak, aby platil efektivnímu podpisujícímu (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ale toto **není** ověřováno konsenzem. Konsenzus vynucuje pouze to, že *podpis bloku* je vytvořen efektivním podpisujícím — výše uvedená kontrola `bad-pocx-assignment-sig`. Neexistuje žádné pravidlo `bad-pocx-coinbase`; příjemce coinbase volí těžař.
-
 **Implementace:**
 - Připojení: `src/validation.cpp:ConnectBlock()`
 - Rozšířená validace: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

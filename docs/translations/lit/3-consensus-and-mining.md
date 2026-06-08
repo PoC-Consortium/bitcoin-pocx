@@ -558,10 +558,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase gavėjas** (neįgyvendinamas konsensuso):
-
-Kasėjas nustato coinbase išvestį, kad ji mokėtų efektyviajam pasirašytojui (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), tačiau to konsensusas **netikrina**. Konsensusas užtikrina tik tai, kad *bloko parašą* sukūrė efektyvusis pasirašytojas — tai aukščiau aprašytas `bad-pocx-assignment-sig` patikrinimas. Nėra jokios `bad-pocx-coinbase` taisyklės; coinbase gavėją pasirenka kasėjas.
-
 **Įgyvendinimas:**
 - Prijungimas: `src/validation.cpp:ConnectBlock()`
 - Išplėstinė validacija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

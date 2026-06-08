@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase-mottaker** (ikke håndhevet av konsensus):
-
-Mineren setter coinbase-utdataen til å betale den effektive signereren (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), men dette valideres **ikke** av konsensus. Konsensus håndhever kun at *blokksignaturen* produseres av den effektive signereren — `bad-pocx-assignment-sig`-sjekken ovenfor. Det finnes ingen `bad-pocx-coinbase`-regel; coinbase-mottakeren velges av mineren.
-
 **Implementasjon:**
 - Forbindelse: `src/validation.cpp:ConnectBlock()`
 - Utvidet validering: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

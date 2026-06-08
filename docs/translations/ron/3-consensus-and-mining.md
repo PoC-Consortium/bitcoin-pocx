@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Destinatarul Coinbase** (neimpus de consens):
-
-Minerul setează ieșirea coinbase să plătească semnatarului efectiv (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), dar acest lucru **nu** este validat de consens. Consensul impune doar ca *semnătura blocului* să fie produsă de semnatarul efectiv — verificarea `bad-pocx-assignment-sig` de mai sus. Nu există nicio regulă `bad-pocx-coinbase`; destinatarul coinbase este ales de miner.
-
 **Implementare:**
 - Conectare: `src/validation.cpp:ConnectBlock()`
 - Validare extinsă: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

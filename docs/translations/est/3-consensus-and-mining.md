@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase saaja** (ei ole konsensusega jõustatud):
-
-Kaevandaja seab coinbase väljundi maksma efektiivsele allkirjastajale (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), kuid konsensus seda **ei** valideeri. Konsensus jõustab ainult seda, et *ploki allkirja* loob efektiivne allkirjastaja — ülaltoodud `bad-pocx-assignment-sig` kontroll. `bad-pocx-coinbase` reeglit ei ole olemas; coinbase saaja valib kaevandaja.
-
 **Implementatsioon:**
 - Ühendamine: `src/validation.cpp:ConnectBlock()`
 - Laiendatud valideerimine: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

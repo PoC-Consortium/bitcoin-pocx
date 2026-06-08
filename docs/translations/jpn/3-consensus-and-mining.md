@@ -554,10 +554,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase受取人**（コンセンサスで強制されない）:
-
-マイナーがCoinbase出力を有効な署名者へ支払うよう設定します（`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`）が、これはコンセンサスでは検証**されません**。コンセンサスが強制するのは*ブロック署名*が有効な署名者によって生成されることのみ — 上記の`bad-pocx-assignment-sig`チェックです。`bad-pocx-coinbase`ルールは存在しません；Coinbase受取人はマイナーが選択します。
-
 **実装:**
 - 接続: `src/validation.cpp:ConnectBlock()`
 - 拡張検証: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

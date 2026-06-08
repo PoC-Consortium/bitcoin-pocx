@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Прималац coinbase** (није наметнуто консензусом):
-
-Рудар поставља coinbase излаз да плати ефективном потписнику (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), али то **није** валидирано консензусом. Консензус намеће само да *потпис блока* буде произведен од стране ефективног потписника — провера `bad-pocx-assignment-sig` изнад. Не постоји правило `bad-pocx-coinbase`; примаоца coinbase бира рудар.
-
 **Имплементација:**
 - Повезивање: `src/validation.cpp:ConnectBlock()`
 - Проширена валидација: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

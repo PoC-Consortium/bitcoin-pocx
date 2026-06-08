@@ -547,10 +547,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase saņēmējs** (nav konsensa izpildīts):
-
-Kalnracis iestata coinbase izvadi, lai maksātu efektīvajam parakstītājam (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), bet to **ne**validē konsenss. Konsenss izpilda tikai to, ka *bloka paraksts* ir izveidots no efektīvā parakstītāja — augstāk minēto `bad-pocx-assignment-sig` pārbaudi. Nav `bad-pocx-coinbase` noteikuma; coinbase saņēmēju izvēlas kalnracis.
-
 **Implementācija:**
 - Savienošana: `src/validation.cpp:ConnectBlock()`
 - Paplašināta validācija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

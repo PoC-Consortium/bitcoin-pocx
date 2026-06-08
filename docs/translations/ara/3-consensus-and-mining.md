@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**مستلم Coinbase** (غير مفروض بالإجماع):
-
-يضبط المُعدّن مخرج coinbase ليدفع للمُوقّع الفعال (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`)، لكن هذا **لا** يُتحقق منه بالإجماع. الإجماع يفرض فقط أن *توقيع الكتلة* مُنتَج من المُوقّع الفعال — فحص `bad-pocx-assignment-sig` أعلاه. لا توجد قاعدة `bad-pocx-coinbase`؛ مستلم coinbase يختاره المُعدّن.
-
 **التنفيذ:**
 - الاتصال: `src/validation.cpp:ConnectBlock()`
 - التحقق الموسع: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

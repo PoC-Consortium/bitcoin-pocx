@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Penerima Coinbase** (tidak ditegakkan konsensus):
-
-Penambang menetapkan output coinbase untuk membayar penanda tangan efektif (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), tetapi ini **tidak** divalidasi oleh konsensus. Konsensus hanya menegakkan bahwa *tanda tangan blok* dihasilkan oleh penanda tangan efektif — pemeriksaan `bad-pocx-assignment-sig` di atas. Tidak ada aturan `bad-pocx-coinbase`; penerima coinbase dipilih oleh penambang.
-
 **Implementasi:**
 - Koneksi: `src/validation.cpp:ConnectBlock()`
 - Validasi yang diperluas: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

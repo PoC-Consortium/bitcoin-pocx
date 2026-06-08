@@ -558,10 +558,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase Recipient** (not consensus-enforced):
-
-The miner sets the coinbase output to pay the effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), but this is **not** validated by consensus. Consensus enforces only that the *block signature* is produced by the effective signer — the `bad-pocx-assignment-sig` check above. There is no `bad-pocx-coinbase` rule; the coinbase recipient is chosen by the miner.
-
 **Implementation:**
 - Connection: `src/validation.cpp:ConnectBlock()`
 - Extended validation: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

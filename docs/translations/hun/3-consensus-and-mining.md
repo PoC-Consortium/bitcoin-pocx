@@ -555,10 +555,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase Címzett** (nem konszenzus által kikényszerített):
-
-A bányász a coinbase kimenetet úgy állítja be, hogy az effektív aláírónak fizessen (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), de ezt **nem** validálja a konszenzus. A konszenzus csak azt kényszeríti ki, hogy a *blokk aláírást* az effektív aláíró állítsa elő — a fenti `bad-pocx-assignment-sig` ellenőrzés. Nincs `bad-pocx-coinbase` szabály; a coinbase címzettjét a bányász választja.
-
 **Implementáció:**
 - Csatlakoztatás: `src/validation.cpp:ConnectBlock()`
 - Kiterjesztett validáció: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

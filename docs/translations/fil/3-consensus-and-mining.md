@@ -571,10 +571,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Tatanggap ng Coinbase** (hindi ipinapatupad ng consensus):
-
-Itinatakda ng miner ang coinbase output upang magbayad sa effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ngunit **hindi** ito vina-validate ng consensus. Ipinapatupad lamang ng consensus na ang *block signature* ay ginawa ng effective signer — ang `bad-pocx-assignment-sig` na pagsusuri sa itaas. Walang `bad-pocx-coinbase` na panuntunan; ang tatanggap ng coinbase ay pinipili ng miner.
-
 **Implementasyon:**
 - Connection: `src/validation.cpp:ConnectBlock()`
 - Pinahabang validation: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

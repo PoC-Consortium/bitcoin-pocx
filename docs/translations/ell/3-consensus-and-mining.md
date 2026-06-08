@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Παραλήπτης Coinbase** (δεν επιβάλλεται από τη συναίνεση):
-
-Ο miner ορίζει την έξοδο coinbase ώστε να πληρώνει τον effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), αλλά αυτό **δεν** επικυρώνεται από τη συναίνεση. Η συναίνεση επιβάλλει μόνο ότι η *υπογραφή του block* παράγεται από τον effective signer — ο έλεγχος `bad-pocx-assignment-sig` παραπάνω. Δεν υπάρχει κανόνας `bad-pocx-coinbase`· ο παραλήπτης coinbase επιλέγεται από τον miner.
-
 **Υλοποίηση:**
 - Σύνδεση: `src/validation.cpp:ConnectBlock()`
 - Εκτεταμένη επικύρωση: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

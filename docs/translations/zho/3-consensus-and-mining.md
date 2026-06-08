@@ -534,10 +534,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase 接收方**（非共识强制）：
-
-矿工将 coinbase 输出设置为支付给有效签名者（`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`），但这**不**由共识验证。共识仅强制*区块签名*由有效签名者生成——即上面的 `bad-pocx-assignment-sig` 检查。不存在 `bad-pocx-coinbase` 规则；coinbase 接收方由矿工选择。
-
 **实现：**
 - 连接：`src/validation.cpp:ConnectBlock()`
 - 扩展验证：`src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

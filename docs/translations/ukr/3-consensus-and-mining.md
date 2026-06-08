@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Отримувач coinbase** (не забезпечується консенсусом):
-
-Майнер встановлює вихід coinbase для оплати ефективному підписанту (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), але це **не** перевіряється консенсусом. Консенсус забезпечує лише те, що *підпис блоку* створений ефективним підписантом — перевірка `bad-pocx-assignment-sig` вище. Правила `bad-pocx-coinbase` не існує; отримувача coinbase обирає майнер.
-
 **Реалізація:**
 - Підключення: `src/validation.cpp:ConnectBlock()`
 - Розширена валідація: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

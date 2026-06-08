@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Odbiorca coinbase** (nieegzekwowany przez konsensus):
-
-Górnik ustawia wyjście coinbase tak, aby płaciło efektywnemu podpisującemu (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ale **nie** jest to walidowane przez konsensus. Konsensus egzekwuje jedynie, że *podpis bloku* jest wytwarzany przez efektywnego podpisującego — powyższe sprawdzenie `bad-pocx-assignment-sig`. Nie istnieje reguła `bad-pocx-coinbase`; odbiorca coinbase jest wybierany przez górnika.
-
 **Implementacja:**
 - Połączenie: `src/validation.cpp:ConnectBlock()`
 - Rozszerzona walidacja: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

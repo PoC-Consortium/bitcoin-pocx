@@ -565,10 +565,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Destinatário do Coinbase** (não imposto pelo consenso):
-
-O minerador define a saída do coinbase para pagar ao signatário efetivo (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mas isso **não** é validado pelo consenso. O consenso impõe apenas que a *assinatura do bloco* seja produzida pelo signatário efetivo — a verificação `bad-pocx-assignment-sig` acima. Não existe regra `bad-pocx-coinbase`; o destinatário do coinbase é escolhido pelo minerador.
-
 **Implementação:**
 - Conexão: `src/validation.cpp:ConnectBlock()`
 - Validação estendida: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`

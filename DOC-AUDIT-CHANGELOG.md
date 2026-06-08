@@ -18,9 +18,12 @@ translated, so match by meaning/location, not literal string.
 by the miner (`block_builder.cpp:CreateCoinbaseScript()`) but is NOT consensus-checked.
 The only effective-signer enforcement is the block-signature check
 `VerifyPoCXBlockCompactSignature()` in `ConnectBlock` (error `bad-pocx-assignment-sig`).
-**Action:** Delete the whole "Coinbase Payment Validation" code block and its
-`Coinbase validation: …ContextualCheckBlock()` implementation pointer. Replace with the
-new "Coinbase Recipient (not consensus-enforced)" paragraph.
+**Action:** Delete the whole "Coinbase Payment Validation" code block, its
+`Coinbase validation: …ContextualCheckBlock()` implementation pointer, AND any
+"Coinbase Recipient (not consensus-enforced)" paragraph — remove the coinbase
+subsection entirely. The `bad-pocx-assignment-sig` description above already covers
+what consensus enforces; the `**Implementation:**` list (ConnectBlock / signature.cpp /
+GetEffectiveSigner) stays. Do NOT mention `bad-pocx-coinbase` anywhere.
 
 ## 2. "chi-squared" → "Weibull (shape k=3)"
 **Why:** The Time-Bending transform (cube-root of an exponential, normalized by Γ(4/3))

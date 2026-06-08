@@ -554,10 +554,6 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase 수령자** (합의로 강제되지 않음):
-
-마이너가 coinbase 출력을 유효 서명자에게 지급하도록 설정하지만(`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), 이는 합의에 의해 검증되지 **않습니다**. 합의가 강제하는 것은 *블록 서명*이 유효 서명자에 의해 생성되는 것뿐입니다 — 위의 `bad-pocx-assignment-sig` 검사입니다. `bad-pocx-coinbase` 규칙은 존재하지 않으며; coinbase 수령자는 마이너가 선택합니다.
-
 **구현:**
 - 연결: `src/validation.cpp:ConnectBlock()`
 - 확장 검증: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
