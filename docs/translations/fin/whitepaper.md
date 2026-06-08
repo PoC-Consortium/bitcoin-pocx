@@ -462,7 +462,7 @@ Vuosien varrella useat lohkoketju- ja konsensusprojektit ovat tutkineet tallennu
 
 Bitcoin-PoCX osoittaa, että energiatehokas konsensus voidaan integroida Bitcoin Coreen säilyttäen turvallisuusominaisuudet ja talousmalli. Keskeiset panokset sisältävät XOR-transpose-koodauksen (pakottaa hyökkääjät laskemaan 4096 noncea per haku, eliminoiden pakkausshyökkäyksen), Time Bending -algoritmin (jakauman muunnos vähentää lohkoajan varianssia), forging-delegointijärjestelmän (OP_RETURN-pohjainen delegointi mahdollistaa ei-säilytysperusteisen poolilouhinnan), dynaamisen skaalauksen (linjassa puolittumisten kanssa turvamarginaalien ylläpitämiseksi) ja minimaalisen integraation (feature-liputettu koodi eristettynä omaan hakemistoonsa).
 
-Järjestelmä on tällä hetkellä testiverkkofasissa. Louhintateho johdetaan tallennuskapasiteetista hash-nopeuden sijaan vähentäen energiankulutusta suuruusluokkia säilyttäen samalla Bitcoinin todistetun talousmallin.
+Järjestelmä on ollut käytössä pääverkossa 3. toukokuuta 2026 alkaen. Louhintateho johdetaan tallennuskapasiteetista hash-nopeuden sijaan vähentäen energiankulutusta suuruusluokkia säilyttäen samalla Bitcoinin todistetun talousmallin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Lisenssi**: MIT
 **Organisaatio**: Proof of Capacity Consortium
-**Tila**: Testiverkkofase
+**Tila**: Pääverkko käytössä (3. toukokuuta 2026 alkaen)

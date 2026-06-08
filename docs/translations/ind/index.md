@@ -2,7 +2,7 @@
 
 **Versi**: 1.0
 **Basis Bitcoin Core**: v30.2
-**Status**: Fase Testnet
+**Status**: Mainnet Aktif (sejak 3 Mei 2026)
 **Terakhir Diperbarui**: 2025-12-25
 
 ---
@@ -168,7 +168,7 @@ Untuk biner rilis yang dapat direproduksi, gunakan sistem build GUIX: Lihat [bit
 
 **Dokumentasi Lengkap**: Semua 8 bab lengkap dan diverifikasi terhadap basis kode.
 
-**Testnet Aktif**: Saat ini dalam fase testnet untuk pengujian komunitas.
+**🚀 Mainnet Aktif**: Mainnet telah aktif sejak 3 Mei 2026.
 
 ---
 

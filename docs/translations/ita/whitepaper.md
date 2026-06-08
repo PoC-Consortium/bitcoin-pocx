@@ -462,7 +462,7 @@ Nel corso degli anni, diversi progetti blockchain e di consenso hanno esplorato 
 
 Bitcoin-PoCX dimostra che il consenso a efficienza energetica può essere integrato in Bitcoin Core preservando le proprietà di sicurezza e il modello economico. I contributi chiave includono la codifica XOR-transpose (costringe gli attaccanti a calcolare 4096 nonce per lookup, eliminando l'attacco di compressione), l'algoritmo Time Bending (la trasformazione della distribuzione riduce la varianza dei tempi di blocco), il sistema di assegnazione del forging (la delega basata su OP_RETURN abilita il mining in pool non custodiale), lo scaling dinamico (allineato con gli halving per mantenere i margini di sicurezza), e l'integrazione minima (codice con feature flag isolato in una directory dedicata).
 
-Il sistema è attualmente in fase testnet. La potenza di mining deriva dalla capacità di storage piuttosto che dall'hash rate, riducendo il consumo energetico di ordini di grandezza mantenendo al contempo il modello economico comprovato di Bitcoin.
+Il sistema è attivo sulla mainnet dal 3 maggio 2026. La potenza di mining deriva dalla capacità di storage piuttosto che dall'hash rate, riducendo il consumo energetico di ordini di grandezza mantenendo al contempo il modello economico comprovato di Bitcoin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Integrazione Bitcoin-PoCX.* https://github.com/PoC-Consortium/b
 
 **Licenza**: MIT
 **Organizzazione**: Proof of Capacity Consortium
-**Stato**: Fase Testnet
+**Stato**: Mainnet Attiva (dal 3 maggio 2026)

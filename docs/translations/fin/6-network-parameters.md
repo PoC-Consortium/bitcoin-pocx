@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed-solmut ja DNS-seedit
 
-**Tila**: Paikkamerkki mainnetin käynnistystä varten
+**Tila**: Aktiivinen (pääverkko käytössä 3. toukokuuta 2026 alkaen)
 
-**Suunniteltu konfiguraatio**:
-- Seed-solmut: Määritettävä
-- DNS-seedit: Määritettävä
+**Pääverkon DNS-seedit**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Nykyinen tila** (testnet/regtest):
-- Ei omistettua seed-infrastruktuuria
-- Manuaaliset vertaisyhteydet tuettu `-addnode`-parametrilla
+**Testiverkon DNS-seedit**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfiguraatio**:
+- Kiinteät seedit toimitetaan tiedostossa `src/pocx/pocx_seeds.h` (BIP155-muoto)
+- Manuaaliset vertaisyhteydet myös tuettu `-addnode`-parametrilla
 
 **Toteutus**: `src/kernel/chainparams.cpp`
 

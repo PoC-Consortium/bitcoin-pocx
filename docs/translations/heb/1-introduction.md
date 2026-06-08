@@ -17,7 +17,7 @@ Bitcoin-PoCX הוא אינטגרציה של Bitcoin Core המוסיפה תמיכ
 - **ארגון**: Proof of Capacity Consortium
 - **שם הפרויקט**: Bitcoin-PoCX
 - **שם מלא**: Bitcoin Core with PoCX Integration
-- **סטטוס**: שלב רשת בדיקה
+- **סטטוס**: רשת ראשית פעילה (מאז 3 במאי 2026)
 
 ---
 
@@ -306,7 +306,7 @@ cmake --build build
 
 ## סטטוס רשת
 
-**Mainnet**: טרם הושקה
+**Mainnet**: פעילה (מאז 3 במאי 2026)
 **Testnet**: זמינה לבדיקות
 **Regtest**: פונקציונלית לחלוטין לפיתוח
 

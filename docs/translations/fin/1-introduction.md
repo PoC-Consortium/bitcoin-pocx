@@ -17,7 +17,7 @@ Bitcoin-PoCX on Bitcoin Core -integraatio, joka lisää **Proof of Capacity neXt
 - **Organisaatio**: Proof of Capacity Consortium
 - **Projektin nimi**: Bitcoin-PoCX
 - **Virallinen nimi**: Bitcoin Core with PoCX Integration
-- **Tila**: Testiverkkofase
+- **Tila**: Pääverkko käytössä (3. toukokuuta 2026 alkaen)
 
 ---
 
@@ -306,7 +306,7 @@ Perustuu POC2-muotoon (Burstcoin) parannuksineen:
 
 ## Verkon tila
 
-**Mainnet**: Ei vielä käynnistetty
+**Mainnet**: Käytössä (3. toukokuuta 2026 alkaen)
 **Testnet**: Saatavilla testaukseen
 **Regtest**: Täysin toimiva kehitykseen
 

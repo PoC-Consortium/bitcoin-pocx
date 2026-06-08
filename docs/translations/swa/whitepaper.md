@@ -462,7 +462,7 @@ Kwa miaka mingi, miradi kadhaa ya blockchain na makubaliano imechunguza mifumo y
 
 Bitcoin-PoCX inaonyesha kuwa makubaliano ya ufanisi wa nishati yanaweza kujumuishwa katika Bitcoin Core huku yakihifadhi sifa za usalama na mfano wa kiuchumi. Michango muhimu inajumuisha usimbaji wa XOR-transpose (unaolazimisha washambuliaji kuhesabu nonce 4096 kwa kila utafutaji, kuondoa shambulio la ukandamizaji), algoriti ya Time Bending (mabadiliko ya usambazaji yanapunguza tofauti ya muda wa block), mfumo wa ugawaji wa uundaji (uwakilishaji unaotegemea OP_RETURN unawezesha uchimbaji wa pool bila uhifadhi wa fedha), ukadiriaji unaobadilika (ulioratibiwa na nusu kudumisha margin za usalama), na ujumuishaji mdogo (msimbo uliowekwa alama za vipengele umetenga katika saraka maalum).
 
-Mfumo kwa sasa uko katika awamu ya testnet. Nguvu ya uchimbaji inatokana na uwezo wa kuhifadhi badala ya kiwango cha hash, kupunguza matumizi ya nishati kwa maelfu huku ukihifadhi mfano wa kiuchumi uliothibitishwa wa Bitcoin.
+Mfumo umekuwa ukifanya kazi kwenye mainnet tangu 3 Mei 2026. Nguvu ya uchimbaji inatokana na uwezo wa kuhifadhi badala ya kiwango cha hash, kupunguza matumizi ya nishati kwa maelfu huku ukihifadhi mfano wa kiuchumi uliothibitishwa wa Bitcoin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Leseni**: MIT
 **Shirika**: Proof of Capacity Consortium
-**Hali**: Awamu ya Testnet
+**Hali**: Mainnet Inafanya Kazi (tangu 3 Mei 2026)

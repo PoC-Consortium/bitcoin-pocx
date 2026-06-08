@@ -2,7 +2,7 @@
 
 **Verzió**: 1.0
 **Bitcoin Core Alapverzió**: v30.2
-**Állapot**: Teszthálózati Fázis
+**Állapot**: Mainnet Élő (2026. május 3. óta)
 **Utolsó Frissítés**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Reprodukálható kiadási binárisokhoz használja a GUIX build rendszert: Lásd
 
 **✅ Dokumentáció Teljes**: Mind a 8 fejezet elkészült és a kódbázissal összevetett.
 
-**🔬 Teszthálózat Aktív**: Jelenleg teszthálózati fázisban a közösségi teszteléshez.
+**🚀 Mainnet Élő**: A mainnet 2026. május 3. óta él.
 
 ---
 

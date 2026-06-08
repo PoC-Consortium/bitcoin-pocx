@@ -17,7 +17,7 @@ Bitcoin-PoCX je integrace do Bitcoin Core, která přidává podporu konsenzu **
 - **Organizace**: Proof of Capacity Consortium
 - **Název projektu**: Bitcoin-PoCX
 - **Plný název**: Bitcoin Core s integrací PoCX
-- **Stav**: Fáze testovací sítě
+- **Stav**: Mainnet aktivní (od 3. května 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Založeno na formátu POC2 (Burstcoin) s vylepšeními:
 
 ## Stav sítě
 
-**Mainnet**: Dosud nespuštěn
+**Mainnet**: Aktivní (od 3. května 2026)
 **Testnet**: K dispozici pro testování
 **Regtest**: Plně funkční pro vývoj
 

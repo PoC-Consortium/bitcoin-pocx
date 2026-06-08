@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Bitcoin Core Basis**: v30.2
-**Status**: Testnet-Phase
+**Status**: Mainnet aktiv (seit 3. Mai 2026)
 **Letzte Aktualisierung**: 25.12.2025
 
 ---
@@ -170,7 +170,7 @@ Für reproduzierbare Release-Binärdateien verwenden Sie das GUIX-Build-System: 
 
 **Dokumentation abgeschlossen**: Alle 8 Kapitel vollständig und gegen die Codebasis verifiziert.
 
-**Testnet aktiv**: Derzeit in der Testnet-Phase für Community-Tests.
+**🚀 Mainnet aktiv**: Mainnet ist seit dem 3. Mai 2026 live.
 
 ---
 

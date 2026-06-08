@@ -462,7 +462,7 @@ Az évek során számos blokklánc és konszenzus projekt vizsgálta a tárolás
 
 A Bitcoin-PoCX demonstrálja, hogy az energiahatékony konszenzus integrálható a Bitcoin Core-ba, miközben megőrzi a biztonsági tulajdonságokat és a gazdasági modellt. A kulcsfontosságú hozzájárulások közé tartozik az XOR-transzponálás kódolás (kényszeríti a támadókat, hogy 4096 nonce-ot számítsanak keresésenkénti, kiküszöbölve a tömörítési támadást), a Time Bending algoritmus (eloszlás transzformáció csökkenti a blokkidő szórást), a kovácsolási megbízási rendszer (OP_RETURN-alapú delegálás lehetővé teszi a nem-letéteményes pool bányászatot), a dinamikus skálázás (felezésekhez igazított a biztonsági határok fenntartásához), és a minimális integráció (funkciójelzéssel ellátott kód dedikált könyvtárba izolálva).
 
-A rendszer jelenleg teszthálózati fázisban van. A bányászati teljesítmény a tárolókapacitásból származik a hash ráta helyett, nagyságrendekkel csökkentve az energiafogyasztást, miközben fenntartja a Bitcoin bizonyított gazdasági modelljét.
+A rendszer 2026. május 3. óta él a mainneten. A bányászati teljesítmény a tárolókapacitásból származik a hash ráta helyett, nagyságrendekkel csökkentve az energiafogyasztást, miközben fenntartja a Bitcoin bizonyított gazdasági modelljét.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Licenc**: MIT
 **Szervezet**: Proof of Capacity Consortium
-**Állapot**: Teszthálózati Fázis
+**Állapot**: Mainnet Élő (2026. május 3. óta)

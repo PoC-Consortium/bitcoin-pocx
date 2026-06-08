@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed чворови и DNS seed-ови
 
-**Статус**: Placeholder за покретање mainnet-а
+**Статус**: Активно (главна мрежа активна од 3. маја 2026)
 
-**Планирана конфигурација**:
-- Seed чворови: TBD
-- DNS seed-ови: TBD
+**DNS seed-ови главне мреже**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Тренутно стање** (testnet/regtest):
-- Без наменске seed инфраструктуре
-- Подржане ручне конекције пирова преко `-addnode`
+**DNS seed-ови тестне мреже**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Конфигурација**:
+- Фиксни seed-ови испоручени у `src/pocx/pocx_seeds.h` (BIP155 формат)
+- Такође су подржане ручне конекције пирова преко `-addnode`
 
 **Имплементација**: `src/kernel/chainparams.cpp`
 

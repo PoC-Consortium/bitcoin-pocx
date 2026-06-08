@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Nodos semilla y semillas DNS
 
-**Estado**: Marcador de posición para lanzamiento de mainnet
+**Estado**: Activo (mainnet activa desde el 3 de mayo de 2026)
 
-**Configuración planeada**:
-- Nodos semilla: Por determinar
-- Semillas DNS: Por determinar
+**Semillas DNS de mainnet**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Estado actual** (testnet/regtest):
-- Sin infraestructura de semillas dedicada
-- Conexiones manuales de pares soportadas vía `-addnode`
+**Semillas DNS de testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Configuración**:
+- Semillas fijas incluidas en `src/pocx/pocx_seeds.h` (formato BIP155)
+- También se admiten conexiones manuales de pares vía `-addnode`
 
 **Implementación**: `src/kernel/chainparams.cpp`
 

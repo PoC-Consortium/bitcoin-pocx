@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed-узлы и DNS Seeds
 
-**Статус**: Заглушка для запуска mainnet
+**Статус**: Активна (основная сеть запущена с 3 мая 2026)
 
-**Планируемая конфигурация**:
-- Seed-узлы: Будет определено
-- DNS seeds: Будет определено
+**DNS Seeds основной сети**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Текущее состояние** (testnet/regtest):
-- Нет выделенной seed-инфраструктуры
-- Поддерживается ручное подключение пиров через `-addnode`
+**DNS Seeds тестовой сети**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Конфигурация**:
+- Фиксированные seed-узлы поставляются в `src/pocx/pocx_seeds.h` (формат BIP155)
+- Также поддерживается ручное подключение пиров через `-addnode`
 
 **Реализация**: `src/kernel/chainparams.cpp`
 

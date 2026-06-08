@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### 시드 노드 및 DNS 시드
 
-**상태**: 메인넷 출시를 위한 플레이스홀더
+**상태**: 활성 (메인넷은 2026년 5월 3일부터 가동)
 
-**계획된 구성**:
-- 시드 노드: 미정
-- DNS 시드: 미정
+**메인넷 DNS 시드**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**현재 상태** (테스트넷/regtest):
-- 전용 시드 인프라 없음
-- `-addnode`를 통한 수동 피어 연결 지원
+**테스트넷 DNS 시드**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**구성**:
+- `src/pocx/pocx_seeds.h`에 고정 시드 포함 (BIP155 형식)
+- `-addnode`를 통한 수동 피어 연결도 지원
 
 **구현**: `src/kernel/chainparams.cpp`
 

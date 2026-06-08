@@ -462,7 +462,7 @@ Przez lata kilka projektów blockchain i konsensusu eksplorowało modele wydobyc
 
 Bitcoin-PoCX demonstruje że energooszczędny konsensus może być zintegrowany z Bitcoin Core przy zachowaniu właściwości bezpieczeństwa i modelu ekonomicznego. Kluczowe wkłady obejmują kodowanie XOR-transpose (zmusza atakujących do obliczania 4096 nonce'ów na wyszukiwanie, eliminując atak kompresji), algorytm Time Bending (transformacja rozkładu redukuje wariancję czasu bloku), system przydziałów kucia (delegacja oparta na OP_RETURN umożliwia wydobycie w puli bez powiernictwa), dynamiczne skalowanie (wyrównane z halvingami dla zachowania marginesów bezpieczeństwa) oraz minimalną integrację (kod oznaczony flagą izolowany w dedykowanym katalogu).
 
-System jest obecnie w fazie testnet. Moc wydobywcza wywodzi się z pojemności pamięci zamiast mocy haszującej, redukując zużycie energii o rzędy wielkości przy zachowaniu sprawdzonego modelu ekonomicznego Bitcoina.
+System działa w sieci mainnet od 3 maja 2026. Moc wydobywcza wywodzi się z pojemności pamięci zamiast mocy haszującej, redukując zużycie energii o rzędy wielkości przy zachowaniu sprawdzonego modelu ekonomicznego Bitcoina.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Integracja Bitcoin-PoCX.* https://github.com/PoC-Consortium/bit
 
 **Licencja**: MIT
 **Organizacja**: Proof of Capacity Consortium
-**Status**: Faza testowa (Testnet)
+**Status**: Mainnet uruchomiony (od 3 maja 2026)

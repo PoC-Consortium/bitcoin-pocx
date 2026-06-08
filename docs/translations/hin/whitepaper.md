@@ -462,7 +462,7 @@ PoCX Bitcoin के network infrastructure पर build करता है औ�
 
 Bitcoin-PoCX demonstrate करता है कि energy-efficient consensus को security properties और economic model को preserve करते हुए Bitcoin Core में integrate किया जा सकता है। प्रमुख योगदानों में XOR-transpose encoding (हमलावरों को प्रति lookup 4096 nonces compute करने के लिए force करता है, compression attack को eliminate करता है), Time Bending algorithm (distribution transformation block time variance को reduce करता है), forging assignment system (OP_RETURN-based delegation non-custodial pool माइनिंग enable करता है), dynamic scaling (security margins maintain करने के लिए halvings के साथ aligned), और minimal integration (dedicated directory में isolated feature-flagged code) शामिल हैं।
 
-सिस्टम वर्तमान में testnet phase में है। माइनिंग power hash rate के बजाय storage capacity से derive होती है, Bitcoin के proven economic model को maintain करते हुए orders of magnitude से energy consumption को reduce करती है।
+सिस्टम 3 मई 2026 से mainnet पर लाइव है। माइनिंग power hash rate के बजाय storage capacity से derive होती है, Bitcoin के proven economic model को maintain करते हुए orders of magnitude से energy consumption को reduce करती है।
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **लाइसेंस**: MIT
 **संगठन**: Proof of Capacity Consortium
-**स्थिति**: Testnet Phase
+**स्थिति**: मेननेट लाइव (3 मई 2026 से)

@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### シードノードとDNSシード
 
-**ステータス**: メインネットローンチ用プレースホルダー
+**ステータス**: 稼働中（メインネットは2026年5月3日より稼働）
 
-**計画された設定**:
-- シードノード: 未定
-- DNSシード: 未定
+**メインネットDNSシード**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**現在の状態**（テストネット/regtest）:
-- 専用シードインフラなし
-- `-addnode`経由の手動ピア接続をサポート
+**テストネットDNSシード**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**設定**:
+- `src/pocx/pocx_seeds.h`に固定シードを同梱（BIP155形式）
+- `-addnode`経由の手動ピア接続もサポート
 
 **実装**: `src/kernel/chainparams.cpp`
 

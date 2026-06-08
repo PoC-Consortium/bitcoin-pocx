@@ -462,7 +462,7 @@ Aastate jooksul on mitmed plokiahela ja konsensuse projektid uurinud hoiustuspõ
 
 Bitcoin-PoCX demonstreerib, et energiatõhus konsensus saab olla integreeritud Bitcoin Core'i, säilitades samal ajal turvalisuse omadused ja majandusliku mudeli. Põhilised panused hõlmavad XOR-transponeeri kodeeringut (sunnib ründajaid arvutama 4096 nonce'i otsingu kohta, elimineerides kompressiooni rünnaku), ajapainde algoritmi (jaotuse teisendus vähendab plokkide aja varieeruvust), sepistamisülesannete süsteemi (OP_RETURN-põhine delegeerimine võimaldab mitte-hoiustavat basseinikaevandamist), dünaamilist skaleerimist (joondatud poolnemistega ohutuspiiride säilitamiseks) ja minimaalset integratsiooni (funktsiooni lipuga kood isoleeritud pühendatud kataloogis).
 
-Süsteem on praegu testivõrgu faasis. Kaevandusvõimsus tuleneb hoiustusmahust, mitte räsimäärast, vähendades energiatarbimist suurusjärkude võrra, säilitades samal ajal Bitcoin'i tõestatud majandusliku mudeli.
+Süsteem on töötanud põhivõrgus alates 3. maist 2026. Kaevandusvõimsus tuleneb hoiustusmahust, mitte räsimäärast, vähendades energiatarbimist suurusjärkude võrra, säilitades samal ajal Bitcoin'i tõestatud majandusliku mudeli.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX integratsioon.* https://github.com/PoC-Consortium/
 
 **Litsents**: MIT
 **Organisatsioon**: Proof of Capacity Consortium
-**Staatus**: Testivõrgu faas
+**Staatus**: Põhivõrk töötab (alates 3. maist 2026)

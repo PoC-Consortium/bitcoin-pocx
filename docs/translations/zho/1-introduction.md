@@ -17,7 +17,7 @@ Bitcoin-PoCX 是一个 Bitcoin Core 集成项目，添加了**新一代容量证
 - **组织**：容量证明联盟（Proof of Capacity Consortium）
 - **项目名称**：Bitcoin-PoCX
 - **全称**：集成 PoCX 的 Bitcoin Core
-- **状态**：测试网阶段
+- **状态**：主网已上线（自 2026年5月3日）
 
 ---
 
@@ -306,7 +306,7 @@ cmake --build build
 
 ## 网络状态
 
-**主网**：尚未启动
+**主网**：已上线（自 2026年5月3日）
 **测试网**：可用于测试
 **Regtest**：开发功能完整
 

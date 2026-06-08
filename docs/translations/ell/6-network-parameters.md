@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed Nodes και DNS Seeds
 
-**Κατάσταση**: Placeholder για εκκίνηση mainnet
+**Κατάσταση**: Ενεργό (mainnet ενεργό από 3 Μαΐου 2026)
 
-**Προγραμματισμένη Διαμόρφωση**:
-- Seed nodes: TBD
-- DNS seeds: TBD
+**DNS Seeds Mainnet**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Τρέχουσα Κατάσταση** (testnet/regtest):
-- Χωρίς αποκλειστική υποδομή seed
-- Υποστηρίζονται χειροκίνητες συνδέσεις peer μέσω `-addnode`
+**DNS Seeds Testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Διαμόρφωση**:
+- Σταθερά seeds που παρέχονται στο `src/pocx/pocx_seeds.h` (μορφή BIP155)
+- Υποστηρίζονται επίσης χειροκίνητες συνδέσεις peer μέσω `-addnode`
 
 **Υλοποίηση**: `src/kernel/chainparams.cpp`
 

@@ -17,7 +17,7 @@ Bitcoin-PoCX er en Bitcoin Core-integrasjon som legger til støtte for **Proof o
 - **Organisasjon**: Proof of Capacity Consortium
 - **Prosjektnavn**: Bitcoin-PoCX
 - **Fullt navn**: Bitcoin Core med PoCX-integrasjon
-- **Status**: Testnett-fase
+- **Status**: Mainnet live (siden 3. mai 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Basert på POC2-format (Burstcoin) med forbedringer:
 
 ## Nettverksstatus
 
-**Mainnet**: Ikke lansert ennå
+**Mainnet**: Live (siden 3. mai 2026)
 **Testnett**: Tilgjengelig for testing
 **Regtest**: Fullt funksjonell for utvikling
 

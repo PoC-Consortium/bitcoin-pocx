@@ -2,7 +2,7 @@
 
 **Toleo**: 1.0
 **Msingi wa Bitcoin Core**: v30.2
-**Hali**: Awamu ya Testnet
+**Hali**: Mainnet Inafanya Kazi (tangu 3 Mei 2026)
 **Imesasishwa Mwisho**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Kwa binari za toleo zinazoweza kurudiwa, tumia mfumo wa ujenzi wa GUIX: Tazama [
 
 **Nyaraka Zimekamilika**: Sura zote 8 zimekamilika na kuthibitishwa dhidi ya msimbo.
 
-**Testnet Inafanya Kazi**: Kwa sasa katika awamu ya testnet kwa majaribio ya jamii.
+**🚀 Mainnet Inafanya Kazi**: Mainnet imekuwa ikifanya kazi tangu 3 Mei 2026.
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Versija**: 1.0
 **Bitcoin Core bāze**: v30.2
-**Statuss**: Testnet fāze
+**Statuss**: Mainnet darbojas (kopš 2026. gada 3. maija)
 **Pēdējais atjauninājums**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Reproducējamiem laidienu binārajiem failiem izmantojiet GUIX būvēšanas sist
 
 **✅ Dokumentācija pabeigta**: Visas 8 nodaļas ir pabeigtas un pārbaudītas pret kodu bāzi.
 
-**🔬 Testnet aktīvs**: Pašlaik testnet fāzē kopienas testēšanai.
+**🚀 Mainnet darbojas**: Mainnet darbojas kopš 2026. gada 3. maija.
 
 ---
 

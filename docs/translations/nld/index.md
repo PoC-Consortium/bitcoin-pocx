@@ -2,7 +2,7 @@
 
 **Versie**: 1.0
 **Bitcoin Core Basis**: v30.2
-**Status**: Testnetfase
+**Status**: Mainnet live (sinds 3 mei 2026)
 **Laatst bijgewerkt**: 25-12-2025
 
 ---
@@ -168,7 +168,7 @@ Voor reproduceerbare release-binaries, gebruik het GUIX-buildsysteem: Zie [bitco
 
 **Documentatie compleet**: Alle 8 hoofdstukken zijn voltooid en geverifieerd tegen de codebase.
 
-**Testnet actief**: Momenteel in testnetfase voor communitytesten.
+**🚀 Mainnet live**: Mainnet is live sinds 3 mei 2026.
 
 ---
 

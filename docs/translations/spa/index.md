@@ -2,7 +2,7 @@
 
 **Versión**: 1.0
 **Base de Bitcoin Core**: v30.2
-**Estado**: Fase de Testnet
+**Estado**: Mainnet activa (desde el 3 de mayo de 2026)
 **Última actualización**: 2025-12-25
 
 ---
@@ -168,7 +168,7 @@ Para binarios reproducibles de lanzamiento, use el sistema de compilación GUIX:
 
 **Documentación completa**: Los 8 capítulos completos y verificados contra el código fuente.
 
-**Testnet activa**: Actualmente en fase de testnet para pruebas de la comunidad.
+**🚀 Mainnet activa**: La mainnet está activa desde el 3 de mayo de 2026.
 
 ---
 

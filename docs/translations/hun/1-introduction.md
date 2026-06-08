@@ -17,7 +17,7 @@ A Bitcoin-PoCX egy Bitcoin Core integráció, amely **Proof of Capacity neXt gen
 - **Szervezet**: Proof of Capacity Consortium
 - **Projekt Név**: Bitcoin-PoCX
 - **Teljes Név**: Bitcoin Core PoCX Integrációval
-- **Állapot**: Teszthálózati Fázis
+- **Állapot**: Mainnet Élő (2026. május 3. óta)
 
 ---
 
@@ -306,7 +306,7 @@ A POC2 formátumon alapul (Burstcoin) fejlesztésekkel:
 
 ## Hálózati Állapot
 
-**Mainnet**: Még nem indult
+**Mainnet**: Élő (2026. május 3. óta)
 **Tesztnet**: Elérhető tesztelésre
 **Regtest**: Teljesen működőképes fejlesztéshez
 

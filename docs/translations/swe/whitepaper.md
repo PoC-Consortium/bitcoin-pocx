@@ -462,7 +462,7 @@ Genom åren har flera blockchain- och konsensusprojekt utforskat lagringsbaserad
 
 Bitcoin-PoCX demonstrerar att energieffektiv konsensus kan integreras i Bitcoin Core samtidigt som säkerhetsegenskaper och ekonomisk modell bevaras. Nyckelbidrag inkluderar XOR-transponering-kodningen (tvingar angripare att beräkna 4096 nonces per uppslag, vilket eliminerar kompressionsattacken), Time Bending-algoritmen (fördelningsomvandling minskar blocktidsvarians), forging assignment-systemet (OP_RETURN-baserad delegering möjliggör icke-förvaringsbaserad poolmining), dynamisk skalning (anpassad till halveringar för att bibehålla säkerhetsmarginaler) och minimal integration (funktionsflaggad kod isolerad i dedikerad katalog).
 
-Systemet befinner sig för närvarande i testnetfas. Miningkraft härleds från lagringskapacitet snarare än hashrate, vilket minskar energiförbrukningen med storleksordningar samtidigt som Bitcoins beprövade ekonomiska modell bibehålls.
+Systemet har varit live på mainnet sedan 3 maj 2026. Miningkraft härleds från lagringskapacitet snarare än hashrate, vilket minskar energiförbrukningen med storleksordningar samtidigt som Bitcoins beprövade ekonomiska modell bibehålls.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Licens**: MIT
 **Organisation**: Proof of Capacity Consortium
-**Status**: Testnetfas
+**Status**: Mainnet live (sedan 3 maj 2026)

@@ -17,7 +17,7 @@ Bitcoin-PoCX ir Bitcoin Core integrācija, kas pievieno **jaunās paaudzes jauda
 - **Organizācija**: Proof of Capacity Consortium
 - **Projekta nosaukums**: Bitcoin-PoCX
 - **Pilns nosaukums**: Bitcoin Core ar PoCX integrāciju
-- **Statuss**: Testnet fāze
+- **Statuss**: Mainnet darbojas (kopš 2026. gada 3. maija)
 
 ---
 
@@ -306,7 +306,7 @@ Balstīts uz POC2 formātu (Burstcoin) ar uzlabojumiem:
 
 ## Tīkla statuss
 
-**Mainnet**: Vēl nav palaists
+**Mainnet**: Darbojas (kopš 2026. gada 3. maija)
 **Testnet**: Pieejams testēšanai
 **Regtest**: Pilnībā funkcionāls izstrādei
 

@@ -2,7 +2,7 @@
 
 **Versioon**: 1.0
 **Bitcoin Core baas**: v30.2
-**Staatus**: Testivorgu faas
+**Staatus**: Põhivõrk töötab (alates 3. maist 2026)
 **Viimati uuendatud**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Korratavate väljalaske binaarfailide jaoks kasuta GUIX kompileerimissüsteemi: 
 
 **Dokumentatsioon valmis**: Kõik 8 peatükki on valmis ja kontrollitud koodibaasi vastu.
 
-**Testivõrk aktiivne**: Praegu testivõrgu faasis kogukonna testimiseks.
+**Põhivõrk töötab**: Põhivõrk on töötanud alates 3. maist 2026.
 
 ---
 

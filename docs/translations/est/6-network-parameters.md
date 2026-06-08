@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seemne sõlmed ja DNS seemned
 
-**Staatus**: Kohahoidja mainnet käivitamiseks
+**Staatus**: Aktiivne (põhivõrk töötab alates 3. maist 2026)
 
-**Planeeritud konfiguratsioon**:
-- Seemne sõlmed: TBD
-- DNS seemned: TBD
+**Põhivõrgu DNS seemned**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Praegune seis** (testnet/regtest):
-- Pole pühendatud seemneinfrastruktuuri
-- Käsitsi partnerühendused toetatakse `-addnode` kaudu
+**Testvõrgu DNS seemned**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfiguratsioon**:
+- Fikseeritud seemned tarnitakse failis `src/pocx/pocx_seeds.h` (BIP155 formaadis)
+- Käsitsi partnerühendused on samuti toetatud `-addnode` kaudu
 
 **Implementatsioon**: `src/kernel/chainparams.cpp`
 

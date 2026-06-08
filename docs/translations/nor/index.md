@@ -2,7 +2,7 @@
 
 **Versjon**: 1.0
 **Bitcoin Core-grunnlag**: v30.2
-**Status**: Testnett-fase
+**Status**: Mainnet live (siden 3. mai 2026)
 **Sist oppdatert**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ For reproduserbare utgivelsesbinærfiler, bruk GUIX-byggesystemet: Se [bitcoin/c
 
 **Dokumentasjon fullført**: Alle 8 kapitler er fullstendige og verifisert mot kodebasen.
 
-**Testnett aktivt**: For øyeblikket i testnett-fase for fellesskapstesting.
+**🚀 Mainnet live**: Mainnet har vært live siden 3. mai 2026.
 
 ---
 

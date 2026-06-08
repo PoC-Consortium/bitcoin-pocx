@@ -17,7 +17,7 @@ Bitcoin-PoCX yra Bitcoin Core integracija, pridedanti **Proof of Capacity neXt g
 - **Organizacija**: Proof of Capacity Consortium
 - **Projekto pavadinimas**: Bitcoin-PoCX
 - **Pilnas pavadinimas**: Bitcoin Core su PoCX integracija
-- **Būsena**: Testinio tinklo fazė
+- **Būsena**: Pagrindinis tinklas veikia (nuo 2026 m. gegužės 3 d.)
 
 ---
 
@@ -306,7 +306,7 @@ Paremtas POC2 formatu (Burstcoin) su patobulinimais:
 
 ## Tinklo būsena
 
-**Pagrindinis tinklas**: Dar nepaleistas
+**Pagrindinis tinklas**: Veikia (nuo 2026 m. gegužės 3 d.)
 **Testinis tinklas**: Prieinamas testavimui
 **Regtest**: Pilnai funkcionalus kūrimui
 

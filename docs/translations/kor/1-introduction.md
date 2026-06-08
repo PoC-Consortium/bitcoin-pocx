@@ -17,7 +17,7 @@ Bitcoin-PoCX는 **차세대 용량 증명(Proof of Capacity neXt generation, PoC
 - **조직**: Proof of Capacity Consortium
 - **프로젝트명**: Bitcoin-PoCX
 - **정식 명칭**: Bitcoin Core with PoCX Integration
-- **상태**: 테스트넷 단계
+- **상태**: 메인넷 가동 중 (2026년 5월 3일부터)
 
 ---
 
@@ -306,7 +306,7 @@ cmake --build build
 
 ## 네트워크 상태
 
-**메인넷**: 아직 출시되지 않음
+**메인넷**: 가동 중 (2026년 5월 3일부터)
 **테스트넷**: 테스트 가능
 **Regtest**: 개발을 위해 완전히 작동
 

@@ -2,7 +2,7 @@
 
 **Verze**: 1.0
 **Základ Bitcoin Core**: v30.2
-**Stav**: Fáze testovací sítě
+**Stav**: Mainnet aktivní (od 3. května 2026)
 **Poslední aktualizace**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Pro reprodukovatelné release binárky použijte sestavovací systém GUIX: Viz 
 
 **Dokumentace dokončena**: Všech 8 kapitol je dokončeno a ověřeno proti kódové základně.
 
-**Testovací síť aktivní**: V současné době ve fázi testovací sítě pro komunitní testování.
+**🚀 Mainnet aktivní**: Mainnet je aktivní od 3. května 2026.
 
 ---
 

@@ -462,7 +462,7 @@ Sa mga nakaraang taon, ilang blockchain at consensus project ang nag-explore ng 
 
 Ipinakikita ng Bitcoin-PoCX na ang energy-efficient consensus ay maaaring ma-integrate sa Bitcoin Core habang pinapanatili ang mga security property at economic model. Kasama sa mga pangunahing kontribusyon ang XOR-transpose encoding (pinipilit ang mga attacker na mag-compute ng 4096 nonce bawat lookup, inaalis ang compression attack), ang Time Bending algorithm (ang distribution transformation ay nagpapababa ng block time variance), ang forging assignment system (ang OP_RETURN-based delegation ay nagpapagana ng non-custodial pool mining), dynamic scaling (naka-align sa mga halving upang mapanatili ang mga security margin), at minimal integration (feature-flagged code na nakahiwalay sa isang dedikadong direktoryo).
 
-Ang sistema ay kasalukuyang nasa yugto ng testnet. Ang kapangyarihan sa mining ay nakukuha mula sa storage capacity sa halip na hash rate, binabawasan ang pagkonsumo ng enerhiya ng mga order of magnitude habang pinapanatili ang napatunayang economic model ng Bitcoin.
+Ang sistema ay live na sa mainnet mula 3 Mayo 2026. Ang kapangyarihan sa mining ay nakukuha mula sa storage capacity sa halip na hash rate, binabawasan ang pagkonsumo ng enerhiya ng mga order of magnitude habang pinapanatili ang napatunayang economic model ng Bitcoin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Lisensya**: MIT
 **Organisasyon**: Proof of Capacity Consortium
-**Katayuan**: Yugto ng Testnet
+**Katayuan**: Live na ang Mainnet (mula 3 Mayo 2026)

@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Sēklu mezgli un DNS sēklas
 
-**Statuss**: Vietturus mainnet palaišanai
+**Statuss**: Aktīvs (mainnet darbojas kopš 2026. gada 3. maija)
 
-**Plānotā konfigurācija**:
-- Sēklu mezgli: Jānosaka
-- DNS sēklas: Jānosaka
+**Mainnet DNS sēklas**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Pašreizējais stāvoklis** (testnet/regtest):
-- Nav veltītas sēklu infrastruktūras
-- Manuāli vienaudžu savienojumi atbalstīti caur `-addnode`
+**Testnet DNS sēklas**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfigurācija**:
+- Fiksētas sēklas iekļautas `src/pocx/pocx_seeds.h` (BIP155 formāts)
+- Manuāli vienaudžu savienojumi arī atbalstīti caur `-addnode`
 
 **Implementācija**: `src/kernel/chainparams.cpp`
 

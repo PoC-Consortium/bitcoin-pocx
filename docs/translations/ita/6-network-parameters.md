@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Nodi seed e DNS seed
 
-**Stato**: Segnaposto per il lancio della mainnet
+**Stato**: Attivo (mainnet attiva dal 3 maggio 2026)
 
-**Configurazione pianificata**:
-- Nodi seed: Da definire
-- DNS seed: Da definire
+**DNS seed mainnet**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Stato attuale** (testnet/regtest):
-- Nessuna infrastruttura seed dedicata
-- Connessioni peer manuali supportate tramite `-addnode`
+**DNS seed testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Configurazione**:
+- Seed fissi inclusi in `src/pocx/pocx_seeds.h` (formato BIP155)
+- Connessioni peer manuali supportate anche tramite `-addnode`
 
 **Implementazione**: `src/kernel/chainparams.cpp`
 

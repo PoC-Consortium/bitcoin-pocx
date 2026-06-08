@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Sėkliniai mazgai ir DNS sėklos
 
-**Būsena**: Laukiantis pagrindinio tinklo paleidimo
+**Būsena**: Aktyvi (pagrindinis tinklas veikia nuo 2026 m. gegužės 3 d.)
 
-**Planuojama konfigūracija**:
-- Sėkliniai mazgai: Bus nustatyta
-- DNS sėklos: Bus nustatyta
+**Pagrindinio tinklo DNS sėklos**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Dabartinė būsena** (testinis tinklas/regtest):
-- Jokios dedikuotos sėklinės infrastruktūros
-- Rankiniai kolegų prisijungimai palaikomi per `-addnode`
+**Testinio tinklo DNS sėklos**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfigūracija**:
+- Fiksuotos sėklos pateikiamos `src/pocx/pocx_seeds.h` (BIP155 formatas)
+- Rankiniai kolegų prisijungimai taip pat palaikomi per `-addnode`
 
 **Įgyvendinimas**: `src/kernel/chainparams.cpp`
 

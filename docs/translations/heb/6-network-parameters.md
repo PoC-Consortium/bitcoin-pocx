@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### צמתי Seed ו-DNS Seeds
 
-**סטטוס**: placeholder להשקת mainnet
+**סטטוס**: פעיל (הרשת הראשית פעילה מאז 3 במאי 2026)
 
-**תצורה מתוכננת**:
-- צמתי seed: ייקבע
-- DNS seeds: ייקבע
+**DNS Seeds של הרשת הראשית**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**מצב נוכחי** (testnet/regtest):
-- אין תשתית seed ייעודית
-- חיבורי עמיתים ידניים נתמכים דרך `-addnode`
+**DNS Seeds של ה-testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**תצורה**:
+- seeds קבועים נשלחים בקובץ `src/pocx/pocx_seeds.h` (בפורמט BIP155)
+- חיבורי עמיתים ידניים נתמכים גם דרך `-addnode`
 
 **יישום**: `src/kernel/chainparams.cpp`
 

@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Bitcoin Core-bas**: v30.2
-**Status**: Testnetfas
+**Status**: Mainnet live (sedan 3 maj 2026)
 **Senast uppdaterad**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ För reproducerbara releasebinärer, använd GUIX-byggsystemet: Se [bitcoin/cont
 
 **Dokumentation komplett**: Alla 8 kapitel är kompletta och verifierade mot kodbasen.
 
-**Testnet aktivt**: För närvarande i testnetfas för communitytestning.
+**🚀 Mainnet live**: Mainnet har varit live sedan 3 maj 2026.
 
 ---
 

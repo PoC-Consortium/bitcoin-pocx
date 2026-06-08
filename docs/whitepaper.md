@@ -462,7 +462,7 @@ Over the years, several blockchain and consensus projects have explored storage-
 
 Bitcoin-PoCX demonstrates that energy-efficient consensus can be integrated into Bitcoin Core while preserving security properties and economic model. Key contributions include the XOR-transpose encoding (forces attackers to compute 4096 nonces per lookup, eliminating the compression attack), the Time Bending algorithm (distribution transformation reduces block time variance), the forging assignment system (OP_RETURN-based delegation enables non-custodial pool mining), dynamic scaling (aligned with halvings to maintain security margins), and minimal integration (feature-flagged code isolated in a dedicated directory).
 
-The system is currently in testnet phase. Mining power derives from storage capacity rather than hash rate, reducing energy consumption by orders of magnitude while maintaining Bitcoin's proven economic model.
+The system has been live on mainnet since 3 May 2026. Mining power derives from storage capacity rather than hash rate, reducing energy consumption by orders of magnitude while maintaining Bitcoin's proven economic model.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **License**: MIT
 **Organization**: Proof of Capacity Consortium
-**Status**: Testnet Phase
+**Status**: Mainnet Live (since 3 May 2026)

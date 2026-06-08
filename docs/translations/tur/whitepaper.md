@@ -462,7 +462,7 @@ Yıllar içinde, çeşitli blok zinciri ve konsensüs projeleri depolama tabanl�
 
 Bitcoin-PoCX, güvenlik özellikleri ve ekonomik modeli korurken enerji verimli konsensüsün Bitcoin Core'a entegre edilebileceğini gösterir. Temel katkılar arasında XOR-transpose kodlaması (saldırganları arama başına 4096 nonce hesaplamaya zorlar, sıkıştırma saldırısını ortadan kaldırır), Zaman Bükme algoritması (dağılım dönüşümü blok süresi varyansını azaltır), dövme atama sistemi (OP_RETURN tabanlı devir velayet gerektirmeyen havuz madenciliğini mümkün kılar), dinamik ölçeklendirme (güvenlik marjlarını korumak için yarılanmalarla uyumlu) ve minimum entegrasyon (özel dizinde izole özellik işaretli kod) yer alır.
 
-Sistem şu anda testnet aşamasındadır. Madencilik gücü hash oranı yerine depolama kapasitesinden türetilir, Bitcoin'in kanıtlanmış ekonomik modelini korurken enerji tüketimini büyük ölçüde azaltır.
+Sistem 3 Mayıs 2026'dan beri ana ağda yayındadır. Madencilik gücü hash oranı yerine depolama kapasitesinden türetilir, Bitcoin'in kanıtlanmış ekonomik modelini korurken enerji tüketimini büyük ölçüde azaltır.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Entegrasyonu.* https://github.com/PoC-Consortium/b
 
 **Lisans**: MIT
 **Organizasyon**: Proof of Capacity Consortium
-**Durum**: Testnet Aşaması
+**Durum**: Ana Ağ Yayında (3 Mayıs 2026'dan beri)

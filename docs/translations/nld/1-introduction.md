@@ -17,7 +17,7 @@ Bitcoin-PoCX is een Bitcoin Core-integratie die **Proof of Capacity neXt generat
 - **Organisatie**: Proof of Capacity Consortium
 - **Projectnaam**: Bitcoin-PoCX
 - **Volledige naam**: Bitcoin Core met PoCX-integratie
-- **Status**: Testnetfase
+- **Status**: Mainnet live (sinds 3 mei 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Gebaseerd op POC2-formaat (Burstcoin) met verbeteringen:
 
 ## Netwerkstatus
 
-**Mainnet**: Nog niet gelanceerd
+**Mainnet**: Live (sinds 3 mei 2026)
 **Testnet**: Beschikbaar voor testen
 **Regtest**: Volledig functioneel voor ontwikkeling
 

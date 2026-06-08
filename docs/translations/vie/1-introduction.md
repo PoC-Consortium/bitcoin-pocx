@@ -17,7 +17,7 @@ Bitcoin-PoCX là một bản tích hợp Bitcoin Core bổ sung hỗ trợ cơ c
 - **Tổ chức**: Proof of Capacity Consortium
 - **Tên Dự án**: Bitcoin-PoCX
 - **Tên Đầy đủ**: Bitcoin Core với Tích hợp PoCX
-- **Trạng thái**: Giai đoạn Testnet
+- **Trạng thái**: Mainnet đã hoạt động (từ 3 tháng 5 năm 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Dựa trên định dạng POC2 (Burstcoin) với các cải tiến:
 
 ## Trạng thái Mạng
 
-**Mainnet**: Chưa khởi chạy
+**Mainnet**: Đã hoạt động (từ 3 tháng 5 năm 2026)
 **Testnet**: Khả dụng để thử nghiệm
 **Regtest**: Hoạt động đầy đủ cho phát triển
 

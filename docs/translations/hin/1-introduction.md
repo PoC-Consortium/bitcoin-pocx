@@ -17,7 +17,7 @@ Bitcoin-PoCX एक Bitcoin Core एकीकरण है जो **Proof of Cap
 - **संगठन**: Proof of Capacity Consortium
 - **परियोजना नाम**: Bitcoin-PoCX
 - **पूरा नाम**: Bitcoin Core with PoCX Integration
-- **स्थिति**: Testnet चरण
+- **स्थिति**: मेननेट लाइव (3 मई 2026 से)
 
 ---
 
@@ -306,7 +306,7 @@ POC2 प्रारूप (Burstcoin) पर आधारित संवर्
 
 ## नेटवर्क स्थिति
 
-**Mainnet**: अभी तक लॉन्च नहीं हुआ
+**Mainnet**: लाइव (3 मई 2026 से)
 **Testnet**: परीक्षण के लिए उपलब्ध
 **Regtest**: विकास के लिए पूरी तरह से कार्यात्मक
 

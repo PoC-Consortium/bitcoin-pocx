@@ -462,7 +462,7 @@ De-a lungul anilor, mai multe proiecte blockchain și de consens au explorat mod
 
 Bitcoin-PoCX demonstrează că consensul eficient energetic poate fi integrat în Bitcoin Core păstrând proprietățile de securitate și modelul economic. Contribuțiile cheie includ codificarea XOR-transpose (forțează atacatorii să calculeze 4096 nonce-uri per căutare, eliminând atacul de compresie), algoritmul Time Bending (transformarea distribuției reduce varianța timpului de bloc), sistemul de atribuire a forjării (delegarea bazată pe OP_RETURN permite mineritul în pool non-custodial), scalarea dinamică (aliniată cu înjumătățirile pentru a menține marjele de securitate) și integrarea minimă (cod marcat cu flag-uri de funcționalitate izolat într-un director dedicat).
 
-Sistemul este momentan în faza testnet. Puterea de minerit derivă din capacitatea de stocare mai degrabă decât din rata de hash, reducând consumul de energie cu ordine de mărime păstrând în același timp modelul economic dovedit al Bitcoin.
+Sistemul este activ pe mainnet din 3 mai 2026. Puterea de minerit derivă din capacitatea de stocare mai degrabă decât din rata de hash, reducând consumul de energie cu ordine de mărime păstrând în același timp modelul economic dovedit al Bitcoin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Licență**: MIT
 **Organizație**: Proof of Capacity Consortium
-**Stare**: Fază Testnet
+**Stare**: Mainnet activ (din 3 mai 2026)

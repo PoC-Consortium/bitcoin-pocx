@@ -2,7 +2,7 @@
 
 **Versio**: 1.0
 **Bitcoin Core -pohja**: v30.2
-**Tila**: Testiverkkofase
+**Tila**: Pääverkko käytössä (3. toukokuuta 2026 alkaen)
 **Päivitetty viimeksi**: 25.12.2025
 
 ---
@@ -172,7 +172,7 @@ Toistettaviin julkaisutiedostoihin käytä GUIX-rakennusjärjestelmää: Katso [
 
 **Dokumentaatio valmis**: Kaikki 8 lukua valmiina ja tarkistettu koodipohjaa vasten.
 
-**Testiverkko aktiivinen**: Tällä hetkellä testiverkkofasissa yhteisön testausta varten.
+**Pääverkko käytössä**: Pääverkko on ollut käytössä 3. toukokuuta 2026 alkaen.
 
 ---
 

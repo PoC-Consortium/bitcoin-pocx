@@ -2,7 +2,7 @@
 
 **Phiên bản**: 1.0
 **Nền tảng Bitcoin Core**: v30.2
-**Trạng thái**: Giai đoạn Testnet
+**Trạng thái**: Mainnet đã hoạt động (từ 3 tháng 5 năm 2026)
 **Cập nhật lần cuối**: 25-12-2025
 
 ---
@@ -168,7 +168,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug
 
 **Hoàn thành Tài liệu**: Tất cả 8 chương hoàn chỉnh và đã xác minh với codebase.
 
-**Testnet Hoạt động**: Hiện đang trong giai đoạn testnet để cộng đồng thử nghiệm.
+**Mainnet đã hoạt động**: Mainnet đã hoạt động từ 3 tháng 5 năm 2026.
 
 ---
 

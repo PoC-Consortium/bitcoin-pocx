@@ -462,7 +462,7 @@ Selama bertahun-tahun, beberapa proyek blockchain dan konsensus telah mengeksplo
 
 Bitcoin-PoCX mendemonstrasikan bahwa konsensus hemat energi dapat diintegrasikan ke dalam Bitcoin Core sambil mempertahankan properti keamanan dan model ekonomi. Kontribusi utama meliputi encoding XOR-transpose (memaksa penyerang untuk menghitung 4096 nonce per pencarian, menghilangkan serangan kompresi), algoritma Time Bending (transformasi distribusi mengurangi varians waktu blok), sistem penugasan forging (delegasi berbasis OP_RETURN memungkinkan penambangan pool non-kustodial), penskalaan dinamis (selaras dengan halving untuk mempertahankan margin keamanan), dan integrasi minimal (kode yang ditandai fitur diisolasi dalam direktori khusus).
 
-Sistem saat ini dalam fase testnet. Kekuatan penambangan berasal dari kapasitas penyimpanan daripada hash rate, mengurangi konsumsi energi dengan beberapa orde magnitude sambil mempertahankan model ekonomi Bitcoin yang terbukti.
+Sistem telah aktif di mainnet sejak 3 Mei 2026. Kekuatan penambangan berasal dari kapasitas penyimpanan daripada hash rate, mengurangi konsumsi energi dengan beberapa orde magnitude sambil mempertahankan model ekonomi Bitcoin yang terbukti.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Integrasi Bitcoin-PoCX.* https://github.com/PoC-Consortium/bitc
 
 **Lisensi**: MIT
 **Organisasi**: Proof of Capacity Consortium
-**Status**: Fase Testnet
+**Status**: Mainnet Aktif (sejak 3 Mei 2026)

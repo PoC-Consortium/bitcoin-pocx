@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed Düğümler ve DNS Seed'leri
 
-**Durum**: Mainnet lansmanı için yer tutucu
+**Durum**: Aktif (ana ağ 3 Mayıs 2026'dan beri yayında)
 
-**Planlanan Yapılandırma**:
-- Seed düğümler: Belirlenecek
-- DNS seed'leri: Belirlenecek
+**Ana Ağ DNS Seed'leri**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Mevcut Durum** (testnet/regtest):
-- Özel seed altyapısı yok
-- `-addnode` ile manuel eş bağlantıları desteklenir
+**Testnet DNS Seed'leri**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Yapılandırma**:
+- Sabit seed'ler `src/pocx/pocx_seeds.h` içinde gönderilir (BIP155 formatı)
+- `-addnode` ile manuel eş bağlantıları da desteklenir
 
 **Uygulama**: `src/kernel/chainparams.cpp`
 

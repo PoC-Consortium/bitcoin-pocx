@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Noduri sursă și semințe DNS
 
-**Stare**: Placeholder pentru lansarea mainnet
+**Stare**: Activ (mainnet activ din 3 mai 2026)
 
-**Configurare planificată**:
-- Noduri sursă: TBD
-- Semințe DNS: TBD
+**Semințe DNS mainnet**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Stare curentă** (testnet/regtest):
-- Fără infrastructură dedicată de semințe
-- Conexiuni manuale către peer-i suportate prin `-addnode`
+**Semințe DNS testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Configurare**:
+- Semințe fixe livrate în `src/pocx/pocx_seeds.h` (format BIP155)
+- Conexiuni manuale către peer-i suportate de asemenea prin `-addnode`
 
 **Implementare**: `src/kernel/chainparams.cpp`
 

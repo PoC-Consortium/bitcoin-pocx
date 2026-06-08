@@ -462,7 +462,7 @@ Qua nhiều năm, một số dự án blockchain và đồng thuận đã khám 
 
 Bitcoin-PoCX chứng minh rằng đồng thuận tiết kiệm năng lượng có thể được tích hợp vào Bitcoin Core đồng thời bảo toàn các thuộc tính bảo mật và mô hình kinh tế. Các đóng góp chính bao gồm mã hóa XOR-transpose (buộc kẻ tấn công tính 4096 nonce cho mỗi tra cứu, loại bỏ tấn công nén), thuật toán Time Bending (biến đổi phân phối giảm variance thời gian khối), hệ thống ủy quyền forging (ủy thác dựa trên OP_RETURN cho phép đào pool không giám sát), mở rộng động (phù hợp với halving để duy trì biên độ bảo mật) và tích hợp tối thiểu (mã được đánh dấu tính năng cô lập trong thư mục chuyên dụng).
 
-Hệ thống hiện đang trong giai đoạn testnet. Năng lực đào được suy ra từ dung lượng lưu trữ thay vì hash rate, giảm tiêu thụ năng lượng theo bậc độ lớn đồng thời duy trì mô hình kinh tế đã được chứng minh của Bitcoin.
+Hệ thống đã hoạt động trên mainnet từ 3 tháng 5 năm 2026. Năng lực đào được suy ra từ dung lượng lưu trữ thay vì hash rate, giảm tiêu thụ năng lượng theo bậc độ lớn đồng thời duy trì mô hình kinh tế đã được chứng minh của Bitcoin.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Giấy phép**: MIT
 **Tổ chức**: Proof of Capacity Consortium
-**Trạng thái**: Giai đoạn Testnet
+**Trạng thái**: Mainnet đã hoạt động (từ 3 tháng 5 năm 2026)

@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Nodi za Mbegu na DNS Seeds
 
-**Hali**: Kishikilia nafasi kwa uzinduzi wa mainnet
+**Hali**: Inafanya kazi (mainnet inafanya kazi tangu 3 Mei 2026)
 
-**Usanidi Uliopangwa**:
-- Nodi za mbegu: TBD
-- DNS seeds: TBD
+**DNS Seeds za Mainnet**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Hali ya Sasa** (testnet/regtest):
-- Hakuna miundombinu maalum ya mbegu
-- Muunganisho wa mikono wa wenzake unaungwa mkono kupitia `-addnode`
+**DNS Seeds za Testnet**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Usanidi**:
+- Mbegu zisizobadilika zimejumuishwa katika `src/pocx/pocx_seeds.h` (umbizo la BIP155)
+- Muunganisho wa mikono wa wenzake pia unaungwa mkono kupitia `-addnode`
 
 **Utekelezaji**: `src/kernel/chainparams.cpp`
 

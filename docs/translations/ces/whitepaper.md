@@ -462,7 +462,7 @@ V průběhu let několik blockchain a konsensuálních projektů zkoumalo modely
 
 Bitcoin-PoCX demonstruje, že energeticky úsporný konsenzus může být integrován do Bitcoin Core při zachování bezpečnostních vlastností a ekonomického modelu. Klíčové příspěvky zahrnují XOR-transpose kódování (nutí útočníky počítat 4096 nonces na vyhledávání, eliminujíc útok kompresí), algoritmus Time Bending (transformace distribuce snižuje varianci času bloků), systém forging přiřazení (delegace založená na OP_RETURN umožňuje non-custodial poolovou těžbu), dynamické škálování (sladěné s halvingy pro udržení bezpečnostních marží) a minimální integraci (feature-flagovaný kód izolovaný v dedikovaném adresáři).
 
-Systém je v současné době ve fázi testovací sítě. Těžební výkon je odvozen z úložné kapacity místo hash rate, snižujíc spotřebu energie o řády při udržování osvědčeného ekonomického modelu Bitcoinu.
+Systém je v provozu na mainnetu od 3. května 2026. Těžební výkon je odvozen z úložné kapacity místo hash rate, snižujíc spotřebu energie o řády při udržování osvědčeného ekonomického modelu Bitcoinu.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Integrace Bitcoin-PoCX.* https://github.com/PoC-Consortium/bitc
 
 **Licence**: MIT
 **Organizace**: Proof of Capacity Consortium
-**Stav**: Fáze testovací sítě
+**Stav**: Mainnet aktivní (od 3. května 2026)

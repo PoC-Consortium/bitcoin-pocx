@@ -2,7 +2,7 @@
 
 **Versija**: 1.0
 **Bitcoin Core pagrindas**: v30.2
-**Būsena**: Testinio tinklo fazė
+**Būsena**: Pagrindinis tinklas veikia (nuo 2026 m. gegužės 3 d.)
 **Paskutinis atnaujinimas**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Atkuriamoms leidimų dvejetainėms rinkmenoms naudokite GUIX kompiliavimo sistem
 
 **✅ Dokumentacija užbaigta**: Visi 8 skyriai užbaigti ir patikrinti pagal kodų bazę.
 
-**🔬 Testinis tinklas aktyvus**: Šiuo metu testinio tinklo fazėje bendruomenės testavimui.
+**🚀 Pagrindinis tinklas veikia**: Pagrindinis tinklas veikia nuo 2026 m. gegužės 3 d.
 
 ---
 

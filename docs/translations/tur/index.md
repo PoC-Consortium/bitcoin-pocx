@@ -2,7 +2,7 @@
 
 **Sürüm**: 1.0
 **Bitcoin Core Temeli**: v30.2
-**Durum**: Testnet Aşaması
+**Durum**: Ana Ağ Yayında (3 Mayıs 2026'dan beri)
 **Son Güncelleme**: 2025-12-25
 
 ---
@@ -168,7 +168,7 @@ Yeniden üretilebilir sürüm dosyaları için GUIX derleme sistemini kullanın:
 
 **Dokümantasyon Tamamlandı**: Tüm 8 bölüm tamamlandı ve kod tabanına göre doğrulandı.
 
-**Testnet Aktif**: Şu anda topluluk testi için testnet aşamasında.
+**🚀 Ana Ağ Yayında**: Ana ağ 3 Mayıs 2026'dan beri yayında.
 
 ---
 

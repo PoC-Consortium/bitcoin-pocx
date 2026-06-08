@@ -2,7 +2,7 @@
 
 Bitcoin Core with Proof of Capacity neXt generation (PoCX) consensus integration.
 
-**Status**: Testnet Phase
+**Status**: Mainnet Live (since 3 May 2026)
 **Organization**: Proof of Capacity Consortium
 **License**: MIT
 
@@ -92,7 +92,7 @@ Bitcoin-PoCX integrates Proof of Capacity consensus into Bitcoin Core as a compl
 - Dynamic compression scaling
 
 **Network Status**:
-- Mainnet: Not yet launched
+- Mainnet: Live (since 3 May 2026)
 - Testnet: Available for testing
 - Regtest: Fully functional for development
 

@@ -462,7 +462,7 @@ Gadu gaitā vairāki blokķēdes un konsensusa projekti ir izpētījuši uz krā
 
 Bitcoin-PoCX demonstrē, ka energoefektīvs konsensuss var tikt integrēts Bitcoin Core, vienlaikus saglabājot drošības īpašības un ekonomisko modeli. Galvenie ieguldījumi ietver XOR-transponēšanas kodēšanu (piespiež uzbrucējus aprēķināt 4096 nonce katrā meklējumā, novēršot kompresijas uzbrukumu), Time Bending algoritmu (sadalījuma transformācija samazina bloka laika dispersiju), kalšanas piešķiršanas sistēmu (OP_RETURN balstīta deleģēšana nodrošina nekustodālu pūla rakšanu), dinamisko mērogošanu (saskaņota ar dalīšanām, lai uzturētu drošības rezerves) un minimālo integrāciju (funkciju karodziņiem kontrolēts kods, izolēts veltītā direktorijā).
 
-Sistēma pašlaik ir testnet fāzē. Rakšanas jauda izriet no krātuves ietilpības, nevis no heš ātruma, samazinot enerģijas patēriņu par kārtām, vienlaikus uzturot Bitcoin pārbaudīto ekonomisko modeli.
+Sistēma darbojas mainnet kopš 2026. gada 3. maija. Rakšanas jauda izriet no krātuves ietilpības, nevis no heš ātruma, samazinot enerģijas patēriņu par kārtām, vienlaikus uzturot Bitcoin pārbaudīto ekonomisko modeli.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX integrācija.* https://github.com/PoC-Consortium/b
 
 **Licence**: MIT
 **Organizācija**: Proof of Capacity Consortium
-**Statuss**: Testnet fāze
+**Statuss**: Mainnet darbojas (kopš 2026. gada 3. maija)

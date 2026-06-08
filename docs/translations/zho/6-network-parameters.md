@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### 种子节点和 DNS 种子
 
-**状态**：主网启动的占位符
+**状态**：活跃（主网自 2026年5月3日起已上线）
 
-**计划配置**：
-- 种子节点：待定
-- DNS 种子：待定
+**主网 DNS 种子**：
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**当前状态**（测试网/regtest）：
-- 无专用种子基础设施
-- 支持通过 `-addnode` 手动添加对等连接
+**测试网 DNS 种子**：
+- `testnet.seeds.bitcoin-pocx.org`
+
+**配置**：
+- 固定种子随 `src/pocx/pocx_seeds.h` 一起提供（BIP155 格式）
+- 同时支持通过 `-addnode` 手动添加对等连接
 
 **实现**：`src/kernel/chainparams.cpp`
 

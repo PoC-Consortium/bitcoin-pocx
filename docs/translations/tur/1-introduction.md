@@ -17,7 +17,7 @@ Bitcoin-PoCX, Bitcoin Core'a **Yeni Nesil Kapasite Kanıtı (PoCX)** konsensüs 
 - **Organizasyon**: Proof of Capacity Consortium
 - **Proje Adı**: Bitcoin-PoCX
 - **Tam Adı**: PoCX Entegrasyonlu Bitcoin Core
-- **Durum**: Testnet Aşaması
+- **Durum**: Ana Ağ Yayında (3 Mayıs 2026'dan beri)
 
 ---
 
@@ -306,7 +306,7 @@ POC2 formatına (Burstcoin) dayalı, geliştirmeler dahil:
 
 ## Ağ Durumu
 
-**Mainnet**: Henüz başlatılmadı
+**Mainnet**: Yayında (3 Mayıs 2026'dan beri)
 **Testnet**: Test için kullanılabilir
 **Regtest**: Geliştirme için tam işlevsel
 

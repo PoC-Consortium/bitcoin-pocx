@@ -17,7 +17,7 @@ Bitcoin-PoCXは、**次世代容量証明（Proof of Capacity neXt generation、
 - **組織**: Proof of Capacity Consortium
 - **プロジェクト名**: Bitcoin-PoCX
 - **正式名称**: Bitcoin Core with PoCX Integration
-- **ステータス**: テストネットフェーズ
+- **ステータス**: メインネット稼働中（2026年5月3日より）
 
 ---
 
@@ -306,7 +306,7 @@ POC2形式（Burstcoin）に基づき、以下の強化を実施:
 
 ## ネットワークステータス
 
-**メインネット**: 未ローンチ
+**メインネット**: 稼働中（2026年5月3日より）
 **テストネット**: テスト用に利用可能
 **Regtest**: 開発用に完全機能
 

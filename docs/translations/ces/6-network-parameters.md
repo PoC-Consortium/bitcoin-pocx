@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed uzly a DNS seedy
 
-**Stav**: Zástupný symbol pro spuštění mainnetu
+**Stav**: Aktivní (mainnet v provozu od 3. května 2026)
 
-**Plánovaná konfigurace**:
-- Seed uzly: TBD
-- DNS seedy: TBD
+**DNS seedy mainnetu**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Aktuální stav** (testnet/regtest):
-- Žádná vyhrazená seed infrastruktura
-- Manuální připojení peerů podporováno přes `-addnode`
+**DNS seedy testnetu**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfigurace**:
+- Pevné seedy dodávané v `src/pocx/pocx_seeds.h` (formát BIP155)
+- Manuální připojení peerů rovněž podporováno přes `-addnode`
 
 **Implementace**: `src/kernel/chainparams.cpp`
 

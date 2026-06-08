@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### Seed Csomópontok és DNS Seed-ek
 
-**Állapot**: Helyőrző a mainnet indításig
+**Állapot**: Aktív (mainnet élő 2026. május 3. óta)
 
-**Tervezett Konfiguráció**:
-- Seed csomópontok: Meghatározandó
-- DNS seed-ek: Meghatározandó
+**Mainnet DNS Seed-ek**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**Jelenlegi Állapot** (testnet/regtest):
-- Nincs dedikált seed infrastruktúra
-- Manuális társ csatlakozások támogatva `-addnode`-dal
+**Testnet DNS Seed-ek**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**Konfiguráció**:
+- Rögzített seed-ek a `src/pocx/pocx_seeds.h` fájlban (BIP155 formátum)
+- Manuális társ csatlakozások szintén támogatva `-addnode`-dal
 
 **Implementáció**: `src/kernel/chainparams.cpp`
 

@@ -2,7 +2,7 @@
 
 **Bersyon**: 1.0
 **Base ng Bitcoin Core**: v30.2
-**Katayuan**: Yugto ng Testnet
+**Katayuan**: Live na ang Mainnet (mula 3 Mayo 2026)
 **Huling Pagbabago**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Para sa mga reproducible release binary, gamitin ang GUIX build system: Tingnan 
 
 **✅ Kumpleto ang Dokumentasyon**: Lahat ng 8 kabanata ay kumpleto at na-verify laban sa codebase.
 
-**🔬 Aktibo ang Testnet**: Kasalukuyang nasa yugto ng testnet para sa pagsubok ng komunidad.
+**🚀 Live na ang Mainnet**: Live na ang mainnet mula 3 Mayo 2026.
 
 ---
 

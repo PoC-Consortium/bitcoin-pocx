@@ -462,7 +462,7 @@ Door de jaren heen hebben verschillende blockchain- en consensusprojecten opslag
 
 Bitcoin-PoCX demonstreert dat energie-efficiente consensus kan worden geintegreerd in Bitcoin Core terwijl beveiligingseigenschappen en economisch model behouden blijven. Belangrijke bijdragen omvatten de XOR-transpose-codering (dwingt aanvallers 4096 nonces te berekenen per opzoekactie, wat de compressie-aanval elimineert), het Time Bending-algoritme (distributietransformatie vermindert bloktijdvariantie), het forging-toewijzingssysteem (OP_RETURN-gebaseerde delegatie maakt niet-custodiale pool-mining mogelijk), dynamische schaling (afgestemd op halveringen om veiligheidsmarges te behouden), en minimale integratie (functievlag-gebaseerde code geisoleerd in een toegewijde directory).
 
-Het systeem is momenteel in testnetfase. Miningkracht is afgeleid van opslagcapaciteit in plaats van hashrate, wat energieverbruik met ordes van grootte vermindert terwijl Bitcoin's bewezen economische model behouden blijft.
+Het systeem is live op mainnet sinds 3 mei 2026. Miningkracht is afgeleid van opslagcapaciteit in plaats van hashrate, wat energieverbruik met ordes van grootte vermindert terwijl Bitcoin's bewezen economische model behouden blijft.
 
 ---
 
@@ -486,4 +486,4 @@ PoC Consortium. *Bitcoin-PoCX Integration.* https://github.com/PoC-Consortium/bi
 
 **Licentie**: MIT
 **Organisatie**: Proof of Capacity Consortium
-**Status**: Testnetfase
+**Status**: Mainnet live (sinds 3 mei 2026)

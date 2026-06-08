@@ -2,7 +2,7 @@
 
 **Version** : 1.0
 **Base Bitcoin Core** : v30.2
-**Statut** : Phase Testnet
+**Statut** : Réseau principal en service (depuis le 3 mai 2026)
 **Dernière mise à jour** : 25-12-2025
 
 ---
@@ -168,7 +168,7 @@ Pour des binaires de version reproductibles, utilisez le système de compilation
 
 **Documentation complète** : Les 8 chapitres sont complets et vérifiés par rapport au code source.
 
-**Testnet actif** : Actuellement en phase testnet pour les tests communautaires.
+**Réseau principal en service** : Le réseau principal est en service depuis le 3 mai 2026.
 
 ---
 

@@ -2,8 +2,8 @@
 
 **Version**: 1.0
 **Bitcoin Core Base**: v30.2
-**Status**: Testnet Phase
-**Last Updated**: 2025-12-25
+**Status**: Mainnet Live (since 3 May 2026)
+**Last Updated**: 2026-06-08
 
 ---
 
@@ -172,7 +172,7 @@ For reproducible release binaries, use the GUIX build system: See [bitcoin/contr
 
 **✅ Documentation Complete**: All 8 chapters complete and verified against codebase.
 
-**🔬 Testnet Active**: Currently in testnet phase for community testing.
+**🚀 Mainnet Live**: Mainnet has been live since 3 May 2026.
 
 ---
 

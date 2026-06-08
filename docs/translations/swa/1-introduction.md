@@ -17,7 +17,7 @@ Bitcoin-PoCX ni muungano wa Bitcoin Core unaoongeza msaada wa makubaliano ya **P
 - **Shirika**: Proof of Capacity Consortium
 - **Jina la Mradi**: Bitcoin-PoCX
 - **Jina Kamili**: Bitcoin Core na Muungano wa PoCX
-- **Hali**: Awamu ya Testnet
+- **Hali**: Mainnet Inafanya Kazi (tangu 3 Mei 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Imejengwa juu ya muundo wa POC2 (Burstcoin) na uboreshaji:
 
 ## Hali ya Mtandao
 
-**Mainnet**: Bado haijazinduliwa
+**Mainnet**: Inafanya kazi (tangu 3 Mei 2026)
 **Testnet**: Inapatikana kwa majaribio
 **Regtest**: Inafanya kazi kikamilifu kwa maendeleo
 

@@ -17,7 +17,7 @@ Bitcoin-PoCX is a Bitcoin Core integration that adds **Proof of Capacity neXt ge
 - **Organization**: Proof of Capacity Consortium
 - **Project Name**: Bitcoin-PoCX
 - **Full Name**: Bitcoin Core with PoCX Integration
-- **Status**: Testnet Phase
+- **Status**: Mainnet Live (since 3 May 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Based on POC2 format (Burstcoin) with enhancements:
 
 ## Network Status
 
-**Mainnet**: Not yet launched
+**Mainnet**: Live (since 3 May 2026)
 **Testnet**: Available for testing
 **Regtest**: Fully functional for development
 

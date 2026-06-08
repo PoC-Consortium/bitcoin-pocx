@@ -17,7 +17,7 @@ Bitcoin-PoCX este o integrare Bitcoin Core care adaugă suport pentru consensul 
 - **Organizație**: Proof of Capacity Consortium
 - **Numele proiectului**: Bitcoin-PoCX
 - **Numele complet**: Bitcoin Core cu integrare PoCX
-- **Stare**: Fază Testnet
+- **Stare**: Mainnet activ (din 3 mai 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Bazat pe formatul POC2 (Burstcoin) cu îmbunătățiri:
 
 ## Starea rețelei
 
-**Mainnet**: Încă nelansat
+**Mainnet**: Activ (din 3 mai 2026)
 **Testnet**: Disponibil pentru testare
 **Regtest**: Complet funcțional pentru dezvoltare
 

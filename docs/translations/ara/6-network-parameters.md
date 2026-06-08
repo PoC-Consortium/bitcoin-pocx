@@ -316,15 +316,18 @@ auto bounds = GetPoCXCompressionBounds(height, halving_interval);
 
 ### عُقد البذور و DNS Seeds
 
-**الحالة**: عنصر نائب لإطلاق mainnet
+**الحالة**: نشطة (الشبكة الرئيسية نشطة منذ 3 مايو 2026)
 
-**التكوين المخطط**:
-- عُقد البذور: سيُحدد لاحقاً
-- DNS seeds: سيُحدد لاحقاً
+**DNS Seeds للشبكة الرئيسية**:
+- `seeds.bitcoin-pocx.org`
+- `bitcoin-pocx.bootseed.net`
 
-**الحالة الحالية** (testnet/regtest):
-- لا بنية تحتية بذور مخصصة
-- اتصالات الأقران اليدوية مدعومة عبر `-addnode`
+**DNS Seeds لشبكة الاختبار**:
+- `testnet.seeds.bitcoin-pocx.org`
+
+**التكوين**:
+- بذور ثابتة مُضمّنة في `src/pocx/pocx_seeds.h` (تنسيق BIP155)
+- اتصالات الأقران اليدوية مدعومة أيضاً عبر `-addnode`
 
 **التنفيذ**: `src/kernel/chainparams.cpp`
 

@@ -17,7 +17,7 @@ Bitcoin-PoCX adalah integrasi Bitcoin Core yang menambahkan dukungan konsensus *
 - **Organisasi**: Proof of Capacity Consortium
 - **Nama Proyek**: Bitcoin-PoCX
 - **Nama Lengkap**: Bitcoin Core dengan Integrasi PoCX
-- **Status**: Fase Testnet
+- **Status**: Mainnet Aktif (sejak 3 Mei 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Berbasis format POC2 (Burstcoin) dengan peningkatan:
 
 ## Status Jaringan
 
-**Mainnet**: Belum diluncurkan
+**Mainnet**: Aktif (sejak 3 Mei 2026)
 **Testnet**: Tersedia untuk pengujian
 **Regtest**: Berfungsi penuh untuk pengembangan
 

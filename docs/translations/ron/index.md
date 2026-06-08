@@ -2,7 +2,7 @@
 
 **Versiune**: 1.0
 **Baza Bitcoin Core**: v30.2
-**Stare**: Fază Testnet
+**Stare**: Mainnet activ (din 3 mai 2026)
 **Ultima actualizare**: 2025-12-25
 
 ---
@@ -172,7 +172,7 @@ Pentru binare de lansare reproductibile, folosiți sistemul de compilare GUIX: C
 
 **✅ Documentație completă**: Toate cele 8 capitole sunt finalizate și verificate în raport cu codul sursă.
 
-**🔬 Testnet activ**: Momentan în faza testnet pentru testare de către comunitate.
+**🚀 Mainnet activ**: Mainnet este activ din 3 mai 2026.
 
 ---
 

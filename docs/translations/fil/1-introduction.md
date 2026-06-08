@@ -17,7 +17,7 @@ Ang Bitcoin-PoCX ay isang integrasyon sa Bitcoin Core na nagdadagdag ng suporta 
 - **Organisasyon**: Proof of Capacity Consortium
 - **Pangalan ng Proyekto**: Bitcoin-PoCX
 - **Buong Pangalan**: Bitcoin Core na may PoCX Integration
-- **Katayuan**: Yugto ng Testnet
+- **Katayuan**: Live na ang Mainnet (mula 3 Mayo 2026)
 
 ---
 
@@ -306,7 +306,7 @@ Batay sa POC2 format (Burstcoin) na may mga pagpapahusay:
 
 ## Katayuan ng Network
 
-**Mainnet**: Hindi pa nalulunsad
+**Mainnet**: Live na (mula 3 Mayo 2026)
 **Testnet**: Available para sa pagsubok
 **Regtest**: Ganap na gumagana para sa development
 
