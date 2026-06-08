@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 **参数**：
 1. `height`（数值，必需）- 区块高度
 2. `generation_signature`（字符串十六进制，必需）- 生成签名（64 个字符）
-3. `account_id`（字符串，必需）- 绘图账户 ID（40 个十六进制字符 = 20 字节）
+3. `account_id`（字符串，必需）- 绘图账户 ID（正好 40 个十六进制字符 = 20 字节；不接受地址）
 4. `seed`（字符串，必需）- 绘图种子（64 个十六进制字符 = 32 字节）
 5. `nonce`（数值，必需）- 挖矿 nonce
 6. `compression`（数值，必需）- 使用的扩展/压缩级别（1-255）
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **返回值**（成功）：
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // 来自证明验证的原始质量
   "poc_time": 45            // 时间弯曲的锻造时间（秒）
 }
 ```
 
-**返回值**（拒绝）：
-```json
-{
-  "accepted": false,
-  "error": "生成签名不匹配"
-}
-```
+没有 `accepted` 字段。被拒绝时，RPC **不**返回 JSON 对象——它会抛出 `JSONRPCError`（见下文错误码）。
 
 **验证步骤**：
 1. **格式验证**（快速失败）：
@@ -122,10 +115,11 @@ bitcoin-cli get_mining_info
    - 将 nonce 排队进行时间弯曲锻造
    - 区块将在 forge_time 自动创建
 
-**错误码**：
-- `RPC_INVALID_PARAMETER`：格式无效（account_id、seed）或高度不匹配
+**错误码**（作为 `JSONRPCError` 抛出）：
+- `RPC_INVALID_PARAMETER`：格式无效（account_id、seed）或高度不匹配（`"Invalid height: expected X, got Y"`）
 - `RPC_VERIFY_REJECTED`：生成签名不匹配或证明验证失败
 - `RPC_INVALID_ADDRESS_OR_KEY`：有效签名者没有私钥
+- `RPC_WALLET_UNLOCK_NEEDED`：持有有效签名者密钥的钱包已锁定（使用 `walletpassphrase` 解锁）
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`：提交队列已满
 - `RPC_INTERNAL_ERROR`：无法初始化 PoCX 调度器
 
@@ -248,7 +242,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **参数**：
 1. `plot_address`（字符串，必需）- 绘图所有者地址（必须拥有私钥，P2WPKH bech32）
 2. `forging_address`（字符串，必需）- 要委派锻造权的地址（P2WPKH bech32）
-3. `fee_rate`（数值，可选）- 费率，BTC/kvB（默认：10 倍 minRelayFee）
+3. `fee_rate`（数值，可选）- 费率，BTCX/kvB（默认：`0` → 钱包的标准最低费用估算；10 倍 minRelayFee 默认值仅适用于 Qt GUI 对话框，不适用于此 RPC）
 
 **返回值**：
 ```json
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **交易结构**：
 - 输入：来自绘图地址的 UTXO（证明所有权）
-- 输出：OP_RETURN（46 字节）：`POCX` 标记 + plot_address（20 字节）+ forging_address（20 字节）
+- 输出：OP_RETURN 脚本（46 字节）= `OP_RETURN` 操作码 + 1 字节推送长度 + 44 字节数据负载（`POCX` 标记 4 + plot_address 20 + forging_address 20）
 - 输出：找零返回钱包
 
 **激活**：
@@ -303,7 +297,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **参数**：
 1. `plot_address`（字符串，必需）- 绘图地址（必须拥有私钥，P2WPKH bech32）
-2. `fee_rate`（数值，可选）- 费率，BTC/kvB（默认：10 倍 minRelayFee）
+2. `fee_rate`（数值，可选）- 费率，BTCX/kvB（默认：`0` → 钱包的标准最低费用估算；10 倍 minRelayFee 默认值仅适用于 Qt GUI 对话框，不适用于此 RPC）
 
 **返回值**：
 ```json
@@ -322,7 +316,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **交易结构**：
 - 输入：来自绘图地址的 UTXO（证明所有权）
-- 输出：OP_RETURN（26 字节）：`XCOP` 标记 + plot_address（20 字节）
+- 输出：OP_RETURN 脚本（26 字节）= `OP_RETURN` 操作码 + 1 字节推送长度 + 24 字节数据负载（`XCOP` 标记 4 + plot_address 20）
 - 输出：找零返回钱包
 
 **效果**：
@@ -516,22 +510,23 @@ while True:
     # 2. 扫描绘图文件（外部实现）
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. 提交最佳解决方案
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"解决方案已接受！质量：{result['quality']}秒，"
+    # 3. 提交最佳解决方案（被拒绝时抛出 JSONRPCError）
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"解决方案已接受！质量：{result['raw_quality']}，"
               f"锻造时间：{result['poc_time']}秒")
+    except JSONRPCError as e:
+        print(f"被拒绝：{e}")
 
     # 4. 等待下一个区块
     time.sleep(10)  # 轮询间隔
@@ -602,20 +597,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### 常见错误模式
 
-**高度不匹配**：
+**高度不匹配**（抛出 `RPC_INVALID_PARAMETER`，码 -8）：
 ```json
 {
-  "accepted": false,
-  "error": "高度不匹配：提交 12345，当前 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **解决方案**：重新获取挖矿信息，链已前进
 
-**生成签名不匹配**：
+**生成签名不匹配**（抛出 `RPC_VERIFY_REJECTED`，码 -26）：
 ```json
 {
-  "accepted": false,
-  "error": "生成签名不匹配"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **解决方案**：重新获取挖矿信息，新区块已到达

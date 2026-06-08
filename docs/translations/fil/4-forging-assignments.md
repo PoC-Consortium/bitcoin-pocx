@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Kunin ang kasalukuyang assignment
+            // Kunin ang kasalukuyang assignment - dapat nasa ASSIGNED state para ma-revoke
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // I-store ang lumang state para sa undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Nagbabalik ng kasalukuyang assignment status para sa isang plot address:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 linya] Mga marker definition, OP_RETURN op, ownership check
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState helper
     │   ├── assignment_state.cpp   # Mga function ng assignment state query
+    │   ├── replay.h               # Reorg/replay ng mga epekto ng assignment
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg path)
     │   ├── transactions.h         # API ng paggawa ng wallet transaction
     │   └── transactions.cpp       # create_assignment, revoke_assignment wallet function
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis base target, compression schedule
 ```
+
+> **Tala:** Ang mga delay constant na `nForgingAssignmentDelay` / `nForgingRevocationDelay` ay nasa `Consensus::Params` ng Bitcoin Core (`src/consensus/params.h`) at itinatakda kada-network sa `src/kernel/chainparams.cpp` — hindi sa `pocx/consensus/params.h`.
 
 ## Mga Katangian ng Performance
 
@@ -766,9 +770,8 @@ Kung saan n = bilang ng mga assignment para sa isang plot (karaniwang maliit, < 
 
 ### Mga Lugar na Saklaw ng Test
 
-- Mga unit test: `src/test/pocx_*_tests.cpp`
-- Mga functional test: `test/functional/feature_pocx_*.py`
-- Mga integration test: Manual testing gamit ang regtest
+- Mga unit test: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Mga integration test: regtest shell script sa ilalim ng `scripts/assignments/` at `scripts/mining/`
 
 ## Mga Patakaran ng Consensus
 

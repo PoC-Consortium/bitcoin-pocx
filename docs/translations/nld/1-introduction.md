@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Probleem**: Traditionele PoC-bloktijden volgen een exponentiele verdeling, wat leidt tot lange blokken wanneer geen miner een goede oplossing vindt.
 
-**Oplossing**: Distributietransformatie van exponentieel naar chi-kwadraat met kubuswortel: `Y = schaal × (X^(1/3))`.
+**Oplossing**: Distributietransformatie van exponentieel naar Weibull (vormparameter k=3) met kubuswortel: `Y = schaal × (X^(1/3))`.
 
 **Effect**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Gebaseerd op POC2-formaat (Burstcoin) met verbeteringen:
 
 ## Samenvatting technische specificaties
 
-- **Bloktijd**: 120 seconden (mainnet), 1 seconde (regtest)
+- **Bloktijd**: 120 seconden (alle netwerken: mainnet, testnet, regtest)
 - **Bloksubsidie**: 10 BTC initieel, halvering elke 1050000 blokken (~4 jaar)
 - **Totale voorraad**: ~21 miljoen BTC (zelfde als Bitcoin)
 - **Toekomsttolerantie**: 15 seconden (blokken tot 15s vooruit worden geaccepteerd)

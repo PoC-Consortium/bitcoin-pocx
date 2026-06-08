@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Pobierz aktualny przydział
+            // Pobierz aktualny przydział — musi być w stanie ASSIGNED, aby odwołać
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Zapisz stary stan do cofania
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Zwraca aktualny status przydziału dla adresu plotu:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 linii] Definicje znaczników, operacje OP_RETURN, sprawdzenie własności
     │   ├── assignment_state.h     # Helpery GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Funkcje zapytań o stan przydziału
+    │   ├── replay.h               # Reorg/odtwarzanie efektów przydziałów
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (ścieżka reorg)
     │   ├── transactions.h         # API tworzenia transakcji portfela
     │   └── transactions.cpp       # Funkcje portfela create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis base target, harmonogram kompresji
 ```
+
+> **Uwaga:** Stałe opóźnień przydziałów `nForgingAssignmentDelay` / `nForgingRevocationDelay` znajdują się w `Consensus::Params` Bitcoin Core (`src/consensus/params.h`) i są ustawiane per sieć w `src/kernel/chainparams.cpp` — nie w `pocx/consensus/params.h`.
 
 ## Charakterystyki wydajności
 
@@ -766,9 +770,8 @@ Gdzie n = liczba przydziałów dla plotu (typowo mała, < 10)
 
 ### Obszary pokrycia testami
 
-- Testy jednostkowe: `src/test/pocx_*_tests.cpp`
-- Testy funkcjonalne: `test/functional/feature_pocx_*.py`
-- Testy integracyjne: Ręczne testowanie z regtest
+- Testy jednostkowe: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Testy integracyjne: skrypty powłoki regtest w `scripts/assignments/` i `scripts/mining/`
 
 ## Reguły konsensusu
 

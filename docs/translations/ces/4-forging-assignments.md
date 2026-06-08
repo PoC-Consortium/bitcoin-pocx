@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Získat aktuální přiřazení
+            // Získat aktuální přiřazení - musí být ve stavu ASSIGNED pro zrušení
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Uložit starý stav pro undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Vrací aktuální stav přiřazení pro adresu plotu:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 řádků] Definice markerů, operace OP_RETURN, kontrola vlastnictví
     │   ├── assignment_state.h     # Helpery GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Funkce pro dotazování stavu přiřazení
+    │   ├── replay.h               # Reorg/přehrání efektů přiřazení
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (cesta reorg)
     │   ├── transactions.h         # API pro vytváření transakcí v peněžence
     │   └── transactions.cpp       # Funkce peněženky create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, základní cíl genesis, plán komprese
 ```
+
+> **Poznámka:** Konstanty zpoždění přiřazení `nForgingAssignmentDelay` / `nForgingRevocationDelay` se nacházejí v `Consensus::Params` Bitcoin Core (`src/consensus/params.h`) a nastavují se pro každou síť v `src/kernel/chainparams.cpp` — nikoli v `pocx/consensus/params.h`.
 
 ## Charakteristiky výkonu
 
@@ -766,9 +770,8 @@ Kde n = počet přiřazení pro plot (typicky malý, < 10)
 
 ### Oblasti pokrytí testy
 
-- Unit testy: `src/test/pocx_*_tests.cpp`
-- Funkční testy: `test/functional/feature_pocx_*.py`
-- Integrační testy: Manuální testování s regtest
+- Unit testy: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integrační testy: regtest shell skripty v `scripts/assignments/` a `scripts/mining/`
 
 ## Konsensuální pravidla
 

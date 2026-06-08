@@ -12,7 +12,7 @@ Konsensus Proof-of-Work (PoW) Bitcoina zapewnia solidne bezpieczeństwo, ale zu�
 
 Nasza implementacja wprowadza kilka kluczowych innowacji:
 (1) Zahartowany format plot, który eliminuje wszystkie znane ataki kompromisu czas–pamięć w istniejących systemach PoC, zapewniając że efektywna moc wydobywcza pozostaje ściśle proporcjonalna do zadeklarowanej pojemności pamięci;
-(2) Algorytm Time-Bending, który transformuje rozkłady deadline'ów z wykładniczego do chi-kwadrat, redukując wariancję czasu bloku bez zmiany średniej;
+(2) Algorytm Time-Bending, który transformuje rozkłady deadline'ów z wykładniczego do Weibulla (parametr kształtu k=3), redukując wariancję czasu bloku bez zmiany średniej;
 (3) Mechanizm przydziału kucia oparty na OP_RETURN umożliwiający wydobycie w puli bez powiernictwa; oraz
 (4) Dynamiczne skalowanie kompresji, które zwiększa trudność generowania plotów w zgodności z harmonogramami halvingu, aby utrzymać długoterminowe marginesy bezpieczeństwa w miarę poprawy sprzętu.
 
@@ -297,14 +297,16 @@ Aby zachować zamierzony margines bezpieczeństwa, PoCX implementuje harmonogram
 
 Harmonogram wyrównuje się z zachętami ekonomicznymi sieci, szczególnie halvingami nagród za blok. W miarę zmniejszania nagrody za blok, minimalny poziom stopniowo rośnie, zachowując równowagę między wysiłkiem plottingu a potencjałem wydobywczym:
 
-| Okres | Lata | Halvingi | Min skalowanie | Mnożnik pracy plotu |
+| Okres | Lata | Halvingi | Min skalowanie | Praca plotu (vs. baza POC2) |
 |-------|------|----------|----------------|---------------------|
-| Epoka 0 | 0-4 | 0 | X1 | 2× bazowy |
-| Epoka 1 | 4-12 | 1-2 | X2 | 4× bazowy |
-| Epoka 2 | 12-28 | 3-6 | X3 | 8× bazowy |
-| Epoka 3 | 28-60 | 7-14 | X4 | 16× bazowy |
-| Epoka 4 | 60-124 | 15-30 | X5 | 32× bazowy |
-| Epoka 5 | 124+ | 31+ | X6 | 64× bazowy |
+| Epoka 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoka 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoka 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoka 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoka 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoka 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Kolumna mnożnika jest wyrażona względem niezahartowanej bazy **POC2**. Ponieważ zahartowany format X1 już osadza 2× pracy POC2, poziom Xn równa się 2ⁿ × POC2 — równoważnie 2^(n-1) × X1, zgodnie z definicją per-poziom w Sekcji 3.5.
 
 Górnicy mogą opcjonalnie przygotować ploty przekraczające aktualne minimum o jeden poziom, pozwalając im planować z wyprzedzeniem i unikać natychmiastowych aktualizacji gdy sieć przechodzi do następnej epoki. Ten opcjonalny krok nie daje dodatkowej przewagi pod względem prawdopodobieństwa bloku — jedynie pozwala na płynniejsze przejście operacyjne.
 
@@ -438,11 +440,11 @@ Poniższe tabele podsumowują wynikowe ustawienia mainnet, testnet i regtest, po
 | Bajty magiczne | `0xfa 0xbf 0xb5 0xda` |
 | Domyślny port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Docelowy czas bloku | 1 sekunda |
+| Docelowy czas bloku | 120 sekund |
 | Interwał halvingu | 500 bloków |
 | Aktywacja przydziału | 4 bloki |
 | Cofnięcie przydziału | 8 bloków |
-| Tryb niskiej pojemności | Włączony (~4 MB ploty) |
+| Tryb niskiej pojemności | Włączony (~16 MiB ploty, 64 nonce'y) |
 
 ---
 

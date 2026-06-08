@@ -35,7 +35,7 @@ Teljes referencia a Bitcoin-PoCX hálózati konfigurációhoz minden hálózatt�
 
 **Számított Értékek**:
 - Mainnet/Testnet/Signet (120mp): `36650387592`
-- Regtest (1mp): Alacsony kapacitású kalibrációs módot használ
+- Regtest (120mp): Alacsony kapacitású kalibrációs módot használ (base_power 2^58)
 
 ### Genezis Üzenet
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Nehézség Beállítás**:
 - **Gördülő Ablak**: `24` blokk
 - **Beállítás**: Minden blokk
-- **Algoritmus**: Exponenciális mozgóátlag
+- **Algoritmus**: Súlyozott mozgóátlag (Burstcoin-stílusú, ±20% blokkonkénti korlát)
 
 **Megbízás Késleltetések**:
 - **Aktiválás**: `30` blokk (~1 óra)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Blokk Időzítés**:
-- **Blokk Idő Cél**: `1` másodperc (azonnali bányászat teszteléshez)
+- **Blokk Idő Cél**: `120` másodperc (igény szerint bányászva a `generatetoaddress`-szel regteszten)
 - **Cél Időtartam**: `86400` másodperc (1 nap)
 - **MAX_FUTURE_BLOCK_TIME**: `15` másodperc
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Gördülő Ablak**: `24` blokk
 - **Min Nehézség Engedélyezése**: `true`
 - **Nincs Újracélzás**: `true`
-- **Alacsony Kapacitás Kalibráció**: `true` (16-nonce kalibrációt használ 1 TiB helyett)
+- **Alacsony Kapacitás Kalibráció**: `true` (64-nonce kalibrációt ≈ 16 MiB használ 1 TiB helyett)
 
 **Megbízás Késleltetések**:
-- **Aktiválás**: `4` blokk (~4 másodperc)
-- **Visszavonás**: `8` blokk (~8 másodperc)
+- **Aktiválás**: `4` blokk (~8 perc 120mp-es ütemezésnél)
+- **Visszavonás**: `8` blokk (~16 perc 120mp-es ütemezésnél)
 
 ### Signet Paraméterek
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Blokk Idő Célok**:
 - Mainnet/Testnet/Signet: `120` másodperc
-- Regtest: `1` másodperc
+- Regtest: `120` másodperc
 
 **TIMESTAMP_WINDOW**: `15` másodperc (megegyezik MAX_FUTURE_BLOCK_TIME-mal)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Nehézség Beállítási Paraméterek
 
 **Gördülő Ablak Méret**: `24` blokk (minden hálózat)
-- Exponenciális mozgóátlag a legutóbbi blokkidőkből
+- Súlyozott mozgóátlag a legutóbbi blokkidőkből (Burstcoin-stílusú)
 - Minden-blokk beállítás
 - Reagál a kapacitásváltozásokra
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktiválási késleltetés):
 - Mainnet: `30` blokk (~1 óra)
 - Testnet: `30` blokk (~1 óra)
-- Regtest: `4` blokk (~4 másodperc)
+- Regtest: `4` blokk (~8 perc 120mp-es ütemezésnél)
 
 **nForgingRevocationDelay** (visszavonási késleltetés):
 - Mainnet: `720` blokk (~24 óra)
 - Testnet: `720` blokk (~24 óra)
-- Regtest: `8` blokk (~8 másodperc)
+- Regtest: `8` blokk (~16 perc 120mp-es ütemezésnél)
 
 **Indoklás**:
 - Aktiválási késleltetés megakadályozza a gyors újrahozzárendelést blokkversenyek során

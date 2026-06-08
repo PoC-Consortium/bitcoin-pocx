@@ -35,7 +35,7 @@
 
 **計算値**:
 - メインネット/テストネット/Signet（120秒）: `36650387592`
-- Regtest（1秒）: 低容量キャリブレーションモードを使用
+- Regtest（120秒）: 低容量キャリブレーションモードを使用 (base_power 2^58)
 
 ### ジェネシスメッセージ
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **難易度調整**:
 - **ローリングウィンドウ**: `24`ブロック
 - **調整**: 毎ブロック
-- **アルゴリズム**: 指数移動平均
+- **アルゴリズム**: 加重移動平均（Burstcoinスタイル、ブロックあたり±20%キャップ）
 
 **割り当て遅延**:
 - **アクティベーション**: `30`ブロック（約1時間）
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **ブロックタイミング**:
-- **ブロック時間ターゲット**: `1`秒（テスト用の即時マイニング）
+- **ブロック時間ターゲット**: `120`秒（regtestでは`generatetoaddress`によりオンデマンドでマイニング）
 - **ターゲットタイムスパン**: `86400`秒（1日）
 - **MAX_FUTURE_BLOCK_TIME**: `15`秒
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **ローリングウィンドウ**: `24`ブロック
 - **最小難易度許可**: `true`
 - **リターゲティングなし**: `true`
-- **低容量キャリブレーション**: `true`（1 TiBの代わりに16ノンスキャリブレーションを使用）
+- **低容量キャリブレーション**: `true`（1 TiBの代わりに64ノンスキャリブレーション ≈ 16 MiB を使用）
 
 **割り当て遅延**:
-- **アクティベーション**: `4`ブロック（約4秒）
-- **取り消し**: `8`ブロック（約8秒）
+- **アクティベーション**: `4`ブロック（120秒間隔で約8分）
+- **取り消し**: `8`ブロック（120秒間隔で約16分）
 
 ### Signetパラメータ
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **ブロック時間ターゲット**:
 - メインネット/テストネット/Signet: `120`秒
-- Regtest: `1`秒
+- Regtest: `120`秒
 
 **TIMESTAMP_WINDOW**: `15`秒（MAX_FUTURE_BLOCK_TIMEと同じ）
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### 難易度調整パラメータ
 
 **ローリングウィンドウサイズ**: `24`ブロック（すべてのネットワーク）
-- 最近のブロック時間の指数移動平均
+- 最近のブロック時間の加重移動平均（Burstcoinスタイル）
 - 毎ブロック調整
 - 容量変化に応答
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay**（アクティベーション遅延）:
 - メインネット: `30`ブロック（約1時間）
 - テストネット: `30`ブロック（約1時間）
-- Regtest: `4`ブロック（約4秒）
+- Regtest: `4`ブロック（120秒間隔で約8分）
 
 **nForgingRevocationDelay**（取り消し遅延）:
 - メインネット: `720`ブロック（約24時間）
 - テストネット: `720`ブロック（約24時間）
-- Regtest: `8`ブロック（約8秒）
+- Regtest: `8`ブロック（120秒間隔で約16分）
 
 **根拠**:
 - アクティベーション遅延はブロックレース中の急速な再割り当てを防止

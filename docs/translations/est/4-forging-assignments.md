@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Hangi praegune ülesanne
+            // Hangi praegune ülesanne - tühistamiseks peab olema ASSIGNED olekus
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Salvesta vana olek tagasivõtmiseks
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Tagastab praeguse ülesande oleku graafiku aadressi jaoks:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Markeri definitsioonid, OP_RETURN op-d, omandi kontroll
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState abistajad
     │   ├── assignment_state.cpp   # Ülesande oleku päringufunktsioonid
+    │   ├── replay.h               # Ümberkorralduse/kordusvõimaluse rakendamine ülesande mõjudele
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (ümberkorralduse tee)
     │   ├── transactions.h         # Rahakoti tehingu loomise API
     │   └── transactions.cpp       # create_assignment, revoke_assignment rahakoti funktsioonid
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC-d
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, geneesise baassihtmärk, kompressioonigraafik
 ```
+
+> **Märkus:** Ülesande viivituse konstandid `nForgingAssignmentDelay` / `nForgingRevocationDelay` asuvad Bitcoin Core'i `Consensus::Params` struktuuris (`src/consensus/params.h`) ja määratakse võrgupõhiselt failis `src/kernel/chainparams.cpp` — mitte failis `pocx/consensus/params.h`.
 
 ## Jõudluse omadused
 
@@ -766,9 +770,8 @@ Kus n = ülesannete arv graafiku kohta (tavaliselt väike, < 10)
 
 ### Testi katvuse valdkonnad
 
-- Ühikutestid: `src/test/pocx_*_tests.cpp`
-- Funktsionaaltestid: `test/functional/feature_pocx_*.py`
-- Integratsioonitestid: Käsitsi testimine regtest'iga
+- Ühikutestid: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integratsioonitestid: regtest shell-skriptid kataloogides `scripts/assignments/` ja `scripts/mining/`
 
 ## Konsensusreeglid
 

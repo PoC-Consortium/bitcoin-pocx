@@ -35,7 +35,7 @@ Pilnīga atsauce Bitcoin-PoCX tīkla konfigurācijai visos tīkla tipos.
 
 **Aprēķinātās vērtības**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Izmanto zemas jaudas kalibrācijas režīmu
+- Regtest (120s): Izmanto zemas jaudas kalibrācijas režīmu (base_power 2^58)
 
 ### Ģenēzes ziņojums
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Grūtības pielāgošana**:
 - **Ritošais logs**: `24` bloki
 - **Pielāgošana**: Katru bloku
-- **Algoritms**: Eksponenciālais mainīgais vidējais
+- **Algoritms**: Svērtais mainīgais vidējais (Burstcoin stils, ±20% ierobežojums uz bloku)
 
 **Piešķīrumu aizkaves**:
 - **Aktivizācija**: `30` bloki (~1 stunda)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Bloku laiks**:
-- **Bloka laika mērķis**: `1` sekunde (tūlītēja kalnrūpniecība testēšanai)
+- **Bloka laika mērķis**: `120` sekundes (raktais pēc pieprasījuma ar `generatetoaddress` regtest režīmā)
 - **Mērķa laika posms**: `86400` sekundes (1 diena)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekundes
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Ritošais logs**: `24` bloki
 - **Atļaut minimālo grūtību**: `true`
 - **Nav atkārtotas mērķēšanas**: `true`
-- **Zemas jaudas kalibrācija**: `true` (izmanto 16 nonču kalibrāciju, nevis 1 TiB)
+- **Zemas jaudas kalibrācija**: `true` (izmanto 64 nonču kalibrāciju ≈ 16 MiB, nevis 1 TiB)
 
 **Piešķīrumu aizkaves**:
-- **Aktivizācija**: `4` bloki (~4 sekundes)
-- **Atsaukšana**: `8` bloki (~8 sekundes)
+- **Aktivizācija**: `4` bloki (~8 minūtes pie 120s intervāla)
+- **Atsaukšana**: `8` bloki (~16 minūtes pie 120s intervāla)
 
 ### Signet parametri
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Bloku laika mērķi**:
 - Mainnet/Testnet/Signet: `120` sekundes
-- Regtest: `1` sekunde
+- Regtest: `120` sekundes
 
 **TIMESTAMP_WINDOW**: `15` sekundes (vienāds ar MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Grūtības pielāgošanas parametri
 
 **Ritošā loga izmērs**: `24` bloki (visi tīkli)
-- Eksponenciālais mainīgais vidējais no nesenajiem bloku laikiem
+- Svērtais mainīgais vidējais no nesenajiem bloku laikiem (Burstcoin stils)
 - Pielāgošana katru bloku
 - Reaģē uz jaudas izmaiņām
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktivizācijas aizkave):
 - Mainnet: `30` bloki (~1 stunda)
 - Testnet: `30` bloki (~1 stunda)
-- Regtest: `4` bloki (~4 sekundes)
+- Regtest: `4` bloki (~8 minūtes pie 120s intervāla)
 
 **nForgingRevocationDelay** (atsaukšanas aizkave):
 - Mainnet: `720` bloki (~24 stundas)
 - Testnet: `720` bloki (~24 stundas)
-- Regtest: `8` bloki (~8 sekundes)
+- Regtest: `8` bloki (~16 minūtes pie 120s intervāla)
 
 **Pamatojums**:
 - Aktivizācijas aizkave novērš ātru pārpiešķiršanu bloku sacensību laikā

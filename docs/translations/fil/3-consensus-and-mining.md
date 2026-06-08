@@ -26,7 +26,7 @@ Nagpapatupad ang Bitcoin-PoCX ng purong mekanismo ng Proof of Capacity consensus
 
 **Mga Pangunahing Katangian:**
 - **Energy Efficient:** Ang mining ay gumagamit ng mga pre-generated plot file sa halip na computational hashing
-- **Time Bended na mga Deadline:** Pagbabago ng distribution (exponential→chi-squared) na nagpapababa ng mahabang mga block, nagpapabuti ng average block time
+- **Time Bended na mga Deadline:** Pagbabago ng distribution (exponential→Weibull, shape k=3) na nagpapababa ng mahabang mga block, nagpapabuti ng average block time
 - **Suporta sa Assignment:** Ang mga may-ari ng plot ay maaaring magdelega ng mga karapatan sa forging sa ibang mga address
 - **Native C++ Integration:** Ang mga cryptographic algorithm ay naka-implement sa C++ para sa consensus validation
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis Block:** Gumagamit ng hardcoded initial generation signature
 
-**Implementasyon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementasyon:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (tinatawag mula sa `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Difficulty)
 
 Ang base target ay ang kabaligtaran ng difficulty - mas mataas na halaga ay nangangahulugan ng mas madaling mining.
 
 **Adjustment Algorithm:**
-- Target na block time: 120 segundo (mainnet), 1 segundo (regtest)
+- Target na block time: 120 segundo (lahat ng network)
 - Adjustment interval: Bawat block
 - Gumagamit ng moving average ng mga kamakailang base target
 - Naka-clamp upang maiwasan ang matitinding pagbabago ng difficulty
@@ -112,7 +112,7 @@ Sinusuportahan ng PoCX ang scalable proof-of-work sa mga plot file sa pamamagita
 
 **Mga Dynamic Bound:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimum na tinatanggap na level
     uint32_t nPoCXTargetCompression;  // Inirerekomendang level
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Hakbang 2: Context Acquisition
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Nagbabalik ng: height, generation_signature, base_target, block_hash
 ```
 
@@ -278,7 +278,7 @@ kung saan:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Layunin:** Binabago ang exponential sa chi-squared distribution. Ang mga napakagandang solusyon ay nag-fo-forge ng mas huli (ang network ay may oras na i-scan ang mga disk), ang mga mahinang solusyon ay napapabuti. Binabawasan ang mahabang mga block, pinapanatili ang 120s na average.
+**Layunin:** Binabago ang exponential sa Weibull (shape k=3) distribution. Ang mga napakagandang solusyon ay nag-fo-forge ng mas huli (ang network ay may oras na i-scan ang mga disk), ang mga mahinang solusyon ay napapabuti. Binabawasan ang mahabang mga block, pinapanatili ang 120s na average.
 
 **Implementasyon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -571,6 +571,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Tatanggap ng Coinbase** (hindi ipinapatupad ng consensus):
+
+Itinatakda ng miner ang coinbase output upang magbayad sa effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ngunit **hindi** ito vina-validate ng consensus. Ipinapatupad lamang ng consensus na ang *block signature* ay ginawa ng effective signer — ang `bad-pocx-assignment-sig` na pagsusuri sa itaas. Walang `bad-pocx-coinbase` na panuntunan; ang tatanggap ng coinbase ay pinipili ng miner.
+
 **Implementasyon:**
 - Connection: `src/validation.cpp:ConnectBlock()`
 - Pinahabang validation: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -631,7 +635,7 @@ Pinapayagan ng mga assignment ang mga may-ari ng plot na magdelega ng mga karapa
 - Ang mga assignment ay naka-store sa mga OP_RETURN output (walang UTXO)
 - Walang mga kinakailangan sa paggastos (walang dust, walang bayarin para sa paghawak)
 - Sinusubaybayan sa pinahabang state ng CCoinsViewCache
-- Nag-a-activate pagkatapos ng delay period (default: 4 block)
+- Nag-a-activate pagkatapos ng delay period (default: 30 block; 4 sa regtest)
 
 **Mga Assignment State:**
 ```cpp

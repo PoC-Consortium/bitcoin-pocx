@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Obține atribuirea curentă
+            // Obține atribuirea curentă - trebuie să fie în starea ASSIGNED pentru revocare
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Stochează starea veche pentru anulare
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Returnează starea curentă a atribuirii pentru o adresă de plot:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 linii] Definiții markere, operații OP_RETURN, verificare proprietate
     │   ├── assignment_state.h     # Helpere GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Funcții de interogare a stării atribuirii
+    │   ├── replay.h               # Reorg/replay al efectelor atribuirilor
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (calea de reorg)
     │   ├── transactions.h         # API creare tranzacții portofel
     │   └── transactions.cpp       # Funcții portofel create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC-uri create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis base target, planul de compresie
 ```
+
+> **Notă:** Constantele de întârziere a atribuirilor `nForgingAssignmentDelay` / `nForgingRevocationDelay` se află în `Consensus::Params` din Bitcoin Core (`src/consensus/params.h`) și sunt setate per rețea în `src/kernel/chainparams.cpp` — nu în `pocx/consensus/params.h`.
 
 ## Caracteristici de performanță
 
@@ -766,9 +770,8 @@ Unde n = numărul de atribuiri pentru un plot (de obicei mic, < 10)
 
 ### Arii de acoperire teste
 
-- Teste unitare: `src/test/pocx_*_tests.cpp`
-- Teste funcționale: `test/functional/feature_pocx_*.py`
-- Teste de integrare: Testare manuală cu regtest
+- Teste unitare: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Teste de integrare: scripturi shell de regtest în `scripts/assignments/` și `scripts/mining/`
 
 ## Reguli de consens
 

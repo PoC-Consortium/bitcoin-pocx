@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (exactamente 40 caracteres hex = 20 bytes; no se acepta una dirección)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Valores de retorno** (éxito):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // tiempo de forjado con flexión temporal en segundos
 }
 ```
 
-**Valores de retorno** (rechazado):
-```json
-{
-  "accepted": false,
-  "error": "Desajuste de firma de generación"
-}
-```
+No hay campo `accepted`. En caso de rechazo, el RPC **no** devuelve un objeto JSON — lanza un `JSONRPCError` (ver Códigos de error abajo).
 
 **Pasos de validación**:
 1. **Validación de formato** (fallo rápido):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Poner nonce en cola para forjado con flexión temporal
    - El bloque se creará automáticamente en forge_time
 
-**Códigos de error**:
-- `RPC_INVALID_PARAMETER`: Formato inválido (account_id, seed) o desajuste de altura
+**Códigos de error** (lanzados como `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Formato inválido (account_id, seed) o desajuste de altura (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Desajuste de firma de generación o validación de prueba fallida
 - `RPC_INVALID_ADDRESS_OR_KEY`: Sin clave privada para el firmante efectivo
+- `RPC_WALLET_UNLOCK_NEEDED`: La cartera que contiene la clave del firmante efectivo está bloqueada (desbloquéela con `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Cola de envío llena
 - `RPC_INTERNAL_ERROR`: Falló al inicializar el programador PoCX
 
@@ -271,7 +265,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parámetros**:
 1. `plot_address` (cadena, requerido) - Dirección del propietario de parcela (debe poseer clave privada, P2WPKH bech32)
 2. `forging_address` (cadena, requerido) - Dirección a la que asignar derechos de forjado (P2WPKH bech32)
-3. `fee_rate` (numérico, opcional) - Tasa de comisión en BTC/kvB (predeterminado: 10× minRelayFee)
+3. `fee_rate` (numérico, opcional) - Tasa de comisión en BTCX/kvB (predeterminado: `0` → estimación de comisión mínima estándar de la cartera; el valor predeterminado de 10× minRelayFee solo se aplica al diálogo de la GUI Qt, no a este RPC)
 
 **Valores de retorno**:
 ```json
@@ -292,7 +286,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Estructura de transacción**:
 - Entrada: UTXO de la dirección de parcela (demuestra propiedad)
-- Salida: OP_RETURN (46 bytes): marcador `POCX` + plot_address (20 bytes) + forging_address (20 bytes)
+- Salida: script OP_RETURN (46 bytes) = opcode `OP_RETURN` + longitud de push de 1 byte + carga de datos de 44 bytes (marcador `POCX` 4 + plot_address 20 + forging_address 20)
 - Salida: Cambio devuelto a la cartera
 
 **Activación**:
@@ -325,7 +319,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parámetros**:
 1. `plot_address` (cadena, requerido) - Dirección de parcela (debe poseer clave privada, P2WPKH bech32)
-2. `fee_rate` (numérico, opcional) - Tasa de comisión en BTC/kvB (predeterminado: 10× minRelayFee)
+2. `fee_rate` (numérico, opcional) - Tasa de comisión en BTCX/kvB (predeterminado: `0` → estimación de comisión mínima estándar de la cartera; el valor predeterminado de 10× minRelayFee solo se aplica al diálogo de la GUI Qt, no a este RPC)
 
 **Valores de retorno**:
 ```json
@@ -344,7 +338,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Estructura de transacción**:
 - Entrada: UTXO de la dirección de parcela (demuestra propiedad)
-- Salida: OP_RETURN (26 bytes): marcador `XCOP` + plot_address (20 bytes)
+- Salida: script OP_RETURN (26 bytes) = opcode `OP_RETURN` + longitud de push de 1 byte + carga de datos de 24 bytes (marcador `XCOP` 4 + plot_address 20)
 - Salida: Cambio devuelto a la cartera
 
 **Efecto**:
@@ -539,22 +533,23 @@ while True:
     # 2. Escanear archivos de parcela (implementación externa)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Enviar mejor solución
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"¡Solución aceptada! Calidad: {result['quality']}s, "
+    # 3. Enviar mejor solución (lanza JSONRPCError en caso de rechazo)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"¡Solución aceptada! Calidad: {result['raw_quality']}, "
               f"Tiempo de forjado: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Rechazado: {e}")
 
     # 4. Esperar siguiente bloque
     time.sleep(10)  # Intervalo de sondeo
@@ -625,20 +620,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Patrones de error comunes
 
-**Desajuste de altura**:
+**Desajuste de altura** (lanzado `RPC_INVALID_PARAMETER`, código -8):
 ```json
 {
-  "accepted": false,
-  "error": "Desajuste de altura: enviada 12345, actual 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Solución**: Volver a obtener info de minería, la cadena avanzó
 
-**Desajuste de firma de generación**:
+**Desajuste de firma de generación** (lanzado `RPC_VERIFY_REJECTED`, código -26):
 ```json
 {
-  "accepted": false,
-  "error": "Desajuste de firma de generación"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Solución**: Volver a obtener info de minería, llegó nuevo bloque

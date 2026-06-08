@@ -12,7 +12,7 @@ Bitcoin darba apliecinājuma (Proof-of-Work, PoW) konsensuss nodrošina stabilu 
 
 Mūsu implementācija ievieš vairākas būtiskas inovācijas:
 (1) Nostiprinātu plota formātu, kas novērš visus zināmos laika-atmiņas kompromisa uzbrukumus esošajās PoC sistēmās, nodrošinot, ka efektīvā rakšanas jauda paliek stingri proporcionāla piešķirtajai krātuves ietilpībai;
-(2) Time-Bending algoritmu, kas transformē termiņu sadalījumus no eksponenciālā uz chi-kvadrāta sadalījumu, samazinot bloku laika dispersiju, nemainot vidējo vērtību;
+(2) Time-Bending algoritmu, kas transformē termiņu sadalījumus no eksponenciālā uz Weibull (forma k=3) sadalījumu, samazinot bloku laika dispersiju, nemainot vidējo vērtību;
 (3) OP_RETURN balstītu kalšanas piešķiršanas mehānismu, kas nodrošina nekustodālu pūla rakšanu; un
 (4) Dinamisku kompresijas mērogošanu, kas palielina plota ģenerēšanas sarežģītību saskaņā ar dalīšanas grafikiem, lai uzturētu ilgtermiņa drošības rezerves, aparatūrai attīstoties.
 
@@ -297,14 +297,16 @@ Lai saglabātu paredzēto drošības rezervi, PoCX implementē mērogošanas gra
 
 Grafiks ir saskaņots ar tīkla ekonomiskajiem stimuliem, it īpaši bloka atlīdzības dalīšanu. Atlīdzībai par bloku samazinoties, minimālais līmenis pakāpeniski pieaug, saglabājot līdzsvaru starp plotēšanas piepūli un rakšanas potenciālu:
 
-| Periods | Gadi | Dalīšanas | Min. mērogošana | Plota darba reizinātājs |
+| Periods | Gadi | Dalīšanas | Min. mērogošana | Plota darbs (salīdzinājumā ar POC2 bāzlīniju) |
 |---------|------|-----------|-----------------|------------------------|
-| Ēra 0 | 0-4 | 0 | X1 | 2× bāzlīnija |
-| Ēra 1 | 4-12 | 1-2 | X2 | 4× bāzlīnija |
-| Ēra 2 | 12-28 | 3-6 | X3 | 8× bāzlīnija |
-| Ēra 3 | 28-60 | 7-14 | X4 | 16× bāzlīnija |
-| Ēra 4 | 60-124 | 15-30 | X5 | 32× bāzlīnija |
-| Ēra 5 | 124+ | 31+ | X6 | 64× bāzlīnija |
+| Ēra 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Ēra 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Ēra 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Ēra 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Ēra 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Ēra 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Reizinātāja kolonna ir izteikta attiecībā pret nenostiprināto **POC2** bāzlīniju. Tā kā nostiprinātais X1 formāts jau iegulst 2× POC2 darbu, līmenis Xn ir vienāds ar 2ⁿ × POC2 — ekvivalenti 2^(n-1) × X1, atbilstoši 3.5. sadaļas līmeņu definīcijai.
 
 Raktuvnieki pēc izvēles var sagatavot plotus, kas pārsniedz pašreizējo minimumu par vienu līmeni, ļaujot viņiem plānot uz priekšu un izvairīties no tūlītējiem jauninājumiem, kad tīkls pāriet uz nākamo ēru. Šis neobligātais solis nesniedz papildu priekšrocības bloka varbūtības ziņā — tas tikai ļauj gludāku operacionālu pāreju.
 
@@ -438,11 +440,11 @@ Zemāk esošās tabulas apkopo rezultējošos mainnet, testnet un regtest iestat
 | Maģiskie baiti | `0xfa 0xbf 0xb5 0xda` |
 | Noklusējuma ports | 18444 |
 | Bech32 HRP | `rpocx` |
-| Bloka laika mērķis | 1 sekunde |
+| Bloka laika mērķis | 120 sekundes |
 | Dalīšanas intervāls | 500 bloki |
 | Piešķiršanas aktivizācija | 4 bloki |
 | Piešķiršanas atsaukšana | 8 bloki |
-| Zemas ietilpības režīms | Iespējots (~4 MB ploti) |
+| Zemas ietilpības režīms | Iespējots (~16 MiB ploti, 64 nonces) |
 
 ---
 

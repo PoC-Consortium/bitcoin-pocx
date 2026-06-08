@@ -12,7 +12,7 @@ Bitcoinin Proof-of-Work (PoW) -konsensus tarjoaa vankan turvallisuuden, mutta ku
 
 Toteutuksemme esittelee useita keskeisiä innovaatioita:
 (1) Kovennettu plottimuoto, joka eliminoi kaikki tunnetut aika–muisti-vaihtokauppahyökkäykset olemassa olevissa PoC-järjestelmissä varmistaen, että tehokas louhintateho pysyy tiukasti suhteessa sitoutuneeseen tallennuskapasiteettiin;
-(2) Time Bending -algoritmi, joka muuntaa deadline-jakaumat eksponentiaalisesta khii-neliö-jakaumaksi vähentäen lohkoajan varianssia muuttamatta keskiarvoa;
+(2) Time Bending -algoritmi, joka muuntaa deadline-jakaumat eksponentiaalisesta Weibull (muoto k=3) -jakaumaksi vähentäen lohkoajan varianssia muuttamatta keskiarvoa;
 (3) OP_RETURN-pohjainen forging-delegointimekanismi, joka mahdollistaa ei-säilytysperusteisen poolilouhinnan; ja
 (4) Dynaaminen pakkausskaalaus, joka kasvattaa plotin generoinnin vaikeutta puolittumisaikataulujen mukaisesti pitkäaikaisten turvamarginaalien ylläpitämiseksi laitteiston parantuessa.
 
@@ -297,14 +297,16 @@ Aiotun turvamarginaalin säilyttämiseksi PoCX toteuttaa skaalausaikataulun: plo
 
 Aikataulu linjautuu verkon taloudellisten kannustimien, erityisesti lohkopalkkioiden puolittumisten, kanssa. Lohkokohtaisen palkkion pienentyessä vähimmäistaso kasvaa asteittain säilyttäen tasapainon plottaustyön ja louhintapotentiaalin välillä:
 
-| Ajanjakso | Vuodet | Puolittumisia | Minimi | Plottityön kerroin |
+| Ajanjakso | Vuodet | Puolittumisia | Minimi | Plottityö (vs POC2-perustaso) |
 |--------|-------|----------|-------------|---------------------|
-| Epokki 0 | 0-4 | 0 | X1 | 2× perustaso |
-| Epokki 1 | 4-12 | 1-2 | X2 | 4× perustaso |
-| Epokki 2 | 12-28 | 3-6 | X3 | 8× perustaso |
-| Epokki 3 | 28-60 | 7-14 | X4 | 16× perustaso |
-| Epokki 4 | 60-124 | 15-30 | X5 | 32× perustaso |
-| Epokki 5 | 124+ | 31+ | X6 | 64× perustaso |
+| Epokki 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epokki 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epokki 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epokki 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epokki 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epokki 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Kerroinsarake on ilmaistu suhteessa kovettamattomaan **POC2**-perustasoon. Koska kovetettu X1-muoto sisältää jo 2× POC2:n työn, taso Xn on yhtä kuin 2ⁿ × POC2 — vastaavasti 2^(n-1) × X1, mikä vastaa osion 3.5 tasokohtaista määritelmää.
 
 Louhijat voivat valinnaisesti valmistella plotteja ylittäen nykyisen minimin yhdellä tasolla, mahdollistaen etukäteissuunnittelun ja välttäen välittömät päivitykset verkon siirtyessä seuraavaan epokkiin. Tämä valinnainen askel ei anna lisäetua lohkon todennäköisyyden suhteen – se ainoastaan mahdollistaa sujuvamman operatiivisen siirtymän.
 
@@ -438,11 +440,11 @@ Alla olevat taulukot tiivistävät tuloksena olevat mainnet-, testnet- ja regtes
 | Magiikkatavut | `0xfa 0xbf 0xb5 0xda` |
 | Oletusportti | 18444 |
 | Bech32 HRP | `rpocx` |
-| Lohkoajan tavoite | 1 sekunti |
+| Lohkoajan tavoite | 120 sekuntia |
 | Puolittumisväli | 500 lohkoa |
 | Delegoinnin aktivointi | 4 lohkoa |
 | Delegoinnin peruutus | 8 lohkoa |
-| Matalan kapasiteetin tila | Käytössä (~4 MB plotit) |
+| Matalan kapasiteetin tila | Käytössä (~16 MiB plotit, 64 noncea) |
 
 ---
 

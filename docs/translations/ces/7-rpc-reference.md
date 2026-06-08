@@ -106,7 +106,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (přesně 40 hex znaků = 20 bajtů; adresa není přijímána)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -115,19 +115,12 @@ bitcoin-cli get_mining_info
 **Návratové hodnoty** (úspěch):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // deadline upravený na obtížnost v sekundách
+  "raw_quality": 120,       // surová kvalita z validace důkazu
   "poc_time": 45            // čas forgu s time-bending v sekundách
 }
 ```
 
-**Návratové hodnoty** (odmítnuto):
-```json
-{
-  "accepted": false,
-  "error": "Nesoulad generačního podpisu"
-}
-```
+Pole `accepted` neexistuje. Při odmítnutí RPC **nevrací** JSON objekt — vyhodí `JSONRPCError` (viz Chybové kódy níže).
 
 **Kroky validace**:
 1. **Validace formátu** (fail-fast):
@@ -146,10 +139,11 @@ bitcoin-cli get_mining_info
    - Zařadit nonce do fronty pro time-bended forging
    - Blok bude vytvořen automaticky v čase forge_time
 
-**Chybové kódy**:
-- `RPC_INVALID_PARAMETER`: Neplatný formát (account_id, seed) nebo nesoulad výšky
+**Chybové kódy** (vyhozené jako `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Neplatný formát (account_id, seed) nebo nesoulad výšky (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Nesoulad generačního podpisu nebo selhání validace důkazu
 - `RPC_INVALID_ADDRESS_OR_KEY`: Žádný privátní klíč pro efektivního podpisujícího
+- `RPC_WALLET_UNLOCK_NEEDED`: Peněženka držící klíč efektivního podpisujícího je uzamčena (odemkněte pomocí `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Fronta odesílání plná
 - `RPC_INTERNAL_ERROR`: Selhání inicializace plánovače PoCX
 
@@ -270,7 +264,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametry**:
 1. `plot_address` (string, povinný) - Adresa vlastníka plotu (musí vlastnit privátní klíč, P2WPKH bech32)
 2. `forging_address` (string, povinný) - Adresa pro přiřazení práv na forging (P2WPKH bech32)
-3. `fee_rate` (číselný, volitelný) - Sazba poplatku v BTC/kvB (výchozí: 10× minRelayFee)
+3. `fee_rate` (číselný, volitelný) - Sazba poplatku v BTCX/kvB (výchozí: `0` → standardní odhad minimálního poplatku peněženky; výchozí 10× minRelayFee platí pouze pro dialog Qt GUI, nikoli pro toto RPC)
 
 **Návratové hodnoty**:
 ```json
@@ -291,7 +285,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Struktura transakce**:
 - Vstup: UTXO z adresy plotu (prokazuje vlastnictví)
-- Výstup: OP_RETURN (46 bajtů): marker `POCX` + plot_address (20 bajtů) + forging_address (20 bajtů)
+- Výstup: OP_RETURN skript (46 bajtů) = opkód `OP_RETURN` + 1bajtová délka push + 44bajtová datová část (marker `POCX` 4 + plot_address 20 + forging_address 20)
 - Výstup: Zbytek vrácen do peněženky
 
 **Aktivace**:
@@ -324,7 +318,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametry**:
 1. `plot_address` (string, povinný) - Adresa plotu (musí vlastnit privátní klíč, P2WPKH bech32)
-2. `fee_rate` (číselný, volitelný) - Sazba poplatku v BTC/kvB (výchozí: 10× minRelayFee)
+2. `fee_rate` (číselný, volitelný) - Sazba poplatku v BTCX/kvB (výchozí: `0` → standardní odhad minimálního poplatku peněženky; výchozí 10× minRelayFee platí pouze pro dialog Qt GUI, nikoli pro toto RPC)
 
 **Návratové hodnoty**:
 ```json
@@ -343,7 +337,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Struktura transakce**:
 - Vstup: UTXO z adresy plotu (prokazuje vlastnictví)
-- Výstup: OP_RETURN (26 bajtů): marker `XCOP` + plot_address (20 bajtů)
+- Výstup: OP_RETURN skript (26 bajtů) = opkód `OP_RETURN` + 1bajtová délka push + 24bajtová datová část (marker `XCOP` 4 + plot_address 20)
 - Výstup: Zbytek vrácen do peněženky
 
 **Efekt**:
@@ -538,22 +532,23 @@ while True:
     # 2. Skenovat plot soubory (externí implementace)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Odeslat nejlepší řešení
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Řešení přijato! Kvalita: {result['quality']}s, "
+    # 3. Odeslat nejlepší řešení (vyhodí JSONRPCError při odmítnutí)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Řešení přijato! Kvalita: {result['raw_quality']}, "
               f"Čas forgu: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Odmítnuto: {e}")
 
     # 4. Čekat na další blok
     time.sleep(10)  # Interval dotazování
@@ -624,20 +619,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Běžné vzory chyb
 
-**Nesoulad výšky**:
+**Nesoulad výšky** (vyhozeno `RPC_INVALID_PARAMETER`, kód -8):
 ```json
 {
-  "accepted": false,
-  "error": "Nesoulad výšky: odesláno 12345, aktuální 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Řešení**: Znovu načíst těžební info, řetězec se posunul dopředu
 
-**Nesoulad generačního podpisu**:
+**Nesoulad generačního podpisu** (vyhozeno `RPC_VERIFY_REJECTED`, kód -26):
 ```json
 {
-  "accepted": false,
-  "error": "Nesoulad generačního podpisu"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Řešení**: Znovu načíst těžební info, přišel nový blok

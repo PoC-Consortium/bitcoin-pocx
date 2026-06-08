@@ -12,7 +12,7 @@ Konsensus Proof-of-Work (PoW) Bitcoin memberikan keamanan yang kokoh tetapi meng
 
 Implementasi kami memperkenalkan beberapa inovasi utama:
 (1) Format plot yang diperkeras yang menghilangkan semua serangan tradeoff waktu-memori yang diketahui dalam sistem PoC yang ada, memastikan bahwa kekuatan penambangan efektif tetap proporsional secara ketat dengan kapasitas penyimpanan yang berkomitmen;
-(2) Algoritma Time-Bending, yang mengubah distribusi deadline dari eksponensial ke chi-squared, mengurangi varians waktu blok tanpa mengubah rata-rata;
+(2) Algoritma Time-Bending, yang mengubah distribusi deadline dari eksponensial ke Weibull (bentuk k=3), mengurangi varians waktu blok tanpa mengubah rata-rata;
 (3) Mekanisme penugasan forging berbasis OP_RETURN yang memungkinkan penambangan pool non-kustodial; dan
 (4) Penskalaan kompresi dinamis, yang meningkatkan kesulitan pembuatan plot selaras dengan jadwal halving untuk mempertahankan margin keamanan jangka panjang seiring peningkatan perangkat keras.
 
@@ -297,14 +297,16 @@ Untuk mempertahankan margin keamanan yang dimaksud, PoCX mengimplementasikan jad
 
 Jadwal selaras dengan insentif ekonomi jaringan, khususnya halving hadiah blok. Seiring hadiah per blok menurun, tingkat minimum secara bertahap meningkat, mempertahankan keseimbangan antara upaya plotting dan potensi penambangan:
 
-| Periode | Tahun | Halving | Min Penskalaan | Pengali Pekerjaan Plot |
+| Periode | Tahun | Halving | Min Penskalaan | Pekerjaan Plot (vs baseline POC2) |
 |---------|-------|---------|----------------|------------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2x baseline |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4x baseline |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8x baseline |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16x baseline |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32x baseline |
-| Epoch 5 | 124+ | 31+ | X6 | 64x baseline |
+| Epoch 0 | 0-4 | 0 | X1 | 2x POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4x POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8x POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16x POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32x POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64x POC2 |
+
+Kolom pengali dinyatakan relatif terhadap baseline **POC2** yang tidak diperkeras. Karena format X1 yang diperkeras sudah menanamkan 2x pekerjaan POC2, tingkat Xn sama dengan 2ⁿ × POC2 — setara dengan 2^(n-1) × X1, sesuai dengan definisi per-tingkat di Bagian 3.5.
 
 Penambang secara opsional dapat mempersiapkan plot yang melebihi minimum saat ini sebanyak satu tingkat, memungkinkan mereka untuk merencanakan ke depan dan menghindari upgrade segera ketika jaringan bertransisi ke epoch berikutnya. Langkah opsional ini tidak memberikan keuntungan tambahan dalam hal probabilitas blok—ini hanya memungkinkan transisi operasional yang lebih mulus.
 
@@ -438,11 +440,11 @@ Tabel di bawah merangkum pengaturan mainnet, testnet, dan regtest yang dihasilka
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Port default | 18444 |
 | Bech32 HRP | `rpocx` |
-| Target waktu blok | 1 detik |
+| Target waktu blok | 120 detik |
 | Interval halving | 500 blok |
 | Aktivasi penugasan | 4 blok |
 | Pencabutan penugasan | 8 blok |
-| Mode kapasitas rendah | Diaktifkan (plot ~4 MB) |
+| Mode kapasitas rendah | Diaktifkan (plot ~16 MiB, 64 nonce) |
 
 ---
 

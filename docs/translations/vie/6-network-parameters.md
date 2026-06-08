@@ -35,7 +35,7 @@ Tham chiếu đầy đủ cho cấu hình mạng Bitcoin-PoCX trên tất cả c
 
 **Giá trị Được tính**:
 - Mainnet/Testnet/Signet (120 giây): `36650387592`
-- Regtest (1 giây): Sử dụng chế độ hiệu chuẩn dung lượng thấp
+- Regtest (120 giây): Sử dụng chế độ hiệu chuẩn dung lượng thấp (base_power 2^58)
 
 ### Thông điệp Genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Điều chỉnh Độ khó**:
 - **Cửa sổ Cuộn**: `24` khối
 - **Điều chỉnh**: Mỗi khối
-- **Thuật toán**: Trung bình động mũ
+- **Thuật toán**: Trung bình động có trọng số (kiểu Burstcoin, giới hạn ±20% mỗi khối)
 
 **Độ trễ Ủy quyền**:
 - **Kích hoạt**: `30` khối (~1 giờ)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Timing Khối**:
-- **Mục tiêu Thời gian Khối**: `1` giây (đào tức thì để test)
+- **Mục tiêu Thời gian Khối**: `120` giây (đào theo yêu cầu qua `generatetoaddress` trong regtest)
 - **Target Timespan**: `86400` giây (1 ngày)
 - **MAX_FUTURE_BLOCK_TIME**: `15` giây
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Cửa sổ Cuộn**: `24` khối
 - **Cho phép Độ khó Tối thiểu**: `true`
 - **Không Retargeting**: `true`
-- **Hiệu chuẩn Dung lượng Thấp**: `true` (sử dụng hiệu chuẩn 16-nonce thay vì 1 TiB)
+- **Hiệu chuẩn Dung lượng Thấp**: `true` (sử dụng hiệu chuẩn 64-nonce ≈ 16 MiB thay vì 1 TiB)
 
 **Độ trễ Ủy quyền**:
-- **Kích hoạt**: `4` khối (~4 giây)
-- **Thu hồi**: `8` khối (~8 giây)
+- **Kích hoạt**: `4` khối (~8 phút với khoảng cách 120 giây)
+- **Thu hồi**: `8` khối (~16 phút với khoảng cách 120 giây)
 
 ### Tham số Signet
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Tham số Điều chỉnh Độ khó
 
 **Kích thước Cửa sổ Cuộn**: `24` khối (tất cả mạng)
-- Trung bình động mũ của các thời gian khối gần đây
+- Trung bình động có trọng số của các thời gian khối gần đây (kiểu Burstcoin)
 - Điều chỉnh mỗi khối
 - Phản hồi với thay đổi dung lượng
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (độ trễ kích hoạt):
 - Mainnet: `30` khối (~1 giờ)
 - Testnet: `30` khối (~1 giờ)
-- Regtest: `4` khối (~4 giây)
+- Regtest: `4` khối (~8 phút với khoảng cách 120 giây)
 
 **nForgingRevocationDelay** (độ trễ thu hồi):
 - Mainnet: `720` khối (~24 giờ)
 - Testnet: `720` khối (~24 giờ)
-- Regtest: `8` khối (~8 giây)
+- Regtest: `8` khối (~16 phút với khoảng cách 120 giây)
 
 **Lý do**:
 - Độ trễ kích hoạt ngăn tái ủy quyền nhanh trong các cuộc đua khối

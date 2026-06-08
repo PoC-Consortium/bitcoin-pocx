@@ -111,13 +111,13 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 5. Transaksi disiarkan segera
 6. Penugasan aktif setelah `nForgingAssignmentDelay` blok:
    - Mainnet/Testnet: 30 blok (~1 jam)
-   - Regtest: 4 blok (~4 detik)
+   - Regtest: 4 blok (~8 menit pada jarak 120 detik)
 
 **Biaya Transaksi**: Default 10x `minRelayFee` (dapat disesuaikan)
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output OP_RETURN: marker `POCX` + plot_address + forging_address (44 byte)
+- Output OP_RETURN (skrip 46 byte, payload data 44 byte): marker `POCX` + plot_address + forging_address
 - Output kembalian: Dikembalikan ke dompet
 
 #### Mode 2: Cabut Penugasan
@@ -136,7 +136,7 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 4. Transaksi disiarkan segera
 5. Pencabutan efektif setelah `nForgingRevocationDelay` blok:
    - Mainnet/Testnet: 720 blok (~24 jam)
-   - Regtest: 8 blok (~8 detik)
+   - Regtest: 8 blok (~16 menit pada jarak 120 detik)
 
 **Efek**:
 - Alamat forging masih dapat melakukan forge selama periode penundaan
@@ -145,7 +145,7 @@ Bitcoin-PoCX menggunakan unit mata uang **BTCX** (bukan BTC):
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output OP_RETURN: marker `XCOP` + plot_address (24 byte)
+- Output OP_RETURN (skrip 26 byte, payload data 24 byte): marker `XCOP` + plot_address
 - Output kembalian: Dikembalikan ke dompet
 
 #### Mode 3: Periksa Status Penugasan

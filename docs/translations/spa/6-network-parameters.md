@@ -35,7 +35,7 @@ Referencia completa para la configuración de red de Bitcoin-PoCX en todos los t
 
 **Valores calculados**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Usa modo de calibración de baja capacidad
+- Regtest (120s): Usa modo de calibración de baja capacidad (base_power 2^58)
 
 ### Mensaje del génesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Ajuste de dificultad**:
 - **Ventana móvil**: `24` bloques
 - **Ajuste**: Cada bloque
-- **Algoritmo**: Promedio móvil exponencial
+- **Algoritmo**: Promedio móvil ponderado (estilo Burstcoin, límite de ±20% por bloque)
 
 **Retardos de asignación**:
 - **Activación**: `30` bloques (~1 hora)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Temporización de bloques**:
-- **Objetivo de tiempo de bloque**: `1` segundo (minería instantánea para pruebas)
+- **Objetivo de tiempo de bloque**: `120` segundos (minado bajo demanda mediante `generatetoaddress` en regtest)
 - **Intervalo objetivo**: `86400` segundos (1 día)
 - **MAX_FUTURE_BLOCK_TIME**: `15` segundos
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Ventana móvil**: `24` bloques
 - **Permitir dificultad mínima**: `true`
 - **Sin reajuste**: `true`
-- **Calibración de baja capacidad**: `true` (usa calibración de 16 nonces en lugar de 1 TiB)
+- **Calibración de baja capacidad**: `true` (usa calibración de 64 nonces ≈ 16 MiB en lugar de 1 TiB)
 
 **Retardos de asignación**:
-- **Activación**: `4` bloques (~4 segundos)
-- **Revocación**: `8` bloques (~8 segundos)
+- **Activación**: `4` bloques (~8 minutos con espaciado de 120s)
+- **Revocación**: `8` bloques (~16 minutos con espaciado de 120s)
 
 ### Parámetros de Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Objetivos de tiempo de bloque**:
 - Mainnet/Testnet/Signet: `120` segundos
-- Regtest: `1` segundo
+- Regtest: `120` segundos
 
 **TIMESTAMP_WINDOW**: `15` segundos (igual a MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Parámetros de ajuste de dificultad
 
 **Tamaño de ventana móvil**: `24` bloques (todas las redes)
-- Promedio móvil exponencial de tiempos de bloque recientes
+- Promedio móvil ponderado de tiempos de bloque recientes (estilo Burstcoin)
 - Ajuste en cada bloque
 - Responde a cambios de capacidad
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (retardo de activación):
 - Mainnet: `30` bloques (~1 hora)
 - Testnet: `30` bloques (~1 hora)
-- Regtest: `4` bloques (~4 segundos)
+- Regtest: `4` bloques (~8 minutos con espaciado de 120s)
 
 **nForgingRevocationDelay** (retardo de revocación):
 - Mainnet: `720` bloques (~24 horas)
 - Testnet: `720` bloques (~24 horas)
-- Regtest: `8` bloques (~8 segundos)
+- Regtest: `8` bloques (~16 minutos con espaciado de 120s)
 
 **Justificación**:
 - El retardo de activación previene reasignación rápida durante carreras de bloques

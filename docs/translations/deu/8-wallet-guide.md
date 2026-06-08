@@ -112,13 +112,13 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 5. Transaktion wird sofort gesendet
 6. Zuweisung aktiv nach `nForgingAssignmentDelay` Blöcken:
    - Mainnet/Testnet: 30 Blöcke (~1 Stunde)
-   - Regtest: 4 Blöcke (~4 Sekunden)
+   - Regtest: 4 Blöcke (~8 Minuten bei 120s-Abstand)
 
 **Transaktionsgebühr**: Standard 10× `minRelayFee` (anpassbar)
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- OP_RETURN-Ausgabe: `POCX`-Marker + plot_address + forging_address (44 Bytes)
+- OP_RETURN-Ausgabe (46-Byte-Skript, 44-Byte-Daten-Payload): `POCX`-Marker + plot_address + forging_address
 - Wechselgeld-Ausgabe: Zurück ans Wallet
 
 #### Modus 2: Zuweisung widerrufen
@@ -137,7 +137,7 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 4. Transaktion wird sofort gesendet
 5. Widerruf wirksam nach `nForgingRevocationDelay` Blöcken:
    - Mainnet/Testnet: 720 Blöcke (~24 Stunden)
-   - Regtest: 8 Blöcke (~8 Sekunden)
+   - Regtest: 8 Blöcke (~16 Minuten bei 120s-Abstand)
 
 **Effekt**:
 - Forging-Adresse kann während Verzögerungsperiode noch schmieden
@@ -146,7 +146,7 @@ Bitcoin-PoCX verwendet die Währungseinheit **BTCX** (nicht BTC):
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- OP_RETURN-Ausgabe: `XCOP`-Marker + plot_address (24 Bytes)
+- OP_RETURN-Ausgabe (26-Byte-Skript, 24-Byte-Daten-Payload): `XCOP`-Marker + plot_address
 - Wechselgeld-Ausgabe: Zurück ans Wallet
 
 #### Modus 3: Zuweisungsstatus prüfen

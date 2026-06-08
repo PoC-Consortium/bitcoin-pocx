@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problem**: Geleneksel PoC blok süreleri üstel dağılım izler, hiçbir madenci iyi bir çözüm bulamadığında uzun bloklara yol açar.
 
-**Çözüm**: Küp kök kullanarak üstel dağılımdan ki-kare dağılımına dönüşüm: `Y = ölçek × (X^(1/3))`.
+**Çözüm**: Küp kök kullanarak üstel dağılımdan Weibull (şekil parametresi k=3) dağılımına dönüşüm: `Y = ölçek × (X^(1/3))`.
 
 **Etki**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ POC2 formatına (Burstcoin) dayalı, geliştirmeler dahil:
 
 ## Teknik Spesifikasyon Özeti
 
-- **Blok Süresi**: 120 saniye (mainnet), 1 saniye (regtest)
+- **Blok Süresi**: 120 saniye (tüm ağlar: mainnet, testnet, regtest)
 - **Blok Sübvansiyonu**: 10 BTC başlangıç, her 1050000 blokta yarılanma (~4 yıl)
 - **Toplam Arz**: ~21 milyon BTC (Bitcoin ile aynı)
 - **Gelecek Toleransı**: 15 saniye (15 saniyeye kadar ileride olan bloklar kabul edilir)

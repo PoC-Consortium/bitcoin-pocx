@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (ठीक 40 hex वर्ण = 20 बाइट्स; पता स्वीकार नहीं किया जाता)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **रिटर्न मान** (सफलता):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // सेकंड में कठिनाई-समायोजित deadline
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // सेकंड में time-bended फोर्ज समय
 }
 ```
 
-**रिटर्न मान** (अस्वीकृत):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+कोई `accepted` फ़ील्ड नहीं है। अस्वीकृति पर RPC एक JSON ऑब्जेक्ट **नहीं** लौटाता — यह `JSONRPCError` फेंकता है (नीचे एरर कोड देखें)।
 
 **सत्यापन चरण**:
 1. **प्रारूप सत्यापन** (फास्ट-फेल):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Time-bended फोर्जिंग के लिए nonce कतारबद्ध करें
    - ब्लॉक स्वचालित रूप से forge_time पर बनाया जाएगा
 
-**त्रुटि कोड**:
-- `RPC_INVALID_PARAMETER`: अमान्य प्रारूप (account_id, seed) या ऊंचाई बेमेल
+**त्रुटि कोड** (`JSONRPCError` के रूप में फेंके गए):
+- `RPC_INVALID_PARAMETER`: अमान्य प्रारूप (account_id, seed) या ऊंचाई बेमेल (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generation signature बेमेल या प्रमाण सत्यापन विफल
 - `RPC_INVALID_ADDRESS_OR_KEY`: प्रभावी हस्ताक्षरकर्ता के लिए कोई निजी कुंजी नहीं
+- `RPC_WALLET_UNLOCK_NEEDED`: प्रभावी हस्ताक्षरकर्ता की कुंजी रखने वाला वॉलेट लॉक है (`walletpassphrase` से अनलॉक करें)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: सबमिशन कतार भरी हुई
 - `RPC_INTERNAL_ERROR`: PoCX शेड्यूलर प्रारंभ करने में विफल
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **पैरामीटर**:
 1. `plot_address` (स्ट्रिंग, आवश्यक) - Plot मालिक पता (निजी कुंजी होनी चाहिए, P2WPKH bech32)
 2. `forging_address` (स्ट्रिंग, आवश्यक) - फोर्जिंग अधिकार असाइन करने के लिए पता (P2WPKH bech32)
-3. `fee_rate` (संख्यात्मक, वैकल्पिक) - BTC/kvB में शुल्क दर (डिफ़ॉल्ट: 10× minRelayFee)
+3. `fee_rate` (संख्यात्मक, वैकल्पिक) - BTCX/kvB में शुल्क दर (डिफ़ॉल्ट: `0` → वॉलेट का मानक न्यूनतम-शुल्क अनुमान; 10× minRelayFee डिफ़ॉल्ट केवल Qt GUI डायलॉग पर लागू होता है, इस RPC पर नहीं)
 
 **रिटर्न मान**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **लेनदेन संरचना**:
 - Input: Plot पते से UTXO (स्वामित्व सिद्ध करता है)
-- Output: OP_RETURN (46 बाइट्स): `POCX` मार्कर + plot_address (20 बाइट्स) + forging_address (20 बाइट्स)
+- Output: OP_RETURN स्क्रिप्ट (46 बाइट्स) = `OP_RETURN` ऑपकोड + 1-बाइट push लंबाई + 44-बाइट डेटा पेलोड (`POCX` मार्कर 4 + plot_address 20 + forging_address 20)
 - Output: वॉलेट में Change लौटाया गया
 
 **सक्रियण**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **पैरामीटर**:
 1. `plot_address` (स्ट्रिंग, आवश्यक) - Plot पता (निजी कुंजी होनी चाहिए, P2WPKH bech32)
-2. `fee_rate` (संख्यात्मक, वैकल्पिक) - BTC/kvB में शुल्क दर (डिफ़ॉल्ट: 10× minRelayFee)
+2. `fee_rate` (संख्यात्मक, वैकल्पिक) - BTCX/kvB में शुल्क दर (डिफ़ॉल्ट: `0` → वॉलेट का मानक न्यूनतम-शुल्क अनुमान; 10× minRelayFee डिफ़ॉल्ट केवल Qt GUI डायलॉग पर लागू होता है, इस RPC पर नहीं)
 
 **रिटर्न मान**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **लेनदेन संरचना**:
 - Input: Plot पते से UTXO (स्वामित्व सिद्ध करता है)
-- Output: OP_RETURN (26 बाइट्स): `XCOP` मार्कर + plot_address (20 बाइट्स)
+- Output: OP_RETURN स्क्रिप्ट (26 बाइट्स) = `OP_RETURN` ऑपकोड + 1-बाइट push लंबाई + 24-बाइट डेटा पेलोड (`XCOP` मार्कर 4 + plot_address 20)
 - Output: वॉलेट में Change लौटाया गया
 
 **प्रभाव**:
@@ -542,22 +536,23 @@ while True:
     # 2. Plot फ़ाइलें स्कैन करें (बाहरी कार्यान्वयन)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. सर्वोत्तम समाधान सबमिट करें
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"समाधान स्वीकृत! गुणवत्ता: {result['quality']}s, "
+    # 3. सर्वोत्तम समाधान सबमिट करें (अस्वीकृति पर JSONRPCError फेंकता है)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"समाधान स्वीकृत! गुणवत्ता: {result['raw_quality']}, "
               f"फोर्ज समय: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"अस्वीकृत: {e}")
 
     # 4. अगले ब्लॉक की प्रतीक्षा करें
     time.sleep(10)  # पोल अंतराल
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### सामान्य त्रुटि पैटर्न
 
-**ऊंचाई बेमेल**:
+**ऊंचाई बेमेल** (`RPC_INVALID_PARAMETER` फेंका गया, कोड -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **समाधान**: माइनिंग जानकारी फिर से प्राप्त करें, चेन आगे बढ़ गई
 
-**Generation Signature बेमेल**:
+**Generation Signature बेमेल** (`RPC_VERIFY_REJECTED` फेंका गया, कोड -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **समाधान**: माइनिंग जानकारी फिर से प्राप्त करें, नया ब्लॉक आया

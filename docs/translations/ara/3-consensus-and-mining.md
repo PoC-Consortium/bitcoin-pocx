@@ -26,7 +26,7 @@
 
 **الخصائص الرئيسية:**
 - **كفاءة الطاقة:** التعدين يستخدم ملفات رسم مُولّدة مسبقاً بدلاً من التجزئة الحسابية
-- **مواعيد نهائية مثنية الوقت:** تحويل التوزيع (أسي→مربع كاي) يقلل الكتل الطويلة، يحسّن متوسط أوقات الكتل
+- **مواعيد نهائية مثنية الوقت:** تحويل التوزيع (أسي→Weibull (shape k=3)) يقلل الكتل الطويلة، يحسّن متوسط أوقات الكتل
 - **دعم التعيين:** يمكن لمالكي الرسم تفويض حقوق الصياغة لعناوين أخرى
 - **تكامل C++ أصلي:** خوارزميات التشفير منفذة بـ C++ للتحقق من الإجماع
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **كتلة التكوين:** تستخدم توقيع توليد أولي مُشفّر
 
-**التنفيذ:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**التنفيذ:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (يُستدعى من `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### الهدف الأساسي (الصعوبة)
 
 الهدف الأساسي هو معكوس الصعوبة - قيم أعلى تعني تعدين أسهل.
 
 **خوارزمية التعديل:**
-- هدف وقت الكتلة: 120 ثانية (الشبكة الرئيسية)، 1 ثانية (regtest)
+- هدف وقت الكتلة: 120 ثانية (جميع الشبكات)
 - فترة التعديل: كل كتلة
 - يستخدم المتوسط المتحرك للأهداف الأساسية الأخيرة
 - محدود لمنع تقلبات الصعوبة الشديدة
@@ -112,7 +112,7 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **الحدود الديناميكية:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // الحد الأدنى المقبول
     uint32_t nPoCXTargetCompression;  // المستوى الموصى به
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### الخطوة 2: استحواذ السياق
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // يُرجع: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**الغرض:** يحوّل التوزيع الأسي إلى مربع كاي. الحلول الجيدة جداً تُصاغ لاحقاً (للشبكة وقت لمسح الأقراص)، الحلول الضعيفة تتحسن. يقلل الكتل الطويلة، يحافظ على متوسط 120 ثانية.
+**الغرض:** يحوّل التوزيع الأسي إلى توزيع Weibull (shape k=3). الحلول الجيدة جداً تُصاغ لاحقاً (للشبكة وقت لمسح الأقراص)، الحلول الضعيفة تتحسن. يقلل الكتل الطويلة، يحافظ على متوسط 120 ثانية.
 
 **التنفيذ:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**مستلم Coinbase** (غير مفروض بالإجماع):
+
+يضبط المُعدّن مخرج coinbase ليدفع للمُوقّع الفعال (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`)، لكن هذا **لا** يُتحقق منه بالإجماع. الإجماع يفرض فقط أن *توقيع الكتلة* مُنتَج من المُوقّع الفعال — فحص `bad-pocx-assignment-sig` أعلاه. لا توجد قاعدة `bad-pocx-coinbase`؛ مستلم coinbase يختاره المُعدّن.
+
 **التنفيذ:**
 - الاتصال: `src/validation.cpp:ConnectBlock()`
 - التحقق الموسع: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ ActivateBestChain (معالجة إعادة التنظيم، توسيع السل�
 - التعيينات مُخزّنة في مخرجات OP_RETURN (لا UTXO)
 - لا متطلبات إنفاق (لا غبار، لا رسوم للاحتفاظ)
 - مُتتبّعة في حالة CCoinsViewCache الموسعة
-- مُفعّلة بعد فترة تأخير (افتراضي: 4 كتل)
+- مُفعّلة بعد فترة تأخير (افتراضي: 30 كتلة؛ 4 على regtest)
 
 **حالات التعيين:**
 ```cpp

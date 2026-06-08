@@ -26,7 +26,7 @@ Bitcoin-PoCX implementează un mecanism de consens pur Proof of Capacity ca înl
 
 **Proprietăți cheie:**
 - **Eficient energetic:** Mineritul folosește fișiere plot pre-generate în loc de hashing computațional
-- **Deadline-uri Time Bended:** Transformarea distribuției (exponențială→chi-pătrat) reduce blocurile lungi, îmbunătățește timpii medii ai blocurilor
+- **Deadline-uri Time Bended:** Transformarea distribuției (exponențială→Weibull, parametru de formă k=3) reduce blocurile lungi, îmbunătățește timpii medii ai blocurilor
 - **Suport pentru atribuiri:** Proprietarii de plot-uri pot delega drepturile de forjare către alte adrese
 - **Integrare nativă C++:** Algoritmi criptografici implementați în C++ pentru validarea consensului
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Blocul genesis:** Folosește o semnătură de generare inițială codificată static
 
-**Implementare:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementare:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (apelat din `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Ținta de bază (Dificultatea)
 
 Ținta de bază este inversul dificultății - valori mai mari înseamnă minerit mai ușor.
 
 **Algoritm de ajustare:**
-- Țintă timp bloc: 120 secunde (mainnet), 1 secundă (regtest)
+- Țintă timp bloc: 120 secunde (toate rețelele)
 - Interval de ajustare: La fiecare bloc
 - Folosește media mobilă a țintelor de bază recente
 - Limitată pentru a preveni variații extreme ale dificultății
@@ -112,7 +112,7 @@ PoCX suportă proof-of-work scalabil în fișierele plot prin niveluri de scalar
 
 **Limite dinamice:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Nivel minim acceptat
     uint32_t nPoCXTargetCompression;  // Nivel recomandat
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Pasul 2: Achiziția contextului
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Returnează: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ unde:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Scop:** Transformă distribuția din exponențială în chi-pătrat. Soluțiile foarte bune sunt forjate mai târziu (rețeaua are timp să scaneze discurile), soluțiile slabe sunt îmbunătățite. Reduce blocurile lungi, menține media de 120s.
+**Scop:** Transformă distribuția din exponențială în Weibull (parametru de formă k=3). Soluțiile foarte bune sunt forjate mai târziu (rețeaua are timp să scaneze discurile), soluțiile slabe sunt îmbunătățite. Reduce blocurile lungi, menține media de 120s.
 
 **Implementare:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Destinatarul Coinbase** (neimpus de consens):
+
+Minerul setează ieșirea coinbase să plătească semnatarului efectiv (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), dar acest lucru **nu** este validat de consens. Consensul impune doar ca *semnătura blocului* să fie produsă de semnatarul efectiv — verificarea `bad-pocx-assignment-sig` de mai sus. Nu există nicio regulă `bad-pocx-coinbase`; destinatarul coinbase este ales de miner.
+
 **Implementare:**
 - Conectare: `src/validation.cpp:ConnectBlock()`
 - Validare extinsă: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Atribuirile permit proprietarilor de plot-uri să delege drepturile de forjare c
 - Atribuirile stocate în ieșiri OP_RETURN (fără UTXO)
 - Fără cerințe de cheltuire (fără praf, fără taxe pentru păstrare)
 - Urmărite în starea extinsă CCoinsViewCache
-- Activate după perioada de întârziere (implicit: 4 blocuri)
+- Activate după perioada de întârziere (implicit: 30 blocuri; 4 pe regtest)
 
 **Stările atribuirilor:**
 ```cpp

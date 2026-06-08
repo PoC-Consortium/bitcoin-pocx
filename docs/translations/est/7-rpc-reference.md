@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (täpselt 40 hex tähemärki = 20 baiti; aadressi ei aktsepteerita)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Tagastatavad väärtused** (õnnestumine):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // ajapaindega sepistamisaeg sekundites
 }
 ```
 
-**Tagastatavad väärtused** (tagasilükkamine):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+`accepted` välja ei ole. Tagasilükkamisel RPC **ei** tagasta JSON objekti — see viskab `JSONRPCError` (vt allpool veakoode).
 
 **Valideerimise sammud**:
 1. **Vormingu valideerimine** (kiire ebaõnnestumine):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Sea nonce järjekorda ajapaindega sepistamiseks
    - Plokk luuakse automaatselt forge_time'il
 
-**Veakoodid**:
-- `RPC_INVALID_PARAMETER`: Kehtetu vorming (account_id, seed) või kõrguse mittevastavus
+**Veakoodid** (visatakse kui `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Kehtetu vorming (account_id, seed) või kõrguse mittevastavus (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Genereerimisallkirja mittevastavus või tõestuse valideerimine ebaõnnestus
 - `RPC_INVALID_ADDRESS_OR_KEY`: Pole privaatvõtit efektiivse allkirjastaja jaoks
+- `RPC_WALLET_UNLOCK_NEEDED`: Rahakott, mis hoiab efektiivse allkirjastaja võtit, on lukus (ava lukk käsuga `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Esitamise järjekord täis
 - `RPC_INTERNAL_ERROR`: PoCX planeerija initsialiseerimine ebaõnnestus
 
@@ -271,7 +265,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parameetrid**:
 1. `plot_address` (string, nõutud) - Graafikuomaniku aadress (peab omama privaatvõtit, P2WPKH bech32)
 2. `forging_address` (string, nõutud) - Aadress, millele sepistamisõigused määrata (P2WPKH bech32)
-3. `fee_rate` (numbriline, valikuline) - Tasumäär BTC/kvB (vaikimisi: 10× minRelayFee)
+3. `fee_rate` (numbriline, valikuline) - Tasumäär BTCX/kvB (vaikimisi: `0` → rahakoti standardne miinimumtasu hinnang; 10× minRelayFee vaikeväärtus kehtib ainult Qt GUI dialoogile, mitte sellele RPC-le)
 
 **Tagastatavad väärtused**:
 ```json
@@ -292,7 +286,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Tehingu struktuur**:
 - Sisend: UTXO graafiku aadressilt (tõestab omandi)
-- Väljund: OP_RETURN (46 baiti): `POCX` marker + plot_address (20 baiti) + forging_address (20 baiti)
+- Väljund: OP_RETURN skript (46 baiti) = `OP_RETURN` opkood + 1-baidine push-pikkus + 44-baidine andmesisu (`POCX` marker 4 + plot_address 20 + forging_address 20)
 - Väljund: Vahetus tagastatud rahakotti
 
 **Aktiveerimine**:
@@ -325,7 +319,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parameetrid**:
 1. `plot_address` (string, nõutud) - Graafiku aadress (peab omama privaatvõtit, P2WPKH bech32)
-2. `fee_rate` (numbriline, valikuline) - Tasumäär BTC/kvB (vaikimisi: 10× minRelayFee)
+2. `fee_rate` (numbriline, valikuline) - Tasumäär BTCX/kvB (vaikimisi: `0` → rahakoti standardne miinimumtasu hinnang; 10× minRelayFee vaikeväärtus kehtib ainult Qt GUI dialoogile, mitte sellele RPC-le)
 
 **Tagastatavad väärtused**:
 ```json
@@ -344,7 +338,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Tehingu struktuur**:
 - Sisend: UTXO graafiku aadressilt (tõestab omandi)
-- Väljund: OP_RETURN (26 baiti): `XCOP` marker + plot_address (20 baiti)
+- Väljund: OP_RETURN skript (26 baiti) = `OP_RETURN` opkood + 1-baidine push-pikkus + 24-baidine andmesisu (`XCOP` marker 4 + plot_address 20)
 - Väljund: Vahetus tagastatud rahakotti
 
 **Tulemus**:
@@ -539,22 +533,23 @@ while True:
     # 2. Skaneeri graafikufaile (väline implementatsioon)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Esita parim lahendus
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Lahendus aktsepteeritud! Kvaliteet: {result['quality']}s, "
+    # 3. Esita parim lahendus (viskab tagasilükkamisel JSONRPCError)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Lahendus aktsepteeritud! Kvaliteet: {result['raw_quality']}, "
               f"Sepistamisaeg: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Tagasi lükatud: {e}")
 
     # 4. Oota järgmist plokki
     time.sleep(10)  # Pollimise intervall
@@ -625,20 +620,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Levinud veamustrid
 
-**Kõrguse mittevastavus**:
+**Kõrguse mittevastavus** (visatakse `RPC_INVALID_PARAMETER`, kood -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Lahendus**: Hangi kaevandusteave uuesti, ahel liikus edasi
 
-**Genereerimisallkirja mittevastavus**:
+**Genereerimisallkirja mittevastavus** (visatakse `RPC_VERIFY_REJECTED`, kood -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Lahendus**: Hangi kaevandusteave uuesti, uus plokk saabus

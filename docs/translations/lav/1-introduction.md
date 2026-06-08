@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problēma**: Tradicionālais PoC bloku laiki seko eksponenciālajam sadalījumam, kas noved pie gariem blokiem, kad neviens kalnracis neatrod labu risinājumu.
 
-**Risinājums**: Sadalījuma transformācija no eksponenciālā uz hī-kvadrāta, izmantojot kubsakni: `Y = skala × (X^(1/3))`.
+**Risinājums**: Sadalījuma transformācija no eksponenciālā uz Weibull (forma k=3), izmantojot kubsakni: `Y = skala × (X^(1/3))`.
 
 **Efekts**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Balstīts uz POC2 formātu (Burstcoin) ar uzlabojumiem:
 
 ## Tehnisko specifikāciju kopsavilkums
 
-- **Bloka laiks**: 120 sekundes (mainnet), 1 sekunde (regtest)
+- **Bloka laiks**: 120 sekundes (visi tīkli: mainnet, testnet, regtest)
 - **Bloka subsīdija**: 10 BTC sākotnēji, dalīšana uz pusēm ik 1050000 blokus (~4 gadi)
 - **Kopējais piedāvājums**: ~21 miljons BTC (tāpat kā Bitcoin)
 - **Nākotnes tolerance**: 15 sekundes (bloki līdz 15s uz priekšu tiek pieņemti)

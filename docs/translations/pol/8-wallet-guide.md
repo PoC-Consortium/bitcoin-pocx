@@ -112,13 +112,13 @@ Bitcoin-PoCX używa jednostki waluty **BTCX** (nie BTC):
 5. Transakcja rozgłaszana natychmiast
 6. Przydział aktywny po `nForgingAssignmentDelay` blokach:
    - Mainnet/Testnet: 30 bloków (~1 godzina)
-   - Regtest: 4 bloki (~4 sekundy)
+   - Regtest: 4 bloki (~8 minut przy odstępie 120s)
 
 **Opłata transakcyjna**: Domyślnie 10× `minRelayFee` (konfigurowalna)
 
 **Struktura transakcji**:
 - Wejście: UTXO z adresu plotu (dowodzi własności)
-- Wyjście OP_RETURN: znacznik `POCX` + adres_plotu + adres_kucia (46 bajtów)
+- Wyjście OP_RETURN (skrypt 46 bajtów, ładunek danych 44 bajty): znacznik `POCX` + adres_plotu + adres_kucia
 - Wyjście reszty: Zwracane do portfela
 
 #### Tryb 2: Cofnij przydział
@@ -137,7 +137,7 @@ Bitcoin-PoCX używa jednostki waluty **BTCX** (nie BTC):
 4. Transakcja rozgłaszana natychmiast
 5. Cofnięcie wchodzi w życie po `nForgingRevocationDelay` blokach:
    - Mainnet/Testnet: 720 bloków (~24 godziny)
-   - Regtest: 8 bloków (~8 sekund)
+   - Regtest: 8 bloków (~16 minut przy odstępie 120s)
 
 **Efekt**:
 - Adres kucia nadal może kuć podczas okresu opóźnienia
@@ -146,7 +146,7 @@ Bitcoin-PoCX używa jednostki waluty **BTCX** (nie BTC):
 
 **Struktura transakcji**:
 - Wejście: UTXO z adresu plotu (dowodzi własności)
-- Wyjście OP_RETURN: znacznik `XCOP` + adres_plotu (26 bajtów)
+- Wyjście OP_RETURN (skrypt 26 bajtów, ładunek danych 24 bajty): znacznik `XCOP` + adres_plotu
 - Wyjście reszty: Zwracane do portfela
 
 #### Tryb 3: Sprawdź status przydziału

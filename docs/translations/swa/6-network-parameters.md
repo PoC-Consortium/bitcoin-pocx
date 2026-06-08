@@ -35,7 +35,7 @@ Marejeleo kamili ya usanidi wa mtandao wa Bitcoin-PoCX kwa aina zote za mtandao.
 
 **Thamani Zilizohesabiwa**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Inatumia hali ya urekebishaji wa uwezo mdogo
+- Regtest (120s): Inatumia hali ya urekebishaji wa uwezo mdogo (base_power 2^58)
 
 ### Ujumbe wa Mwanzo
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Marekebisho ya Ugumu**:
 - **Dirisha Linalosongelea**: bloku `24`
 - **Marekebisho**: Kila bloku
-- **Algorithm**: Wastani unaosogea wa exponential
+- **Algorithm**: Wastani unaosogea wenye uzani (mtindo wa Burstcoin, kikomo cha ±20% kwa kila bloku)
 
 **Ucheleweshaji wa Ugawaji**:
 - **Uanzishaji**: bloku `30` (~saa 1)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Muda wa Bloku**:
-- **Lengo la Muda wa Bloku**: sekunde `1` (uchimbaji wa papo hapo kwa majaribio)
+- **Lengo la Muda wa Bloku**: sekunde `120` (huchimbwa kwa ombi kupitia `generatetoaddress` katika regtest)
 - **Muda wa Lengo**: sekunde `86400` (siku 1)
 - **MAX_FUTURE_BLOCK_TIME**: sekunde `15`
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Dirisha Linalosongelea**: bloku `24`
 - **Ruhusu Ugumu wa Chini**: `true`
 - **Hakuna Kulenga Upya**: `true`
-- **Urekebishaji wa Uwezo Mdogo**: `true` (inatumia urekebishaji wa nonce-16 badala ya 1 TiB)
+- **Urekebishaji wa Uwezo Mdogo**: `true` (inatumia urekebishaji wa nonce-64 ≈ 16 MiB badala ya 1 TiB)
 
 **Ucheleweshaji wa Ugawaji**:
-- **Uanzishaji**: bloku `4` (~sekunde 4)
-- **Kubatilisha**: bloku `8` (~sekunde 8)
+- **Uanzishaji**: bloku `4` (~dakika 8 kwa nafasi ya 120s)
+- **Kubatilisha**: bloku `8` (~dakika 16 kwa nafasi ya 120s)
 
 ### Vigezo vya Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Malengo ya Muda wa Bloku**:
 - Mainnet/Testnet/Signet: sekunde `120`
-- Regtest: sekunde `1`
+- Regtest: sekunde `120`
 
 **TIMESTAMP_WINDOW**: sekunde `15` (sawa na MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Vigezo vya Marekebisho ya Ugumu
 
 **Ukubwa wa Dirisha Linalosongelea**: bloku `24` (mitandao yote)
-- Wastani unaosogea wa exponential wa muda wa bloku za hivi karibuni
+- Wastani unaosogea wenye uzani wa muda wa bloku za hivi karibuni (mtindo wa Burstcoin)
 - Marekebisho ya kila bloku
 - Inajibu mabadiliko ya uwezo
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (ucheleweshaji wa uanzishaji):
 - Mainnet: bloku `30` (~saa 1)
 - Testnet: bloku `30` (~saa 1)
-- Regtest: bloku `4` (~sekunde 4)
+- Regtest: bloku `4` (~dakika 8 kwa nafasi ya 120s)
 
 **nForgingRevocationDelay** (ucheleweshaji wa kubatilisha):
 - Mainnet: bloku `720` (~saa 24)
 - Testnet: bloku `720` (~saa 24)
-- Regtest: bloku `8` (~sekunde 8)
+- Regtest: bloku `8` (~dakika 16 kwa nafasi ya 120s)
 
 **Sababu**:
 - Ucheleweshaji wa uanzishaji unazuia ugawaji upya wa haraka wakati wa mashindano ya bloku

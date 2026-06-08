@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Iegūt pašreizējo piešķīrumu
+            // Iegūt pašreizējo piešķīrumu - jābūt ASSIGNED stāvoklī, lai atsauktu
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Saglabāt veco stāvokli atsaukšanai
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Atgriež pašreizējo piešķīruma statusu plotfaila adresei:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 rindas] Marķieru definīcijas, OP_RETURN ops, īpašumtiesību pārbaude
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState palīgi
     │   ├── assignment_state.cpp   # Piešķīrumu stāvokļa vaicājumu funkcijas
+    │   ├── replay.h               # Piešķīrumu efektu reorganizācija/atkārtošana
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorganizācijas ceļš)
     │   ├── transactions.h         # Maciņa darījumu izveides API
     │   └── transactions.cpp       # create_assignment, revoke_assignment maciņa funkcijas
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, ģenēzes bāzes mērķis, kompresijas grafiks
 ```
+
+> **Piezīme:** Piešķīrumu aizkaves konstantes `nForgingAssignmentDelay` / `nForgingRevocationDelay` atrodas Bitcoin Core `Consensus::Params` (`src/consensus/params.h`) un tiek iestatītas katram tīklam `src/kernel/chainparams.cpp` — nevis `pocx/consensus/params.h`.
 
 ## Veiktspējas raksturlielumi
 
@@ -766,9 +770,8 @@ Kur n = piešķīrumu skaits plotfailam (parasti mazs, < 10)
 
 ### Testa pārklājuma jomas
 
-- Vienību testi: `src/test/pocx_*_tests.cpp`
-- Funkcionālie testi: `test/functional/feature_pocx_*.py`
-- Integrācijas testi: Manuāla testēšana ar regtest
+- Vienību testi: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integrācijas testi: regtest čaulas skripti zem `scripts/assignments/` un `scripts/mining/`
 
 ## Konsensa noteikumi
 

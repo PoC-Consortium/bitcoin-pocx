@@ -26,7 +26,7 @@ Bitcoin-PoCX įgyvendina grynąjį Proof of Capacity konsensuso mechanizmą kaip
 
 **Pagrindinės savybės:**
 - **Energijos efektyvumas:** Kasimas naudoja iš anksto sugeneruotus grafiko failus vietoj skaičiavimo maišymo
-- **Laiko lenkimo terminai:** Pasiskirstymo transformacija (eksponentinis→chi-kvadratinis) sumažina ilgus blokus, pagerina vidutinius bloko laikus
+- **Laiko lenkimo terminai:** Pasiskirstymo transformacija (eksponentinis→Weibull, formos parametras k=3) sumažina ilgus blokus, pagerina vidutinius bloko laikus
 - **Priskyrimo palaikymas:** Grafiko savininkai gali deleguoti kalimo teises kitiems adresams
 - **Natūrali C++ integracija:** Kriptografiniai algoritmai įgyvendinti C++ konsensuso validacijai
 
@@ -92,14 +92,14 @@ generationSignature = SHA256(anksčiau_generationSignature || anksčiau_kasėjo_
 
 **Pradinis blokas:** Naudoja užkoduotą pradinį generavimo parašą
 
-**Įgyvendinimas:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Įgyvendinimas:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (iškviečiama iš `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Bazinis tikslas (sudėtingumas)
 
 Bazinis tikslas yra sudėtingumo atvirkštinė reikšmė - didesnės reikšmės reiškia lengvesnį kasimą.
 
 **Koregavimo algoritmas:**
-- Tikslinis bloko laikas: 120 sekundžių (pagrindinis tinklas), 1 sekundė (regtest)
+- Tikslinis bloko laikas: 120 sekundžių (visuose tinkluose)
 - Koregavimo intervalas: Kiekvienas blokas
 - Naudoja paskutinių bazinių tikslų slenkantį vidurkį
 - Apribota, kad būtų išvengta ekstremalių sudėtingumo šuolių
@@ -112,7 +112,7 @@ PoCX palaiko keičiamą darbo įrodymą grafiko failuose per mastelio lygius (Xn
 
 **Dinaminės ribos:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimalus priimamas lygis
     uint32_t nPoCXTargetCompression;  // Rekomenduojamas lygis
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### 2 žingsnis: Konteksto gavimas
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Grąžina: height, generation_signature, base_target, block_hash
 ```
 
@@ -265,7 +265,7 @@ kur:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Paskirtis:** Transformuoja eksponentinį į chi-kvadratinį pasiskirstymą. Labai geri sprendimai kalami vėliau (tinklas turi laiko nuskaityti diskus), blogi sprendimai pagerinti. Sumažina ilgus blokus, išlaiko 120s vidurkį.
+**Paskirtis:** Transformuoja eksponentinį į Weibull (formos parametras k=3) pasiskirstymą. Labai geri sprendimai kalami vėliau (tinklas turi laiko nuskaityti diskus), blogi sprendimai pagerinti. Sumažina ilgus blokus, išlaiko 120s vidurkį.
 
 **Įgyvendinimas:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -558,6 +558,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase gavėjas** (neįgyvendinamas konsensuso):
+
+Kasėjas nustato coinbase išvestį, kad ji mokėtų efektyviajam pasirašytojui (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), tačiau to konsensusas **netikrina**. Konsensusas užtikrina tik tai, kad *bloko parašą* sukūrė efektyvusis pasirašytojas — tai aukščiau aprašytas `bad-pocx-assignment-sig` patikrinimas. Nėra jokios `bad-pocx-coinbase` taisyklės; coinbase gavėją pasirenka kasėjas.
+
 **Įgyvendinimas:**
 - Prijungimas: `src/validation.cpp:ConnectBlock()`
 - Išplėstinė validacija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -618,7 +622,7 @@ Priskyrimai leidžia grafiko savininkams deleguoti kalimo teises kitiems adresam
 - Priskyrimai saugomi OP_RETURN išvestyse (ne UTXO)
 - Nėra išleidimo reikalavimų (nėra dulkių, nėra mokesčių už laikymą)
 - Sekamas CCoinsViewCache išplėstoje būsenoje
-- Aktyvuojamas po atidėjimo periodo (numatytas: 4 blokai)
+- Aktyvuojamas po atidėjimo periodo (numatytas: 30 blokų; 4 regtest tinkle)
 
 **Priskyrimo būsenos:**
 ```cpp

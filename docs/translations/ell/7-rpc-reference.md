@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (ακριβώς 40 χαρακτήρες hex = 20 bytes· διεύθυνση δεν γίνεται δεκτή)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **Τιμές Επιστροφής** (επιτυχία):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // deadline προσαρμοσμένο σε δυσκολία σε δευτερόλεπτα
+  "raw_quality": 120,       // ακατέργαστη ποιότητα από επικύρωση απόδειξης
   "poc_time": 45            // time-bended χρόνος σφυρηλάτησης σε δευτερόλεπτα
 }
 ```
 
-**Τιμές Επιστροφής** (απόρριψη):
-```json
-{
-  "accepted": false,
-  "error": "Αναντιστοιχία generation signature"
-}
-```
+Δεν υπάρχει πεδίο `accepted`. Σε περίπτωση απόρριψης, το RPC **δεν** επιστρέφει αντικείμενο JSON — ρίχνει ένα `JSONRPCError` (δείτε Κωδικούς Σφάλματος παρακάτω).
 
 **Βήματα Επικύρωσης**:
 1. **Επικύρωση Μορφής** (fail-fast):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Προσθήκη nonce σε ουρά για time-bended σφυρηλάτηση
    - Το block θα δημιουργηθεί αυτόματα στο forge_time
 
-**Κωδικοί Σφάλματος**:
-- `RPC_INVALID_PARAMETER`: Μη έγκυρη μορφή (account_id, seed) ή αναντιστοιχία ύψους
+**Κωδικοί Σφάλματος** (ρίχνονται ως `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Μη έγκυρη μορφή (account_id, seed) ή αναντιστοιχία ύψους (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Αναντιστοιχία generation signature ή αποτυχία επικύρωσης απόδειξης
 - `RPC_INVALID_ADDRESS_OR_KEY`: Δεν υπάρχει ιδιωτικό κλειδί για effective signer
+- `RPC_WALLET_UNLOCK_NEEDED`: Το πορτοφόλι που κρατά το κλειδί του effective signer είναι κλειδωμένο (ξεκλειδώστε με `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Η ουρά υποβολής είναι γεμάτη
 - `RPC_INTERNAL_ERROR`: Αποτυχία αρχικοποίησης σχεδιαστή PoCX
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Παράμετροι**:
 1. `plot_address` (string, υποχρεωτικό) - Διεύθυνση ιδιοκτήτη plot (πρέπει να κατέχει ιδιωτικό κλειδί, P2WPKH bech32)
 2. `forging_address` (string, υποχρεωτικό) - Διεύθυνση για ανάθεση δικαιωμάτων σφυρηλάτησης (P2WPKH bech32)
-3. `fee_rate` (αριθμητικό, προαιρετικό) - Ποσοστό τέλους σε BTC/kvB (προεπιλογή: 10× minRelayFee)
+3. `fee_rate` (αριθμητικό, προαιρετικό) - Ποσοστό τέλους σε BTCX/kvB (προεπιλογή: `0` → η τυπική εκτίμηση ελάχιστου τέλους του πορτοφολιού· η προεπιλογή 10× minRelayFee ισχύει μόνο για τον διάλογο Qt GUI, όχι για αυτό το RPC)
 
 **Τιμές Επιστροφής**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Δομή Συναλλαγής**:
 - Είσοδος: UTXO από διεύθυνση plot (αποδεικνύει ιδιοκτησία)
-- Έξοδος: OP_RETURN (46 bytes): δείκτης `POCX` + plot_address (20 bytes) + forging_address (20 bytes)
+- Έξοδος: OP_RETURN script (46 bytes) = opcode `OP_RETURN` + 1 byte μήκος push + 44 bytes ωφέλιμο φορτίο δεδομένων (δείκτης `POCX` 4 + plot_address 20 + forging_address 20)
 - Έξοδος: Ρέστα επιστρέφονται στο πορτοφόλι
 
 **Ενεργοποίηση**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Παράμετροι**:
 1. `plot_address` (string, υποχρεωτικό) - Διεύθυνση plot (πρέπει να κατέχει ιδιωτικό κλειδί, P2WPKH bech32)
-2. `fee_rate` (αριθμητικό, προαιρετικό) - Ποσοστό τέλους σε BTC/kvB (προεπιλογή: 10× minRelayFee)
+2. `fee_rate` (αριθμητικό, προαιρετικό) - Ποσοστό τέλους σε BTCX/kvB (προεπιλογή: `0` → η τυπική εκτίμηση ελάχιστου τέλους του πορτοφολιού· η προεπιλογή 10× minRelayFee ισχύει μόνο για τον διάλογο Qt GUI, όχι για αυτό το RPC)
 
 **Τιμές Επιστροφής**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Δομή Συναλλαγής**:
 - Είσοδος: UTXO από διεύθυνση plot (αποδεικνύει ιδιοκτησία)
-- Έξοδος: OP_RETURN (26 bytes): δείκτης `XCOP` + plot_address (20 bytes)
+- Έξοδος: OP_RETURN script (26 bytes) = opcode `OP_RETURN` + 1 byte μήκος push + 24 bytes ωφέλιμο φορτίο δεδομένων (δείκτης `XCOP` 4 + plot_address 20)
 - Έξοδος: Ρέστα επιστρέφονται στο πορτοφόλι
 
 **Αποτέλεσμα**:
@@ -542,22 +536,23 @@ while True:
     # 2. Σάρωση αρχείων plot (εξωτερική υλοποίηση)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Υποβολή καλύτερης λύσης
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Λύση έγινε αποδεκτή! Ποιότητα: {result['quality']}s, "
+    # 3. Υποβολή καλύτερης λύσης (ρίχνει JSONRPCError σε απόρριψη)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Λύση έγινε αποδεκτή! Ποιότητα: {result['raw_quality']}, "
               f"Χρόνος σφυρηλάτησης: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Απορρίφθηκε: {e}")
 
     # 4. Αναμονή για επόμενο block
     time.sleep(10)  # Διάστημα ερωτήματος
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Κοινά Μοτίβα Σφαλμάτων
 
-**Αναντιστοιχία Ύψους**:
+**Αναντιστοιχία Ύψους** (ρίχνεται `RPC_INVALID_PARAMETER`, κωδικός -8):
 ```json
 {
-  "accepted": false,
-  "error": "Αναντιστοιχία ύψους: υποβλήθηκε 12345, τρέχον 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Λύση**: Επαναλήψτε λήψη πληροφοριών εξόρυξης, η αλυσίδα προχώρησε
 
-**Αναντιστοιχία Generation Signature**:
+**Αναντιστοιχία Generation Signature** (ρίχνεται `RPC_VERIFY_REJECTED`, κωδικός -26):
 ```json
 {
-  "accepted": false,
-  "error": "Αναντιστοιχία generation signature"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Λύση**: Επαναλήψτε λήψη πληροφοριών εξόρυξης, έφτασε νέο block

@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Probleem**: Traditsioonilised PoC plokkide ajad järgivad eksponentsiaalset jaotust, mis viib pikkade plokkideni, kui ükski kaevandaja ei leia head lahendust.
 
-**Lahendus**: Jaotuse teisendamine eksponentsiaalsest hii-ruut jaotuseks kuupjuurega: `Y = skaala × (X^(1/3))`.
+**Lahendus**: Jaotuse teisendamine eksponentsiaalsest Weibull (kuju k=3) jaotuseks kuupjuurega: `Y = skaala × (X^(1/3))`.
 
 **Tulemus**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Põhineb POC2 vormingul (Burstcoin) täiustustega:
 
 ## Tehniliste spetsifikatsioonide kokkuvõte
 
-- **Plokkide aeg**: 120 sekundit (mainnet), 1 sekund (regtest)
+- **Plokkide aeg**: 120 sekundit (kõik võrgud: mainnet, testnet, regtest)
 - **Ploki subsiidium**: 10 BTC algne, poolnemine iga 1050000 ploki järel (~4 aastat)
 - **Kogumaht**: ~21 miljonit BTC (sama mis Bitcoinil)
 - **Tuleviku tolerants**: 15 sekundit (plokid kuni 15s ees aktsepteeritakse)

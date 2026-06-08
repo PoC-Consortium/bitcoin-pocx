@@ -35,7 +35,7 @@ Kompletne odniesienie dla konfiguracji sieci Bitcoin-PoCX we wszystkich typach s
 
 **Obliczone wartości**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Używa trybu kalibracji niskiej pojemności
+- Regtest (120s): Używa trybu kalibracji niskiej pojemności (base_power 2^58)
 
 ### Wiadomość genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Dostosowanie trudności**:
 - **Okno kroczące**: `24` bloki
 - **Dostosowanie**: Przy każdym bloku
-- **Algorytm**: Wykładnicza średnia krocząca
+- **Algorytm**: Ważona średnia krocząca (styl Burstcoin, limit ±20% na blok)
 
 **Opóźnienia przydziałów**:
 - **Aktywacja**: `30` bloków (~1 godzina)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Czasy bloków**:
-- **Docelowy czas bloku**: `1` sekunda (natychmiastowe wydobycie do testów)
+- **Docelowy czas bloku**: `120` sekund (wydobywane na żądanie przez `generatetoaddress` w regtest)
 - **Docelowy przedział czasowy**: `86400` sekund (1 dzień)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekund
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Okno kroczące**: `24` bloki
 - **Dozwolona minimalna trudność**: `true`
 - **Brak ponownego celowania**: `true`
-- **Kalibracja niskiej pojemności**: `true` (używa kalibracji 16-nonce zamiast 1 TiB)
+- **Kalibracja niskiej pojemności**: `true` (używa kalibracji 64-nonce ≈ 16 MiB zamiast 1 TiB)
 
 **Opóźnienia przydziałów**:
-- **Aktywacja**: `4` bloki (~4 sekundy)
-- **Cofnięcie**: `8` bloków (~8 sekund)
+- **Aktywacja**: `4` bloki (~8 minut przy odstępie 120s)
+- **Cofnięcie**: `8` bloków (~16 minut przy odstępie 120s)
 
 ### Parametry signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Docelowe czasy bloków**:
 - Mainnet/Testnet/Signet: `120` sekund
-- Regtest: `1` sekunda
+- Regtest: `120` sekund
 
 **TIMESTAMP_WINDOW**: `15` sekund (równe MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Parametry dostosowania trudności
 
 **Rozmiar okna kroczącego**: `24` bloki (wszystkie sieci)
-- Wykładnicza średnia krocząca ostatnich czasów bloków
+- Ważona średnia krocząca ostatnich czasów bloków (styl Burstcoin)
 - Dostosowanie przy każdym bloku
 - Responsywne na zmiany pojemności
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (opóźnienie aktywacji):
 - Mainnet: `30` bloków (~1 godzina)
 - Testnet: `30` bloków (~1 godzina)
-- Regtest: `4` bloki (~4 sekundy)
+- Regtest: `4` bloki (~8 minut przy odstępie 120s)
 
 **nForgingRevocationDelay** (opóźnienie cofnięcia):
 - Mainnet: `720` bloków (~24 godziny)
 - Testnet: `720` bloków (~24 godziny)
-- Regtest: `8` bloków (~8 sekund)
+- Regtest: `8` bloków (~16 minut przy odstępie 120s)
 
 **Uzasadnienie**:
 - Opóźnienie aktywacji zapobiega szybkim zmianom przydziałów podczas wyścigów bloków

@@ -26,7 +26,7 @@
 
 **Βασικές Ιδιότητες:**
 - **Ενεργειακά Αποδοτική:** Η εξόρυξη χρησιμοποιεί προ-δημιουργημένα αρχεία plot αντί υπολογιστικού hashing
-- **Time Bended Deadlines:** Μετασχηματισμός κατανομής (εκθετική→chi-squared) μειώνει τα μεγάλα blocks, βελτιώνει τους μέσους χρόνους block
+- **Time Bended Deadlines:** Μετασχηματισμός κατανομής (εκθετική→Weibull (shape k=3)) μειώνει τα μεγάλα blocks, βελτιώνει τους μέσους χρόνους block
 - **Υποστήριξη Αναθέσεων:** Οι ιδιοκτήτες plot μπορούν να αναθέσουν δικαιώματα σφυρηλάτησης σε άλλες διευθύνσεις
 - **Εγγενής Ενσωμάτωση C++:** Κρυπτογραφικοί αλγόριθμοι υλοποιημένοι σε C++ για επικύρωση συναίνεσης
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis Block:** Χρησιμοποιεί μια σκληροκωδικοποιημένη αρχική generation signature
 
-**Υλοποίηση:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Υλοποίηση:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (καλείται από `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Δυσκολία)
 
 Το base target είναι το αντίστροφο της δυσκολίας - υψηλότερες τιμές σημαίνουν ευκολότερη εξόρυξη.
 
 **Αλγόριθμος Προσαρμογής:**
-- Στόχος χρόνου block: 120 δευτερόλεπτα (mainnet), 1 δευτερόλεπτο (regtest)
+- Στόχος χρόνου block: 120 δευτερόλεπτα (όλα τα δίκτυα)
 - Διάστημα προσαρμογής: Κάθε block
 - Χρησιμοποιεί κινητό μέσο όρο πρόσφατων base targets
 - Περιορίζεται για αποτροπή ακραίων διακυμάνσεων δυσκολίας
@@ -112,7 +112,7 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Δυναμικά Όρια:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Ελάχιστο αποδεκτό επίπεδο
     uint32_t nPoCXTargetCompression;  // Συνιστώμενο επίπεδο
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Βήμα 2: Απόκτηση Context
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Επιστρέφει: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Σκοπός:** Μετασχηματίζει εκθετική σε κατανομή chi-squared. Πολύ καλές λύσεις σφυρηλατούνται αργότερα (το δίκτυο έχει χρόνο να σαρώσει δίσκους), οι κακές λύσεις βελτιώνονται. Μειώνει τα μεγάλα blocks, διατηρεί μέσο όρο 120s.
+**Σκοπός:** Μετασχηματίζει εκθετική σε κατανομή Weibull (shape k=3). Πολύ καλές λύσεις σφυρηλατούνται αργότερα (το δίκτυο έχει χρόνο να σαρώσει δίσκους), οι κακές λύσεις βελτιώνονται. Μειώνει τα μεγάλα blocks, διατηρεί μέσο όρο 120s.
 
 **Υλοποίηση:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Παραλήπτης Coinbase** (δεν επιβάλλεται από τη συναίνεση):
+
+Ο miner ορίζει την έξοδο coinbase ώστε να πληρώνει τον effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), αλλά αυτό **δεν** επικυρώνεται από τη συναίνεση. Η συναίνεση επιβάλλει μόνο ότι η *υπογραφή του block* παράγεται από τον effective signer — ο έλεγχος `bad-pocx-assignment-sig` παραπάνω. Δεν υπάρχει κανόνας `bad-pocx-coinbase`· ο παραλήπτης coinbase επιλέγεται από τον miner.
+
 **Υλοποίηση:**
 - Σύνδεση: `src/validation.cpp:ConnectBlock()`
 - Εκτεταμένη επικύρωση: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ ActivateBestChain (χειρισμός reorg, επέκταση αλυσίδας)
 - Οι αναθέσεις αποθηκεύονται σε εξόδους OP_RETURN (χωρίς UTXO)
 - Χωρίς απαιτήσεις δαπάνης (χωρίς dust, χωρίς τέλη για κράτηση)
 - Παρακολούθηση σε εκτεταμένη κατάσταση CCoinsViewCache
-- Ενεργοποιούνται μετά από περίοδο καθυστέρησης (προεπιλογή: 4 blocks)
+- Ενεργοποιούνται μετά από περίοδο καθυστέρησης (προεπιλογή: 30 blocks· 4 σε regtest)
 
 **Καταστάσεις Ανάθεσης:**
 ```cpp

@@ -111,13 +111,13 @@ Bitcoin-PoCX kasutab **BTCX** valuutaühikut (mitte BTC):
 5. Tehing edastatakse kohe
 6. Ülesanne aktiivne pärast `nForgingAssignmentDelay` plokke:
    - Mainnet/Testnet: 30 plokki (~1 tund)
-   - Regtest: 4 plokki (~4 sekundit)
+   - Regtest: 4 plokki (~8 minutit 120s sammuga)
 
 **Tehingutasu**: Vaikimisi 10× `minRelayFee` (kohandatav)
 
 **Tehingu struktuur**:
 - Sisend: UTXO graafiku aadressilt (tõestab omandi)
-- OP_RETURN väljund: `POCX` marker + graafiku_aadress + sepistamise_aadress (46 baiti)
+- OP_RETURN väljund (46-baidine skript, 44-baidine andmesisu): `POCX` marker + graafiku_aadress + sepistamise_aadress
 - Vahetusväljund: Tagastatakse rahakotti
 
 #### Režiim 2: Tühista ülesanne
@@ -136,7 +136,7 @@ Bitcoin-PoCX kasutab **BTCX** valuutaühikut (mitte BTC):
 4. Tehing edastatakse kohe
 5. Tühistamine jõustub pärast `nForgingRevocationDelay` plokke:
    - Mainnet/Testnet: 720 plokki (~24 tundi)
-   - Regtest: 8 plokki (~8 sekundit)
+   - Regtest: 8 plokki (~16 minutit 120s sammuga)
 
 **Tulemus**:
 - Sepistamise aadress saab endiselt sepistada viivitusperioodi jooksul
@@ -145,7 +145,7 @@ Bitcoin-PoCX kasutab **BTCX** valuutaühikut (mitte BTC):
 
 **Tehingu struktuur**:
 - Sisend: UTXO graafiku aadressilt (tõestab omandi)
-- OP_RETURN väljund: `XCOP` marker + graafiku_aadress (26 baiti)
+- OP_RETURN väljund (26-baidine skript, 24-baidine andmesisu): `XCOP` marker + graafiku_aadress
 - Vahetusväljund: Tagastatakse rahakotti
 
 #### Režiim 3: Kontrolli ülesande staatust

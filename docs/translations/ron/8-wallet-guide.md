@@ -112,13 +112,13 @@ Bitcoin-PoCX folosește unitatea monetară **BTCX** (nu BTC):
 5. Tranzacția este difuzată imediat
 6. Atribuirea devine activă după `nForgingAssignmentDelay` blocuri:
    - Mainnet/Testnet: 30 blocuri (~1 oră)
-   - Regtest: 4 blocuri (~4 secunde)
+   - Regtest: 4 blocuri (~8 minute la spațiere de 120s)
 
 **Taxa de tranzacție**: Implicit 10× `minRelayFee` (personalizabilă)
 
 **Structura tranzacției**:
 - Intrare: UTXO de la adresa plot (demonstrează proprietatea)
-- Ieșire OP_RETURN: marker `POCX` + plot_address + forging_address (46 octeți)
+- Ieșire OP_RETURN (script de 46 octeți, sarcină utilă de date de 44 octeți): marker `POCX` + plot_address + forging_address
 - Ieșire rest: Returnat în portofel
 
 #### Modul 2: Revocare atribuire
@@ -137,7 +137,7 @@ Bitcoin-PoCX folosește unitatea monetară **BTCX** (nu BTC):
 4. Tranzacția este difuzată imediat
 5. Revocarea devine efectivă după `nForgingRevocationDelay` blocuri:
    - Mainnet/Testnet: 720 blocuri (~24 ore)
-   - Regtest: 8 blocuri (~8 secunde)
+   - Regtest: 8 blocuri (~16 minute la spațiere de 120s)
 
 **Efect**:
 - Adresa de forjare poate încă forja în perioada de întârziere
@@ -146,7 +146,7 @@ Bitcoin-PoCX folosește unitatea monetară **BTCX** (nu BTC):
 
 **Structura tranzacției**:
 - Intrare: UTXO de la adresa plot (demonstrează proprietatea)
-- Ieșire OP_RETURN: marker `XCOP` + plot_address (26 octeți)
+- Ieșire OP_RETURN (script de 26 octeți, sarcină utilă de date de 24 octeți): marker `XCOP` + plot_address
 - Ieșire rest: Returnat în portofel
 
 #### Modul 3: Verificare stare atribuire

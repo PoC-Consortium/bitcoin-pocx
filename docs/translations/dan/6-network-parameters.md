@@ -35,7 +35,7 @@ Komplet reference til Bitcoin-PoCX-netvaerkskonfiguration pa tvaers af alle netv
 
 **Beregnede vaerdier**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Bruger lavkapacitetskalibreringtilstand
+- Regtest (120s): Bruger lavkapacitetskalibreringtilstand (base_power 2^58)
 
 ### Genesis-meddelelse
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Svaerhedsjustering**:
 - **Rullende vindue**: `24` blokke
 - **Justering**: Hver blok
-- **Algoritme**: Eksponentielt glidende gennemsnit
+- **Algoritme**: Vaegtet glidende gennemsnit (Burstcoin-stil, ±20% loft per blok)
 
 **Assignment-forsinkelser**:
 - **Aktivering**: `30` blokke (~1 time)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Bloktiming**:
-- **Bloktidsmal**: `1` sekund (ojeblikkelig mining til test)
+- **Bloktidsmal**: `120` sekunder (mines on demand via `generatetoaddress` i regtest)
 - **Maltidsrum**: `86400` sekunder (1 dag)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekunder
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Rullende vindue**: `24` blokke
 - **Tillad min. svaerhed**: `true`
 - **Ingen retargeting**: `true`
-- **Lavkapacitetskalibrering**: `true` (bruger 16-nonce kalibrering i stedet for 1 TiB)
+- **Lavkapacitetskalibrering**: `true` (bruger 64-nonce kalibrering ≈ 16 MiB i stedet for 1 TiB)
 
 **Assignment-forsinkelser**:
-- **Aktivering**: `4` blokke (~4 sekunder)
-- **Tilbagekaldelse**: `8` blokke (~8 sekunder)
+- **Aktivering**: `4` blokke (~8 minutter ved 120s-afstand)
+- **Tilbagekaldelse**: `8` blokke (~16 minutter ved 120s-afstand)
 
 ### Signet-parametre
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Bloktidsmal**:
 - Mainnet/Testnet/Signet: `120` sekunder
-- Regtest: `1` sekund
+- Regtest: `120` sekunder
 
 **TIMESTAMP_WINDOW**: `15` sekunder (lig med MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Svaerhedsjusteringsparametre
 
 **Rullende vinduesstorrelse**: `24` blokke (alle netvaerk)
-- Eksponentielt glidende gennemsnit af nylige bloktider
+- Vaegtet glidende gennemsnit af nylige bloktider (Burstcoin-stil)
 - Justering ved hver blok
 - Responsiv over for kapacitetsaendringer
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktiveringsforsinkelse):
 - Mainnet: `30` blokke (~1 time)
 - Testnet: `30` blokke (~1 time)
-- Regtest: `4` blokke (~4 sekunder)
+- Regtest: `4` blokke (~8 minutter ved 120s-afstand)
 
 **nForgingRevocationDelay** (tilbagekaldelsesforsinkelse):
 - Mainnet: `720` blokke (~24 timer)
 - Testnet: `720` blokke (~24 timer)
-- Regtest: `8` blokke (~8 sekunder)
+- Regtest: `8` blokke (~16 minutter ved 120s-afstand)
 
 **Rationale**:
 - Aktiveringsforsinkelse forebygger hurtig omtildeling under blokveddelob

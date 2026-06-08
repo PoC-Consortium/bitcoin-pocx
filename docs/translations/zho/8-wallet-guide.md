@@ -107,13 +107,13 @@ Bitcoin-PoCX 使用 **BTCX** 货币单位（不是 BTC）：
 5. 交易立即广播
 6. 委派在 `nForgingAssignmentDelay` 个区块后激活：
    - 主网/测试网：30 个区块（约 1 小时）
-   - Regtest：4 个区块（约 4 秒）
+   - Regtest：4 个区块（在 120 秒间隔下约 8 分钟）
 
 **交易费用**：默认 10 倍 `minRelayFee`（可自定义）
 
 **交易结构**：
 - 输入：来自绘图地址的 UTXO（证明所有权）
-- OP_RETURN 输出：`POCX` 标记 + plot_address + forging_address（46 字节）
+- OP_RETURN 输出（46 字节脚本，44 字节数据负载）：`POCX` 标记 + plot_address + forging_address
 - 找零输出：返回钱包
 
 #### 模式 2：撤销委派
@@ -132,7 +132,7 @@ Bitcoin-PoCX 使用 **BTCX** 货币单位（不是 BTC）：
 4. 交易立即广播
 5. 撤销在 `nForgingRevocationDelay` 个区块后生效：
    - 主网/测试网：720 个区块（约 24 小时）
-   - Regtest：8 个区块（约 8 秒）
+   - Regtest：8 个区块（在 120 秒间隔下约 16 分钟）
 
 **效果**：
 - 锻造地址在延迟期内仍可锻造
@@ -141,7 +141,7 @@ Bitcoin-PoCX 使用 **BTCX** 货币单位（不是 BTC）：
 
 **交易结构**：
 - 输入：来自绘图地址的 UTXO（证明所有权）
-- OP_RETURN 输出：`XCOP` 标记 + plot_address（26 字节）
+- OP_RETURN 输出（26 字节脚本，24 字节数据负载）：`XCOP` 标记 + plot_address
 - 找零输出：返回钱包
 
 #### 模式 3：检查委派状态

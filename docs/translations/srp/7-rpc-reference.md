@@ -106,7 +106,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (тачно 40 хекс карактера = 20 бајтова; адреса се не прихвата)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -115,19 +115,12 @@ bitcoin-cli get_mining_info
 **Повратне вредности** (успех):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // рок подешен тежином у секундама
+  "raw_quality": 120,       // сирови квалитет из валидације доказа
   "poc_time": 45            // време ковања савијено временом у секундама
 }
 ```
 
-**Повратне вредности** (одбијено):
-```json
-{
-  "accepted": false,
-  "error": "Неподударање генерацијског потписа"
-}
-```
+Не постоји поље `accepted`. При одбијању RPC **не** враћа JSON објекат — баца `JSONRPCError` (видети Кодове грешака испод).
 
 **Кораци валидације**:
 1. **Валидација формата** (брзи неуспех):
@@ -146,10 +139,11 @@ bitcoin-cli get_mining_info
    - Стави nonce у ред чекања за ковање са савијањем времена
    - Блок ће бити аутоматски креиран у forge_time
 
-**Кодови грешака**:
-- `RPC_INVALID_PARAMETER`: Неважећи формат (account_id, seed) или неподударање висине
+**Кодови грешака** (бацају се као `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Неважећи формат (account_id, seed) или неподударање висине (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Неподударање генерацијског потписа или неуспела валидација доказа
 - `RPC_INVALID_ADDRESS_OR_KEY`: Нема приватног кључа за ефективног потписника
+- `RPC_WALLET_UNLOCK_NEEDED`: Новчаник који држи кључ ефективног потписника је закључан (откључајте са `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Ред чекања за слање је пун
 - `RPC_INTERNAL_ERROR`: Неуспела иницијализација PoCX планера
 
@@ -272,7 +266,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Параметри**:
 1. `plot_address` (стринг, обавезан) - Адреса власника плота (мора имати приватни кључ, P2WPKH bech32)
 2. `forging_address` (стринг, обавезан) - Адреса којој се додељују права ковања (P2WPKH bech32)
-3. `fee_rate` (нумерички, опционо) - Стопа накнаде у BTC/kvB (подразумевано: 10× minRelayFee)
+3. `fee_rate` (нумерички, опционо) - Стопа накнаде у BTCX/kvB (подразумевано: `0` → стандардна процена минималне накнаде новчаника; подразумевана вредност 10× minRelayFee примењује се само на Qt GUI дијалог, не на овај RPC)
 
 **Повратне вредности**:
 ```json
@@ -293,7 +287,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Структура трансакције**:
 - Улаз: UTXO од адресе плота (доказује власништво)
-- Излаз: OP_RETURN (46 бајтова): `POCX` маркер + plot_address (20 бајтова) + forging_address (20 бајтова)
+- Излаз: OP_RETURN скрипта (46 бајтова) = `OP_RETURN` опкод + 1-бајтна дужина push-а + 44-бајтни корисни терет података (`POCX` маркер 4 + plot_address 20 + forging_address 20)
 - Излаз: Кусур враћен новчанику
 
 **Активација**:
@@ -327,7 +321,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Параметри**:
 1. `plot_address` (стринг, обавезан) - Адреса плота (мора имати приватни кључ, P2WPKH bech32)
-2. `fee_rate` (нумерички, опционо) - Стопа накнаде у BTC/kvB (подразумевано: 10× minRelayFee)
+2. `fee_rate` (нумерички, опционо) - Стопа накнаде у BTCX/kvB (подразумевано: `0` → стандардна процена минималне накнаде новчаника; подразумевана вредност 10× minRelayFee примењује се само на Qt GUI дијалог, не на овај RPC)
 
 **Повратне вредности**:
 ```json
@@ -346,7 +340,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Структура трансакције**:
 - Улаз: UTXO од адресе плота (доказује власништво)
-- Излаз: OP_RETURN (26 бајтова): `XCOP` маркер + plot_address (20 бајтова)
+- Излаз: OP_RETURN скрипта (26 бајтова) = `OP_RETURN` опкод + 1-бајтна дужина push-а + 24-бајтни корисни терет података (`XCOP` маркер 4 + plot_address 20)
 - Излаз: Кусур враћен новчанику
 
 **Ефекат**:
@@ -541,22 +535,23 @@ while True:
     # 2. Скенирај плот датотеке (спољна имплементација)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Пошаљи најбоље решење
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Решење прихваћено! Квалитет: {result['quality']}s, "
+    # 3. Пошаљи најбоље решење (баца JSONRPCError при одбијању)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Решење прихваћено! Квалитет: {result['raw_quality']}, "
               f"Време ковања: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Одбијено: {e}")
 
     # 4. Сачекај следећи блок
     time.sleep(10)  # Интервал испитивања
@@ -627,20 +622,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Уобичајени обрасци грешака
 
-**Неподударање висине**:
+**Неподударање висине** (баца се `RPC_INVALID_PARAMETER`, код -8):
 ```json
 {
-  "accepted": false,
-  "error": "Неподударање висине: послато 12345, тренутно 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Решење**: Поново преузми информације о рударењу, ланац се померио унапред
 
-**Неподударање генерацијског потписа**:
+**Неподударање генерацијског потписа** (баца се `RPC_VERIFY_REJECTED`, код -26):
 ```json
 {
-  "accepted": false,
-  "error": "Неподударање генерацијског потписа"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Решење**: Поново преузми информације о рударењу, нови блок је стигао

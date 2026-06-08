@@ -112,13 +112,13 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 5. Transação transmitida imediatamente
 6. Atribuição ativa após `nForgingAssignmentDelay` blocos:
    - Mainnet/Testnet: 30 blocos (~1 hora)
-   - Regtest: 4 blocos (~4 segundos)
+   - Regtest: 4 blocos (~8 minutos com espaçamento de 120s)
 
 **Taxa de Transação**: Padrão 10× `minRelayFee` (personalizável)
 
 **Estrutura de Transação**:
 - Input: UTXO do endereço do plot (prova propriedade)
-- Saída OP_RETURN: marcador `POCX` + plot_address + forging_address (44 bytes)
+- Saída OP_RETURN (script de 46 bytes, payload de dados de 44 bytes): marcador `POCX` + plot_address + forging_address
 - Saída de troco: Retornado para carteira
 
 #### Modo 2: Revogar Atribuição
@@ -137,7 +137,7 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 4. Transação transmitida imediatamente
 5. Revogação efetiva após `nForgingRevocationDelay` blocos:
    - Mainnet/Testnet: 720 blocos (~24 horas)
-   - Regtest: 8 blocos (~8 segundos)
+   - Regtest: 8 blocos (~16 minutos com espaçamento de 120s)
 
 **Efeito**:
 - Endereço de forja ainda pode forjar durante período de atraso
@@ -146,7 +146,7 @@ O Bitcoin-PoCX usa a unidade de moeda **BTCX** (não BTC):
 
 **Estrutura de Transação**:
 - Input: UTXO do endereço do plot (prova propriedade)
-- Saída OP_RETURN: marcador `XCOP` + plot_address (24 bytes)
+- Saída OP_RETURN (script de 26 bytes, payload de dados de 24 bytes): marcador `XCOP` + plot_address
 - Saída de troco: Retornado para carteira
 
 #### Modo 3: Verificar Status de Atribuição

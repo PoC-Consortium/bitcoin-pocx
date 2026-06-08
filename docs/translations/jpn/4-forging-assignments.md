@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // 現在の割り当てを取得
+            // 現在の割り当てを取得 - 取り消すにはASSIGNED状態である必要がある
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // 取り消し用に古い状態を保存
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259行] マーカー定義、OP_RETURN操作、所有権チェック
     │   ├── assignment_state.h     # GetEffectiveSigner、GetAssignmentStateヘルパー
     │   ├── assignment_state.cpp   # 割り当て状態クエリ関数
+    │   ├── replay.h               # 割り当て効果の再編成/リプレイ
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay（再編成パス）
     │   ├── transactions.h         # ウォレットトランザクション作成API
     │   └── transactions.cpp       # create_assignment、revoke_assignmentウォレット関数
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment、revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay、nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds、ジェネシスベースターゲット、圧縮スケジュール
 ```
+
+> **注:** 割り当て遅延定数 `nForgingAssignmentDelay` / `nForgingRevocationDelay` はBitcoin Coreの `Consensus::Params`（`src/consensus/params.h`）にあり、ネットワークごとに `src/kernel/chainparams.cpp` で設定されます — `pocx/consensus/params.h` ではありません。
 
 ## パフォーマンス特性
 
@@ -766,9 +770,8 @@ nはプロットの割り当て数（通常小さい、< 10）
 
 ### テストカバレッジ領域
 
-- ユニットテスト: `src/test/pocx_*_tests.cpp`
-- 機能テスト: `test/functional/feature_pocx_*.py`
-- 統合テスト: regtestでの手動テスト
+- ユニットテスト: `src/test/pocx_tests.cpp`、`src/test/pocx_simd_tests.cpp`
+- 統合テスト: `scripts/assignments/` および `scripts/mining/` 配下のregtestシェルスクリプト
 
 ## コンセンサスルール
 

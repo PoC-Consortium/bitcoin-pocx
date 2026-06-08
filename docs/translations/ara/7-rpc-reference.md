@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (بالضبط 40 حرف hex = 20 بايت؛ العنوان غير مقبول)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **القيم المُرجعة** (النجاح):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // الموعد النهائي المُعدّل للصعوبة بالثواني
+  "raw_quality": 120,       // الجودة الخام من التحقق من الإثبات
   "poc_time": 45            // وقت الصياغة المثني بالثواني
 }
 ```
 
-**القيم المُرجعة** (الرفض):
-```json
-{
-  "accepted": false,
-  "error": "عدم تطابق توقيع التوليد"
-}
-```
+لا يوجد حقل `accepted`. عند الرفض **لا** يُرجع RPC كائن JSON — بل يطرح `JSONRPCError` (انظر رموز الخطأ أدناه).
 
 **خطوات التحقق**:
 1. **التحقق من الصيغة** (فشل سريع):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - وضع nonce في الطابور للصياغة المثنية للوقت
    - الكتلة ستُنشأ تلقائياً عند forge_time
 
-**رموز الخطأ**:
-- `RPC_INVALID_PARAMETER`: صيغة غير صالحة (account_id، seed) أو عدم تطابق الارتفاع
+**رموز الخطأ** (تُطرح كـ `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: صيغة غير صالحة (account_id، seed) أو عدم تطابق الارتفاع (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: عدم تطابق توقيع التوليد أو فشل التحقق من الإثبات
 - `RPC_INVALID_ADDRESS_OR_KEY`: لا مفتاح خاص للمُوقّع الفعال
+- `RPC_WALLET_UNLOCK_NEEDED`: المحفظة التي تحمل مفتاح المُوقّع الفعال مقفلة (افتحها بـ `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: طابور الإرسال ممتلئ
 - `RPC_INTERNAL_ERROR`: فشل تهيئة مجدول PoCX
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **المعلمات**:
 1. `plot_address` (سلسلة، مطلوب) - عنوان مالك الرسم (يجب ملك المفتاح الخاص، P2WPKH bech32)
 2. `forging_address` (سلسلة، مطلوب) - العنوان لتعيين حقوق الصياغة له (P2WPKH bech32)
-3. `fee_rate` (رقمي، اختياري) - معدل الرسوم بـ BTC/kvB (افتراضي: 10× minRelayFee)
+3. `fee_rate` (رقمي، اختياري) - معدل الرسوم بـ BTCX/kvB (افتراضي: `0` → تقدير الحد الأدنى القياسي لرسوم المحفظة؛ الافتراضي 10× minRelayFee يُطبّق فقط على نافذة Qt GUI، وليس على هذا الـ RPC)
 
 **القيم المُرجعة**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **هيكل المعاملة**:
 - المدخل: UTXO من عنوان الرسم (يثبت الملكية)
-- المخرج: OP_RETURN (46 بايت): علامة `POCX` + plot_address (20 بايت) + forging_address (20 بايت)
+- المخرج: سكريبت OP_RETURN (46 بايت) = كود `OP_RETURN` + بايت طول الدفع (1 بايت) + حمولة بيانات 44 بايت (علامة `POCX` 4 + plot_address 20 + forging_address 20)
 - المخرج: التغيير يُعاد للمحفظة
 
 **التفعيل**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **المعلمات**:
 1. `plot_address` (سلسلة، مطلوب) - عنوان الرسم (يجب ملك المفتاح الخاص، P2WPKH bech32)
-2. `fee_rate` (رقمي، اختياري) - معدل الرسوم بـ BTC/kvB (افتراضي: 10× minRelayFee)
+2. `fee_rate` (رقمي، اختياري) - معدل الرسوم بـ BTCX/kvB (افتراضي: `0` → تقدير الحد الأدنى القياسي لرسوم المحفظة؛ الافتراضي 10× minRelayFee يُطبّق فقط على نافذة Qt GUI، وليس على هذا الـ RPC)
 
 **القيم المُرجعة**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **هيكل المعاملة**:
 - المدخل: UTXO من عنوان الرسم (يثبت الملكية)
-- المخرج: OP_RETURN (26 بايت): علامة `XCOP` + plot_address (20 بايت)
+- المخرج: سكريبت OP_RETURN (26 بايت) = كود `OP_RETURN` + بايت طول الدفع (1 بايت) + حمولة بيانات 24 بايت (علامة `XCOP` 4 + plot_address 20)
 - المخرج: التغيير يُعاد للمحفظة
 
 **التأثير**:
@@ -541,22 +535,23 @@ while True:
     # 2. مسح ملفات الرسم (تنفيذ خارجي)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. إرسال أفضل حل
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"الحل مقبول! الجودة: {result['quality']}ث، "
+    # 3. إرسال أفضل حل (يطرح JSONRPCError عند الرفض)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"الحل مقبول! الجودة: {result['raw_quality']}، "
               f"وقت الصياغة: {result['poc_time']}ث")
+    except JSONRPCError as e:
+        print(f"مرفوض: {e}")
 
     # 4. انتظار الكتلة التالية
     time.sleep(10)  # فترة الاستطلاع
@@ -627,20 +622,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### أنماط الأخطاء الشائعة
 
-**عدم تطابق الارتفاع**:
+**عدم تطابق الارتفاع** (يُطرح `RPC_INVALID_PARAMETER`، الرمز -8):
 ```json
 {
-  "accepted": false,
-  "error": "عدم تطابق الارتفاع: المُرسل 12345، الحالي 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **الحل**: أعد جلب معلومات التعدين، السلسلة تقدمت
 
-**عدم تطابق توقيع التوليد**:
+**عدم تطابق توقيع التوليد** (يُطرح `RPC_VERIFY_REJECTED`، الرمز -26):
 ```json
 {
-  "accepted": false,
-  "error": "عدم تطابق توقيع التوليد"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **الحل**: أعد جلب معلومات التعدين، كتلة جديدة وصلت

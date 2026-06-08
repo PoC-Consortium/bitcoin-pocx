@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (dokładnie 40 znaków hex = 20 bajtów; adres nie jest akceptowany)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **Wartości zwracane** (sukces):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // deadline dostosowany do trudności w sekundach
+  "raw_quality": 120,       // surowa jakość z walidacji dowodu
   "poc_time": 45            // zgięty czasowo czas kucia w sekundach
 }
 ```
 
-**Wartości zwracane** (odrzucone):
-```json
-{
-  "accepted": false,
-  "error": "Niezgodność sygnatury generacji"
-}
-```
+Nie ma pola `accepted`. Przy odrzuceniu RPC **nie** zwraca obiektu JSON — zgłasza `JSONRPCError` (zobacz Kody błędów poniżej).
 
 **Kroki walidacji**:
 1. **Walidacja formatu** (szybkie niepowodzenie):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Kolejkuj nonce do zgiętego czasowo kucia
    - Blok zostanie utworzony automatycznie w forge_time
 
-**Kody błędów**:
-- `RPC_INVALID_PARAMETER`: Nieprawidłowy format (account_id, seed) lub niezgodność wysokości
+**Kody błędów** (zgłaszane jako `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Nieprawidłowy format (account_id, seed) lub niezgodność wysokości (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Niezgodność sygnatury generacji lub niepowodzenie walidacji dowodu
 - `RPC_INVALID_ADDRESS_OR_KEY`: Brak klucza prywatnego dla efektywnego podpisującego
+- `RPC_WALLET_UNLOCK_NEEDED`: Portfel przechowujący klucz efektywnego podpisującego jest zablokowany (odblokuj za pomocą `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Kolejka zgłoszeń pełna
 - `RPC_INTERNAL_ERROR`: Nie udało się zainicjalizować harmonogramu PoCX
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametry**:
 1. `plot_address` (string, wymagany) - Adres właściciela plotu (musi posiadać klucz prywatny, P2WPKH bech32)
 2. `forging_address` (string, wymagany) - Adres do przydzielenia praw kucia (P2WPKH bech32)
-3. `fee_rate` (numeryczny, opcjonalny) - Stawka opłaty w BTC/kvB (domyślnie: 10× minRelayFee)
+3. `fee_rate` (numeryczny, opcjonalny) - Stawka opłaty w BTCX/kvB (domyślnie: `0` → standardowy szacunek minimalnej opłaty portfela; domyślna wartość 10× minRelayFee dotyczy wyłącznie okna dialogowego Qt GUI, a nie tego RPC)
 
 **Wartości zwracane**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Struktura transakcji**:
 - Wejście: UTXO z adresu plotu (dowodzi własności)
-- Wyjście: OP_RETURN (46 bajtów): znacznik `POCX` + adres_plotu (20 bajtów) + adres_kucia (20 bajtów)
+- Wyjście: skrypt OP_RETURN (46 bajtów) = opkod `OP_RETURN` + 1-bajtowa długość push + 44-bajtowy ładunek danych (znacznik `POCX` 4 + plot_address 20 + forging_address 20)
 - Wyjście: Reszta zwracana do portfela
 
 **Aktywacja**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametry**:
 1. `plot_address` (string, wymagany) - Adres plotu (musi posiadać klucz prywatny, P2WPKH bech32)
-2. `fee_rate` (numeryczny, opcjonalny) - Stawka opłaty w BTC/kvB (domyślnie: 10× minRelayFee)
+2. `fee_rate` (numeryczny, opcjonalny) - Stawka opłaty w BTCX/kvB (domyślnie: `0` → standardowy szacunek minimalnej opłaty portfela; domyślna wartość 10× minRelayFee dotyczy wyłącznie okna dialogowego Qt GUI, a nie tego RPC)
 
 **Wartości zwracane**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Struktura transakcji**:
 - Wejście: UTXO z adresu plotu (dowodzi własności)
-- Wyjście: OP_RETURN (26 bajtów): znacznik `XCOP` + adres_plotu (20 bajtów)
+- Wyjście: skrypt OP_RETURN (26 bajtów) = opkod `OP_RETURN` + 1-bajtowa długość push + 24-bajtowy ładunek danych (znacznik `XCOP` 4 + plot_address 20)
 - Wyjście: Reszta zwracana do portfela
 
 **Efekt**:
@@ -542,22 +536,23 @@ while True:
     # 2. Skanuj pliki plot (zewnętrzna implementacja)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Zgłoś najlepsze rozwiązanie
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Rozwiązanie zaakceptowane! Jakość: {result['quality']}s, "
+    # 3. Zgłoś najlepsze rozwiązanie (zgłasza JSONRPCError przy odrzuceniu)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Rozwiązanie zaakceptowane! Jakość: {result['raw_quality']}, "
               f"Czas kucia: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Odrzucono: {e}")
 
     # 4. Czekaj na następny blok
     time.sleep(10)  # Interwał odpytywania
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Typowe wzorce błędów
 
-**Niezgodność wysokości**:
+**Niezgodność wysokości** (zgłaszane `RPC_INVALID_PARAMETER`, kod -8):
 ```json
 {
-  "accepted": false,
-  "error": "Niezgodność wysokości: zgłoszona 12345, aktualna 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Rozwiązanie**: Ponownie pobierz informacje wydobycia, łańcuch poszedł do przodu
 
-**Niezgodność sygnatury generacji**:
+**Niezgodność sygnatury generacji** (zgłaszane `RPC_VERIFY_REJECTED`, kod -26):
 ```json
 {
-  "accepted": false,
-  "error": "Niezgodność sygnatury generacji"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Rozwiązanie**: Ponownie pobierz informacje wydobycia, przybył nowy blok

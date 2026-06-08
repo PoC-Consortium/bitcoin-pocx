@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Probléma**: A hagyományos PoC blokkidők exponenciális eloszlást követnek, ami hosszú blokkokhoz vezet, amikor egyetlen bányász sem talál jó megoldást.
 
-**Megoldás**: Eloszlás transzformáció exponenciálisról chi-négyzetre köbgyök használatával: `Y = skála × (X^(1/3))`.
+**Megoldás**: Eloszlás transzformáció exponenciálisról Weibull-ra (alak k=3) köbgyök használatával: `Y = skála × (X^(1/3))`.
 
 **Hatás**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ A POC2 formátumon alapul (Burstcoin) fejlesztésekkel:
 
 ## Műszaki Specifikációk Összefoglaló
 
-- **Blokkidő**: 120 másodperc (mainnet), 1 másodperc (regtest)
+- **Blokkidő**: 120 másodperc (minden hálózat: mainnet, testnet, regtest)
 - **Blokk Jutalom**: 10 BTC kezdetben, felezés minden 1050000 blokkonként (~4 év)
 - **Teljes Kínálat**: ~21 millió BTC (megegyezik a Bitcoin-nal)
 - **Jövőbeli Tűrés**: 15 másodperc (legfeljebb 15mp-re előre lévő blokkok elfogadva)

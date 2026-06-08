@@ -106,13 +106,13 @@ Bitcoin-PoCX **BTCX** para birimi birimini kullanır (BTC değil):
 5. İşlem hemen yayınlanır
 6. `nForgingAssignmentDelay` bloktan sonra atama aktif olur:
    - Mainnet/Testnet: 30 blok (~1 saat)
-   - Regtest: 4 blok (~4 saniye)
+   - Regtest: 4 blok (~8 dakika 120s aralıkta)
 
 **İşlem Ücreti**: Varsayılan 10× `minRelayFee` (özelleştirilebilir)
 
 **İşlem Yapısı**:
 - Giriş: Plot adresinden UTXO (sahipliği kanıtlar)
-- OP_RETURN çıktısı: `POCX` işareti + plot_address + forging_address (46 bayt)
+- OP_RETURN çıktısı: `POCX` işareti + plot_address + forging_address (46 baytlık betik, 44 baytlık veri yükü)
 - Para üstü çıktısı: Cüzdana döner
 
 #### Mod 2: Atama İptali
@@ -131,7 +131,7 @@ Bitcoin-PoCX **BTCX** para birimi birimini kullanır (BTC değil):
 4. İşlem hemen yayınlanır
 5. `nForgingRevocationDelay` bloktan sonra iptal geçerli olur:
    - Mainnet/Testnet: 720 blok (~24 saat)
-   - Regtest: 8 blok (~8 saniye)
+   - Regtest: 8 blok (~16 dakika 120s aralıkta)
 
 **Etki**:
 - Dövme adresi gecikme süresi boyunca hala dövebilir
@@ -140,7 +140,7 @@ Bitcoin-PoCX **BTCX** para birimi birimini kullanır (BTC değil):
 
 **İşlem Yapısı**:
 - Giriş: Plot adresinden UTXO (sahipliği kanıtlar)
-- OP_RETURN çıktısı: `XCOP` işareti + plot_address (26 bayt)
+- OP_RETURN çıktısı: `XCOP` işareti + plot_address (26 baytlık betik, 24 baytlık veri yükü)
 - Para üstü çıktısı: Cüzdana döner
 
 #### Mod 3: Atama Durumunu Kontrol Et

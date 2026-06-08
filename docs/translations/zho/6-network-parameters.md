@@ -35,7 +35,7 @@ Bitcoin-PoCX 所有网络类型的网络配置完整参考。
 
 **计算值**：
 - 主网/测试网/Signet（120秒）：`36650387592`
-- Regtest（1秒）：使用低容量校准模式
+- Regtest（120秒）：使用低容量校准模式（base_power 2^58）
 
 ### 创世消息
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **难度调整**：
 - **滚动窗口**：`24` 个区块
 - **调整**：每个区块
-- **算法**：指数移动平均
+- **算法**：加权移动平均（Burstcoin 风格，每区块 ±20% 上限）
 
 **委派延迟**：
 - **激活**：`30` 个区块（约 1 小时）
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY：`239`
 
 **区块时间**：
-- **区块时间目标**：`1` 秒（用于测试的即时挖矿）
+- **区块时间目标**：`120` 秒（在 regtest 中通过 `generatetoaddress` 按需挖矿）
 - **目标时间跨度**：`86400` 秒（1 天）
 - **MAX_FUTURE_BLOCK_TIME**：`15` 秒
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **滚动窗口**：`24` 个区块
 - **允许最小难度**：`true`
 - **无重定向**：`true`
-- **低容量校准**：`true`（使用 16 nonce 校准而非 1 TiB）
+- **低容量校准**：`true`（使用 64 nonce 校准 ≈ 16 MiB 而非 1 TiB）
 
 **委派延迟**：
-- **激活**：`4` 个区块（约 4 秒）
-- **撤销**：`8` 个区块（约 8 秒）
+- **激活**：`4` 个区块（在 120 秒间隔下约 8 分钟）
+- **撤销**：`8` 个区块（在 120 秒间隔下约 16 分钟）
 
 ### Signet 参数
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### 难度调整参数
 
 **滚动窗口大小**：`24` 个区块（所有网络）
-- 最近区块时间的指数移动平均
+- 最近区块时间的加权移动平均（Burstcoin 风格）
 - 逐块调整
 - 对容量变化响应迅速
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay**（激活延迟）：
 - 主网：`30` 个区块（约 1 小时）
 - 测试网：`30` 个区块（约 1 小时）
-- Regtest：`4` 个区块（约 4 秒）
+- Regtest：`4` 个区块（在 120 秒间隔下约 8 分钟）
 
 **nForgingRevocationDelay**（撤销延迟）：
 - 主网：`720` 个区块（约 24 小时）
 - 测试网：`720` 个区块（约 24 小时）
-- Regtest：`8` 个区块（约 8 秒）
+- Regtest：`8` 个区块（在 120 秒间隔下约 16 分钟）
 
 **原理**：
 - 激活延迟防止区块竞争期间的快速重新分配

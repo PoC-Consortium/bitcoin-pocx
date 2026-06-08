@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Πρόβλημα**: Οι παραδοσιακοί χρόνοι block PoC ακολουθούν εκθετική κατανομή, οδηγώντας σε μεγάλα blocks όταν κανένας εξορύκτης δεν βρίσκει καλή λύση.
 
-**Λύση**: Μετασχηματισμός κατανομής από εκθετική σε chi-squared χρησιμοποιώντας κυβική ρίζα: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**Λύση**: Μετασχηματισμός κατανομής από εκθετική σε Weibull (shape k=3) χρησιμοποιώντας κυβική ρίζα: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **Αποτέλεσμα**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ cmake --build build
 
 ## Σύνοψη Τεχνικών Προδιαγραφών
 
-- **Χρόνος Block**: 120 δευτερόλεπτα (mainnet), 1 δευτερόλεπτο (regtest)
+- **Χρόνος Block**: 120 δευτερόλεπτα (όλα τα δίκτυα: mainnet, testnet, regtest)
 - **Επιδότηση Block**: 10 BTC αρχικά, halving κάθε 1050000 blocks (~4 χρόνια)
 - **Συνολική Προσφορά**: ~21 εκατομμύρια BTC (ίδια με το Bitcoin)
 - **Ανοχή Μέλλοντος**: 15 δευτερόλεπτα (blocks έως 15s μπροστά γίνονται αποδεκτά)

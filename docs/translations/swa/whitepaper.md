@@ -12,7 +12,7 @@ Makubaliano ya Proof-of-Work (PoW) ya Bitcoin yanatoa usalama imara lakini yanat
 
 Utekelezaji wetu unaanzisha uvumbuzi kadhaa muhimu:
 (1) Muundo wa plot ulioimarishwa unaondoa mashambulizi yote yanayojulikana ya ubadilishaji wa wakati-kumbukumbu katika mifumo iliyopo ya PoC, kuhakikisha kuwa nguvu ya uchimbaji inayofanya kazi inabaki kulingana sawia na uwezo wa kuhifadhi uliojitolea;
-(2) Algoriti ya Time-Bending, inayobadilisha usambazaji wa tarehe za mwisho kutoka exponential hadi chi-squared, kupunguza tofauti ya muda wa block bila kubadilisha wastani;
+(2) Algoriti ya Time-Bending, inayobadilisha usambazaji wa tarehe za mwisho kutoka exponential hadi Weibull (kipimo cha umbo k=3), kupunguza tofauti ya muda wa block bila kubadilisha wastani;
 (3) Utaratibu wa kugawia uundaji unaotegemea OP_RETURN unaowezesha uchimbaji wa pool bila uhifadhi wa fedha; na
 (4) Ukadiriaji wa ukandamizaji unaobadilika, unaoongeza ugumu wa uundaji wa plot kulingana na ratiba za nusu ili kudumisha margin za usalama za muda mrefu kadri vifaa vinavyoboreshwa.
 
@@ -297,14 +297,16 @@ Ili kuhifadhi margin ya usalama iliyokusudiwa, PoCX inatekeleza ratiba ya ukadir
 
 Ratiba inalingana na motisha za kiuchumi za mtandao, hasa nusu za zawadi za block. Kadri zawadi kwa block inavyopungua, kiwango cha chini kinaongezeka polepole, kuhifadhi usawa kati ya juhudi za uundaji wa plot na uwezekano wa uchimbaji:
 
-| Kipindi | Miaka | Nusu | Ukadiriaji wa Chini | Kizidishio cha Kazi ya Plot |
+| Kipindi | Miaka | Nusu | Ukadiriaji wa Chini | Kazi ya Plot (ikilinganishwa na msingi wa POC2) |
 |---------|-------|------|---------------------|----------------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2× msingi |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4× msingi |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8× msingi |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16× msingi |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32× msingi |
-| Epoch 5 | 124+ | 31+ | X6 | 64× msingi |
+| Epoch 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Safu ya kizidishio imeonyeshwa ikilinganishwa na msingi wa **POC2** usioimarishwa. Kwa kuwa muundo ulioimarishwa wa X1 tayari unajumuisha 2× ya kazi ya POC2, kiwango Xn ni sawa na 2ⁿ × POC2 — sawa na 2^(n-1) × X1, kulingana na ufafanuzi wa kila kiwango katika Sehemu 3.5.
 
 Wachimbaji wanaweza kwa hiari kuandaa plot zinazozidi kiwango cha sasa cha chini kwa kiwango kimoja, kuwaruhusu kupanga mapema na kuepuka maboresho ya mara moja wakati mtandao unapohamia epoch inayofuata. Hatua hii ya hiari haitoi faida ya ziada kulingana na uwezekano wa block—inaruhusu tu mpito laini wa uendeshaji.
 
@@ -438,11 +440,11 @@ Jedwali zilizo hapa chini zinaonyesha muhtasari wa mipangilio ya mainnet, testne
 | Baiti za uchawi | `0xfa 0xbf 0xb5 0xda` |
 | Mlango wa kawaida | 18444 |
 | Bech32 HRP | `rpocx` |
-| Lengo la muda wa block | sekunde 1 |
+| Lengo la muda wa block | sekunde 120 |
 | Muda wa nusu | block 500 |
 | Uanzishaji wa ugawaji | block 4 |
 | Ubatilishaji wa ugawaji | block 8 |
-| Hali ya uwezo mdogo | Imewezeshwa (~MB 4 plot) |
+| Hali ya uwezo mdogo | Imewezeshwa (~16 MiB plot, nonce 64) |
 
 ---
 

@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Dapatkan penugasan saat ini
+            // Dapatkan penugasan saat ini - harus dalam status ASSIGNED untuk dicabut
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Simpan status lama untuk undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Mengembalikan status penugasan saat ini untuk alamat plot:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Definisi marker, ops OP_RETURN, pemeriksaan kepemilikan
     │   ├── assignment_state.h     # Helper GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Fungsi kueri status penugasan
+    │   ├── replay.h               # Reorg/replay efek penugasan
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (jalur reorg)
     │   ├── transactions.h         # API pembuatan transaksi dompet
     │   └── transactions.cpp       # Fungsi dompet create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, target dasar genesis, jadwal kompresi
 ```
+
+> **Catatan:** Konstanta penundaan penugasan `nForgingAssignmentDelay` / `nForgingRevocationDelay` berada di `Consensus::Params` Bitcoin Core (`src/consensus/params.h`) dan diatur per-jaringan di `src/kernel/chainparams.cpp` — bukan di `pocx/consensus/params.h`.
 
 ## Karakteristik Kinerja
 
@@ -766,9 +770,8 @@ Di mana n = jumlah penugasan untuk plot (biasanya kecil, < 10)
 
 ### Area Cakupan Pengujian
 
-- Unit test: `src/test/pocx_*_tests.cpp`
-- Functional test: `test/functional/feature_pocx_*.py`
-- Integration test: Pengujian manual dengan regtest
+- Unit test: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integration test: skrip shell regtest di bawah `scripts/assignments/` dan `scripts/mining/`
 
 ## Aturan Konsensus
 

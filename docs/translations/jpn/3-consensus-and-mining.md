@@ -26,7 +26,7 @@ Bitcoin-PoCXは、BitcoinのProof of Workの完全な代替として、純粋な
 
 **主要特性:**
 - **エネルギー効率**: マイニングは計算ハッシングの代わりに事前生成されたプロットファイルを使用
-- **タイムベンドされたデッドライン**: 分布変換（指数→カイ二乗）が長いブロックを削減し、平均ブロック時間を改善
+- **タイムベンドされたデッドライン**: 分布変換（指数→Weibull、形状 k=3）が長いブロックを削減し、平均ブロック時間を改善
 - **割り当てサポート**: プロット所有者はフォージング権限を他のアドレスに委譲可能
 - **ネイティブC++統合**: 暗号アルゴリズムはコンセンサス検証のためにC++で実装
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **ジェネシスブロック:** ハードコードされた初期生成署名を使用
 
-**実装:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**実装:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()`（`src/pocx/mining/block_context.cpp:GetNewBlockContext()`から呼び出し）
 
 ### ベースターゲット（難易度）
 
 ベースターゲットは難易度の逆数です - 高い値はより簡単なマイニングを意味します。
 
 **調整アルゴリズム:**
-- ターゲットブロック時間: 120秒（メインネット）、1秒（regtest）
+- ターゲットブロック時間: 120秒（全ネットワーク）
 - 調整間隔: 毎ブロック
 - 最近のベースターゲットの移動平均を使用
 - 極端な難易度変動を防ぐためにクランプ
@@ -112,7 +112,7 @@ PoCXはスケーリングレベル（Xn）を通じてプロットファイル�
 
 **動的境界:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // 受け入れられる最小レベル
     uint32_t nPoCXTargetCompression;  // 推奨レベル
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### ステップ2: コンテキスト取得
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // 戻り値: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**目的:** 指数分布からカイ二乗分布への変換。非常に良い解は遅くフォージ（ネットワークがディスクをスキャンする時間を確保）、悪い解は改善。長いブロックを削減、120秒平均を維持。
+**目的:** 指数分布からWeibull分布（形状 k=3）への変換。非常に良い解は遅くフォージ（ネットワークがディスクをスキャンする時間を確保）、悪い解は改善。長いブロックを削減、120秒平均を維持。
 
 **実装:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -554,6 +554,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase受取人**（コンセンサスで強制されない）:
+
+マイナーがCoinbase出力を有効な署名者へ支払うよう設定します（`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`）が、これはコンセンサスでは検証**されません**。コンセンサスが強制するのは*ブロック署名*が有効な署名者によって生成されることのみ — 上記の`bad-pocx-assignment-sig`チェックです。`bad-pocx-coinbase`ルールは存在しません；Coinbase受取人はマイナーが選択します。
+
 **実装:**
 - 接続: `src/validation.cpp:ConnectBlock()`
 - 拡張検証: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -614,7 +618,7 @@ ActivateBestChain（再編成処理、チェーン拡張）
 - 割り当てはOP_RETURN出力に保存（UTXOなし）
 - 支出要件なし（ダストなし、保持用手数料なし）
 - CCoinsViewCache拡張状態で追跡
-- 遅延期間後にアクティベート（デフォルト: 4ブロック）
+- 遅延期間後にアクティベート（デフォルト: 30ブロック; regtestでは4）
 
 **割り当て状態:**
 ```cpp

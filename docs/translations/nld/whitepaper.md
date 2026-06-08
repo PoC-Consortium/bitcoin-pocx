@@ -12,7 +12,7 @@ Bitcoin's Proof-of-Work (PoW) consensus biedt robuuste beveiliging maar verbruik
 
 Onze implementatie introduceert verschillende belangrijke innovaties:
 (1) Een verhard plotformaat dat alle bekende tijd-geheugen-afwegingsaanvallen in bestaande PoC-systemen elimineert, waardoor effectieve miningkracht strikt evenredig blijft aan toegewezen opslagcapaciteit;
-(2) Het Time-Bending-algoritme, dat deadline-distributies transformeert van exponentieel naar chi-kwadraat, waardoor bloktijdvariantie wordt verminderd zonder het gemiddelde te wijzigen;
+(2) Het Time-Bending-algoritme, dat deadline-distributies transformeert van exponentieel naar Weibull (vormparameter k=3), waardoor bloktijdvariantie wordt verminderd zonder het gemiddelde te wijzigen;
 (3) Een OP_RETURN-gebaseerd forging-toewijzingsmechanisme dat niet-custodiale pool-mining mogelijk maakt; en
 (4) Dynamische compressieschaling, die plotgeneratiemoeilijkheid verhoogt in lijn met halveringsschema's om langetermijn-veiligheidsmarges te behouden naarmate hardware verbetert.
 
@@ -297,14 +297,16 @@ Om de beoogde veiligheidsmarge te behouden, implementeert PoCX een schalingssche
 
 Het schema is afgestemd op de economische prikkels van het netwerk, met name blokbeloningshalveringen. Naarmate de beloning per blok afneemt, neemt het minimumniveau geleidelijk toe, wat de balans behoudt tussen plotteringsinspanning en miningpotentieel:
 
-| Periode | Jaren | Halveringen | Min schaling | Plotwerk-multiplicator |
+| Periode | Jaren | Halveringen | Min schaling | Plotwerk (t.o.v. POC2-basislijn) |
 |---------|-------|-------------|--------------|------------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2x basislijn |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4x basislijn |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8x basislijn |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16x basislijn |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32x basislijn |
-| Epoch 5 | 124+ | 31+ | X6 | 64x basislijn |
+| Epoch 0 | 0-4 | 0 | X1 | 2x POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4x POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8x POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16x POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32x POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64x POC2 |
+
+De multiplicatorkolom wordt uitgedrukt ten opzichte van de niet-verharde **POC2**-basislijn. Aangezien het verharde X1-formaat al 2× het werk van POC2 inbedt, is niveau Xn gelijk aan 2ⁿ × POC2 — equivalent aan 2^(n-1) × X1, overeenkomstig de definitie per niveau in Sectie 3.5.
 
 Miners kunnen optioneel plots voorbereiden die het huidige minimum met een niveau overschrijden, waardoor ze vooruit kunnen plannen en onmiddellijke upgrades kunnen voorkomen wanneer het netwerk overgaat naar de volgende epoch. Deze optionele stap biedt geen aanvullend voordeel in termen van blokwaarschijnlijkheid - het staat alleen een soepelere operationele transitie toe.
 
@@ -438,11 +440,11 @@ De tabellen hieronder vatten de resulterende mainnet-, testnet- en regtest-inste
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Standaardpoort | 18444 |
 | Bech32 HRP | `rpocx` |
-| Bloktijddoel | 1 seconde |
+| Bloktijddoel | 120 seconden |
 | Halveringsinterval | 500 blokken |
 | Toewijzingsactivering | 4 blokken |
 | Toewijzingsintrekking | 8 blokken |
-| Lage-capaciteitsmodus | Ingeschakeld (~4 MB plots) |
+| Lage-capaciteitsmodus | Ingeschakeld (~16 MiB plots, 64 nonces) |
 
 ---
 

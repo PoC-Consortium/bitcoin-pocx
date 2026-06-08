@@ -12,7 +12,7 @@ Bitcoins Proof-of-Work (PoW)-konsensus gir robust sikkerhet, men bruker betydeli
 
 Vår implementasjon introduserer flere viktige innovasjoner:
 (1) Et herdet plotformat som eliminerer alle kjente tid-minne-avveiningsangrep i eksisterende PoC-systemer, og sikrer at effektiv miningkraft forblir strengt proporsjonal med forpliktet lagringskapasitet;
-(2) Time-Bending-algoritmen, som transformerer deadline-fordelinger fra eksponentiell til kjikvadrat, og reduserer blokktidsvarians uten å endre gjennomsnittet;
+(2) Time-Bending-algoritmen, som transformerer deadline-fordelinger fra eksponentiell til Weibull (formparameter k=3), og reduserer blokktidsvarians uten å endre gjennomsnittet;
 (3) En OP_RETURN-basert forging-tildelingsmekanisme som muliggjør ikke-depotmessig pool-mining; og
 (4) Dynamisk komprimeringsskalering, som øker plotgenereringsvanskeligheten i tråd med halveringsplaner for å opprettholde langsiktige sikkerhetsmarginer etter hvert som maskinvare forbedres.
 
@@ -297,14 +297,16 @@ For å bevare den tiltenkte sikkerhetsmarginen, implementerer PoCX en skalerings
 
 Planen er på linje med nettverkets økonomiske insentiver, spesielt blokkbelønningshalveringer. Etter hvert som belønningen per blokk reduseres, øker minimumsnivået gradvis, og bevarer balansen mellom plottinginnsats og miningpotensial:
 
-| Periode | År | Halveringer | Min skalering | Plotarbeidsmultiplikator |
+| Periode | År | Halveringer | Min skalering | Plotarbeid (vs. POC2-grunnlinje) |
 |---------|-----|-------------|---------------|-------------------------|
-| Epoke 0 | 0-4 | 0 | X1 | 2× grunnlinje |
-| Epoke 1 | 4-12 | 1-2 | X2 | 4× grunnlinje |
-| Epoke 2 | 12-28 | 3-6 | X3 | 8× grunnlinje |
-| Epoke 3 | 28-60 | 7-14 | X4 | 16× grunnlinje |
-| Epoke 4 | 60-124 | 15-30 | X5 | 32× grunnlinje |
-| Epoke 5 | 124+ | 31+ | X6 | 64× grunnlinje |
+| Epoke 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoke 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoke 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoke 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoke 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoke 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Multiplikatorkolonnen uttrykkes i forhold til den uherdede **POC2**-grunnlinjen. Siden det herdede X1-formatet allerede innebygger 2× arbeidet til POC2, tilsvarer nivå Xn 2ⁿ × POC2 — ekvivalent med 2^(n-1) × X1, i samsvar med definisjonen per nivå i seksjon 3.5.
 
 Minere kan valgfritt forberede plotter som overstiger gjeldende minimum med ett nivå, noe som lar dem planlegge fremover og unngå umiddelbare oppgraderinger når nettverket går over til neste epoke. Dette valgfrie trinnet gir ingen ekstra fordel når det gjelder blokkssannsynlighet - det tillater bare en jevnere operasjonell overgang.
 
@@ -438,11 +440,11 @@ Tabellene nedenfor oppsummerer de resulterende mainnet-, testnett- og regtest-in
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Standardport | 18444 |
 | Bech32 HRP | `rpocx` |
-| Blokktidsmål | 1 sekund |
+| Blokktidsmål | 120 sekunder |
 | Halveringsintervall | 500 blokker |
 | Tildelingsaktivering | 4 blokker |
 | Tildelingsoppheving | 8 blokker |
-| Lavkapasitetsmodus | Aktivert (~4 MB plotter) |
+| Lavkapasitetsmodus | Aktivert (~16 MiB plotter, 64 nonces) |
 
 ---
 

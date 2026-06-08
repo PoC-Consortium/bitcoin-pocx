@@ -26,7 +26,7 @@ Bitcoin-PoCX toteuttaa puhtaan Proof of Capacity -konsensusmekanismin täydellis
 
 **Keskeiset ominaisuudet:**
 - **Energiatehokas:** Louhinta käyttää esigeneroituja plottitiedostoja laskennallisen tiivistämisen sijaan
-- **Aikataivutetut deadlinet:** Jakauman muunnos (eksponentiaalinen→khii-neliö) vähentää pitkiä lohkoja, parantaa keskimääräisiä lohkoaikoja
+- **Aikataivutetut deadlinet:** Jakauman muunnos (eksponentiaalinen→Weibull, muoto k=3) vähentää pitkiä lohkoja, parantaa keskimääräisiä lohkoaikoja
 - **Delegointituki:** Plotin omistajat voivat delegoida forging-oikeudet muille osoitteille
 - **Natiivi C++-integraatio:** Kryptografiset algoritmit toteutettu C++:lla konsensusvalidointia varten
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis-lohko:** Käyttää kovakoodattua alkuperäistä generoinnin allekirjoitusta
 
-**Toteutus:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Toteutus:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (kutsutaan tiedostosta `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Perustavoite (vaikeus)
 
 Perustavoite on vaikeuden käänteisluku – korkeammat arvot tarkoittavat helpompaa louhintaa.
 
 **Säätöalgoritmi:**
-- Tavoitelohkoaika: 120 sekuntia (mainnet), 1 sekunti (regtest)
+- Tavoitelohkoaika: 120 sekuntia (kaikki verkot)
 - Säätöväli: Jokainen lohko
 - Käyttää viimeaikaisten perustavoitteiden liukuvaa keskiarvoa
 - Rajoitettu estämään äärimmäiset vaikeuden heilahtelut
@@ -112,7 +112,7 @@ PoCX tukee skaalautuvaa proof-of-workia plottitiedostoissa skaalaustason (Xn) ka
 
 **Dynaamiset rajat:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Vähimmäishyväksytty taso
     uint32_t nPoCXTargetCompression;  // Suositeltu taso
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) hylkää;
 
 #### Vaihe 2: Kontekstin hankinta
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Palauttaa: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ missä:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Tarkoitus:** Muuntaa eksponentiaalijakauman khii-neliö-jakaumaksi. Erittäin hyvät ratkaisut forgataan myöhemmin (verkolla on aikaa skannata levyt), huonot ratkaisut parannetaan. Vähentää pitkiä lohkoja, säilyttää 120s keskiarvon.
+**Tarkoitus:** Muuntaa eksponentiaalijakauman Weibull (muoto k=3) -jakaumaksi. Erittäin hyvät ratkaisut forgataan myöhemmin (verkolla on aikaa skannata levyt), huonot ratkaisut parannetaan. Vähentää pitkiä lohkoja, säilyttää 120s keskiarvon.
 
 **Toteutus:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase-saaja** (ei konsensuksen valvoma):
+
+Louhija asettaa coinbase-tulosteen maksamaan tehokkaalle allekirjoittajalle (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mutta konsensus **ei** validoi tätä. Konsensus valvoo vain sitä, että *lohkon allekirjoituksen* tuottaa tehokas allekirjoittaja — yllä oleva `bad-pocx-assignment-sig`-tarkistus. `bad-pocx-coinbase`-sääntöä ei ole olemassa; coinbase-saajan valitsee louhija.
+
 **Toteutus:**
 - Liittäminen: `src/validation.cpp:ConnectBlock()`
 - Laajennettu validointi: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Delegoinnit mahdollistavat plotin omistajien delegoida forging-oikeudet muille o
 - Delegoinnit tallennetaan OP_RETURN-tulosteisiin (ei UTXO:ta)
 - Ei kulutusvaatimuksia (ei pölyä, ei maksuja pitämisestä)
 - Seurataan CCoinsViewCache-laajennettua tilaa
-- Aktivoidaan viivejakson jälkeen (oletus: 4 lohkoa)
+- Aktivoidaan viivejakson jälkeen (oletus: 30 lohkoa; 4 regtestissä)
 
 **Delegointitilat:**
 ```cpp

@@ -26,7 +26,7 @@ Bitcoin-PoCX implementa un mecanismo de consenso de Prueba de Capacidad puro com
 
 **Propiedades clave:**
 - **Eficiente energéticamente:** La minería usa archivos de parcela pregenerados en lugar de hashing computacional
-- **Plazos con flexión temporal:** Transformación de distribución (exponencial→chi-cuadrado) reduce bloques largos, mejora tiempos promedio de bloque
+- **Plazos con flexión temporal:** Transformación de distribución (exponencial→Weibull, parámetro de forma k=3) reduce bloques largos, mejora tiempos promedio de bloque
 - **Soporte de asignaciones:** Los propietarios de parcelas pueden delegar derechos de forjado a otras direcciones
 - **Integración nativa en C++:** Algoritmos criptográficos implementados en C++ para validación de consenso
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Bloque génesis:** Usa una firma de generación inicial codificada
 
-**Implementación:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementación:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (llamado desde `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Objetivo base (dificultad)
 
 El objetivo base es el inverso de la dificultad - valores más altos significan minería más fácil.
 
 **Algoritmo de ajuste:**
-- Objetivo de tiempo de bloque: 120 segundos (mainnet), 1 segundo (regtest)
+- Objetivo de tiempo de bloque: 120 segundos (todas las redes)
 - Intervalo de ajuste: Cada bloque
 - Usa promedio móvil de objetivos base recientes
 - Limitado para prevenir oscilaciones extremas de dificultad
@@ -112,7 +112,7 @@ PoCX soporta prueba de trabajo escalable en archivos de parcela a través de niv
 
 **Límites dinámicos:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Nivel mínimo aceptado
     uint32_t nPoCXTargetCompression;  // Nivel recomendado
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) rechazar;
 
 #### Paso 2: Adquisición de contexto
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Devuelve: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ donde:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Propósito:** Transforma distribución exponencial a chi-cuadrado. Las soluciones muy buenas se forjan más tarde (la red tiene tiempo de escanear discos), las soluciones pobres mejoran. Reduce bloques largos, mantiene promedio de 120s.
+**Propósito:** Transforma distribución exponencial a Weibull (parámetro de forma k=3). Las soluciones muy buenas se forjan más tarde (la red tiene tiempo de escanear discos), las soluciones pobres mejoran. Reduce bloques largos, mantiene promedio de 120s.
 
 **Implementación:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Destinatario del coinbase** (no aplicado por consenso):
+
+El minero establece la salida del coinbase para pagar al firmante efectivo (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), pero esto **no** es validado por el consenso. El consenso solo exige que la *firma del bloque* sea producida por el firmante efectivo — la verificación `bad-pocx-assignment-sig` anterior. No existe una regla `bad-pocx-coinbase`; el destinatario del coinbase lo elige el minero.
+
 **Implementación:**
 - Conexión: `src/validation.cpp:ConnectBlock()`
 - Validación extendida: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Las asignaciones permiten a los propietarios de parcelas delegar derechos de for
 - Asignaciones almacenadas en salidas OP_RETURN (sin UTXO)
 - Sin requisitos de gasto (sin polvo, sin comisiones por mantener)
 - Rastreadas en estado extendido de CCoinsViewCache
-- Activadas después de período de retardo (por defecto: 4 bloques)
+- Activadas después de período de retardo (por defecto: 30 bloques; 4 en regtest)
 
 **Estados de asignación:**
 ```cpp

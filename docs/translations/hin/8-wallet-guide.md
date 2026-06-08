@@ -112,13 +112,13 @@ Bitcoin-PoCX **BTCX** मुद्रा इकाई का उपयोग क
 5. लेनदेन तुरंत प्रसारित होता है
 6. `nForgingAssignmentDelay` ब्लॉकों के बाद Assignment सक्रिय:
    - Mainnet/Testnet: 30 ब्लॉक (~1 घंटा)
-   - Regtest: 4 ब्लॉक (~4 सेकंड)
+   - Regtest: 4 ब्लॉक (120s अंतराल पर ~8 मिनट)
 
 **लेनदेन शुल्क**: डिफ़ॉल्ट 10× `minRelayFee` (अनुकूलन योग्य)
 
 **लेनदेन संरचना**:
 - इनपुट: Plot पते से UTXO (स्वामित्व का प्रमाण)
-- OP_RETURN आउटपुट: `POCX` मार्कर + plot_address + forging_address (46 बाइट्स)
+- OP_RETURN आउटपुट (46-बाइट स्क्रिप्ट, 44-बाइट डेटा पेलोड): `POCX` मार्कर + plot_address + forging_address
 - चेंज आउटपुट: वॉलेट में वापस
 
 #### मोड 2: Assignment रद्द करें
@@ -137,7 +137,7 @@ Bitcoin-PoCX **BTCX** मुद्रा इकाई का उपयोग क
 4. लेनदेन तुरंत प्रसारित होता है
 5. `nForgingRevocationDelay` ब्लॉकों के बाद Revocation प्रभावी:
    - Mainnet/Testnet: 720 ब्लॉक (~24 घंटे)
-   - Regtest: 8 ब्लॉक (~8 सेकंड)
+   - Regtest: 8 ब्लॉक (120s अंतराल पर ~16 मिनट)
 
 **प्रभाव**:
 - विलंब अवधि के दौरान Forging पता अभी भी forge कर सकता है
@@ -146,7 +146,7 @@ Bitcoin-PoCX **BTCX** मुद्रा इकाई का उपयोग क
 
 **लेनदेन संरचना**:
 - इनपुट: Plot पते से UTXO (स्वामित्व का प्रमाण)
-- OP_RETURN आउटपुट: `XCOP` मार्कर + plot_address (26 बाइट्स)
+- OP_RETURN आउटपुट (26-बाइट स्क्रिप्ट, 24-बाइट डेटा पेलोड): `XCOP` मार्कर + plot_address
 - चेंज आउटपुट: वॉलेट में वापस
 
 #### मोड 3: Assignment स्थिति जाँचें

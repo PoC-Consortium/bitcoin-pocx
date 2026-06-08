@@ -26,7 +26,7 @@ Bitcoin-PoCX, Bitcoin'in İş Kanıtının tam yerine geçen saf Kapasite Kanıt
 
 **Temel Özellikler:**
 - **Enerji Verimli:** Madencilik, hesaplama hash'lemesi yerine önceden oluşturulmuş plot dosyalarını kullanır
-- **Zaman Bükülmüş Son Tarihler:** Dağılım dönüşümü (üstel→ki-kare) uzun blokları azaltır, ortalama blok sürelerini iyileştirir
+- **Zaman Bükülmüş Son Tarihler:** Dağılım dönüşümü (üstel→Weibull, şekil parametresi k=3) uzun blokları azaltır, ortalama blok sürelerini iyileştirir
 - **Atama Desteği:** Plot sahipleri dövme haklarını başka adreslere devredebilir
 - **Yerel C++ Entegrasyonu:** Konsensüs doğrulaması için C++'ta uygulanan kriptografik algoritmalar
 
@@ -92,14 +92,14 @@ generationSignature = SHA256(önceki_generationSignature || önceki_madenci_pubk
 
 **Genesis Bloğu:** Sabit kodlanmış bir başlangıç üretim imzası kullanır
 
-**Uygulama:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Uygulama:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (`src/pocx/mining/block_context.cpp:GetNewBlockContext()` içinden çağrılır)
 
 ### Temel Hedef (Zorluk)
 
 Temel hedef zorluğun tersidir - daha yüksek değerler daha kolay madencilik anlamına gelir.
 
 **Ayarlama Algoritması:**
-- Hedef blok süresi: 120 saniye (mainnet), 1 saniye (regtest)
+- Hedef blok süresi: 120 saniye (tüm ağlar)
 - Ayarlama aralığı: Her blok
 - Son temel hedeflerin hareketli ortalamasını kullanır
 - Aşırı zorluk dalgalanmalarını önlemek için sınırlandırılmış
@@ -112,7 +112,7 @@ PoCX, ölçeklendirme seviyeleri (Xn) aracılığıyla plot dosyalarında ölçe
 
 **Dinamik Sınırlar:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Kabul edilen minimum seviye
     uint32_t nPoCXTargetCompression;  // Önerilen seviye
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reddet;
 
 #### Adım 2: Bağlam Edinimi
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Döndürür: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ burada:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Amaç:** Üstel dağılımı ki-kare dağılımına dönüştürür. Çok iyi çözümler daha geç döver (ağın diskleri taraması için zaman tanır), zayıf çözümler iyileştirilir. Uzun blokları azaltır, 120s ortalamasını korur.
+**Amaç:** Üstel dağılımı Weibull (şekil parametresi k=3) dağılımına dönüştürür. Çok iyi çözümler daha geç döver (ağın diskleri taraması için zaman tanır), zayıf çözümler iyileştirilir. Uzun blokları azaltır, 120s ortalamasını korur.
 
 **Uygulama:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase Alıcısı** (konsensüs tarafından zorunlu kılınmaz):
+
+Madenci, coinbase çıktısını etkin imzalayana ödeme yapacak şekilde ayarlar (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ancak bu konsensüs tarafından **doğrulanmaz**. Konsensüs yalnızca *blok imzasının* etkin imzalayan tarafından üretilmesini zorunlu kılar — yukarıdaki `bad-pocx-assignment-sig` kontrolü. `bad-pocx-coinbase` kuralı yoktur; coinbase alıcısı madenci tarafından seçilir.
+
 **Uygulama:**
 - Bağlantı: `src/validation.cpp:ConnectBlock()`
 - Genişletilmiş doğrulama: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Atamalar, plot sahiplerinin plot sahipliğini korurken dövme haklarını başka
 - Atamalar OP_RETURN çıktılarında depolanır (UTXO yok)
 - Harcama gereksinimleri yok (toz yok, tutma için ücret yok)
 - CCoinsViewCache genişletilmiş durumunda izlenir
-- Gecikme süresinden sonra aktive olur (varsayılan: 4 blok)
+- Gecikme süresinden sonra aktive olur (varsayılan: 30 blok; regtest'te 4)
 
 **Atama Durumları:**
 ```cpp

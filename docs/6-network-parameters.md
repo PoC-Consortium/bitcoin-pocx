@@ -35,7 +35,7 @@ Complete reference for Bitcoin-PoCX network configuration across all network typ
 
 **Calculated Values**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Uses low-capacity calibration mode
+- Regtest (120s): Uses low-capacity calibration mode (base_power 2^58)
 
 ### Genesis Message
 

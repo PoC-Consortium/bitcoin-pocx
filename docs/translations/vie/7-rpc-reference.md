@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (chính xác 40 ký tự hex = 20 byte; không chấp nhận địa chỉ)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Giá trị Trả về** (thành công):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // thời gian forge time-bended tính bằng giây
 }
 ```
 
-**Giá trị Trả về** (từ chối):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Không có trường `accepted`. Khi bị từ chối, RPC **không** trả về đối tượng JSON — nó ném `JSONRPCError` (xem Mã Lỗi bên dưới).
 
 **Các Bước Xác thực**:
 1. **Xác thực Định dạng** (thất bại nhanh):
@@ -122,10 +115,11 @@ bitcoin-cli get_mining_info
    - Xếp hàng nonce cho forging time-bended
    - Khối sẽ được tạo tự động tại forge_time
 
-**Mã Lỗi**:
-- `RPC_INVALID_PARAMETER`: Định dạng không hợp lệ (account_id, seed) hoặc chiều cao không khớp
+**Mã Lỗi** (được ném dưới dạng `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Định dạng không hợp lệ (account_id, seed) hoặc chiều cao không khớp (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Chữ ký sinh không khớp hoặc xác thực bằng chứng thất bại
 - `RPC_INVALID_ADDRESS_OR_KEY`: Không có khóa riêng cho người ký hiệu quả
+- `RPC_WALLET_UNLOCK_NEEDED`: Ví giữ khóa của người ký hiệu quả đang bị khóa (mở khóa bằng `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Hàng đợi submission đầy
 - `RPC_INTERNAL_ERROR`: Không thể khởi tạo PoCX scheduler
 
@@ -246,7 +240,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Tham số**:
 1. `plot_address` (chuỗi, bắt buộc) - Địa chỉ chủ sở hữu plot (phải sở hữu khóa riêng, P2WPKH bech32)
 2. `forging_address` (chuỗi, bắt buộc) - Địa chỉ để ủy quyền quyền forging (P2WPKH bech32)
-3. `fee_rate` (số, tùy chọn) - Tỷ lệ phí theo BTC/kvB (mặc định: 10× minRelayFee)
+3. `fee_rate` (số, tùy chọn) - Tỷ lệ phí theo BTCX/kvB (mặc định: `0` → ước tính phí tối thiểu chuẩn của ví; mặc định 10× minRelayFee chỉ áp dụng cho hộp thoại Qt GUI, không áp dụng cho RPC này)
 
 **Giá trị Trả về**:
 ```json
@@ -267,7 +261,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output: OP_RETURN (46 byte): marker `POCX` + plot_address (20 byte) + forging_address (20 byte)
+- Output: OP_RETURN script (46 byte) = opcode `OP_RETURN` + 1 byte độ dài push + 44 byte dữ liệu (marker `POCX` 4 + plot_address 20 + forging_address 20)
 - Output: Tiền thừa trả về ví
 
 **Kích hoạt**:
@@ -300,7 +294,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Tham số**:
 1. `plot_address` (chuỗi, bắt buộc) - Địa chỉ plot (phải sở hữu khóa riêng, P2WPKH bech32)
-2. `fee_rate` (số, tùy chọn) - Tỷ lệ phí theo BTC/kvB (mặc định: 10× minRelayFee)
+2. `fee_rate` (số, tùy chọn) - Tỷ lệ phí theo BTCX/kvB (mặc định: `0` → ước tính phí tối thiểu chuẩn của ví; mặc định 10× minRelayFee chỉ áp dụng cho hộp thoại Qt GUI, không áp dụng cho RPC này)
 
 **Giá trị Trả về**:
 ```json
@@ -319,7 +313,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output: OP_RETURN (26 byte): marker `XCOP` + plot_address (20 byte)
+- Output: OP_RETURN script (26 byte) = opcode `OP_RETURN` + 1 byte độ dài push + 24 byte dữ liệu (marker `XCOP` 4 + plot_address 20)
 - Output: Tiền thừa trả về ví
 
 **Hiệu quả**:
@@ -514,22 +508,23 @@ while True:
     # 2. Quét tệp plot (triển khai bên ngoài)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Gửi lời giải tốt nhất
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Lời giải được chấp nhận! Chất lượng: {result['quality']}s, "
+    # 3. Gửi lời giải tốt nhất (ném JSONRPCError khi bị từ chối)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Lời giải được chấp nhận! Chất lượng: {result['raw_quality']}, "
               f"Thời gian forge: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Bị từ chối: {e}")
 
     # 4. Chờ khối tiếp theo
     time.sleep(10)  # Khoảng poll
@@ -600,20 +595,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Mẫu Lỗi Phổ biến
 
-**Chiều cao Không khớp**:
+**Chiều cao Không khớp** (ném `RPC_INVALID_PARAMETER`, mã -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Giải pháp**: Lấy lại mining info, chuỗi đã tiến lên
 
-**Chữ ký Sinh Không khớp**:
+**Chữ ký Sinh Không khớp** (ném `RPC_VERIFY_REJECTED`, mã -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Giải pháp**: Lấy lại mining info, khối mới đã đến

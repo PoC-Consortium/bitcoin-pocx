@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Vấn đề**: Thời gian khối PoC truyền thống tuân theo phân phối mũ, dẫn đến các khối dài khi không có thợ đào tìm được lời giải tốt.
 
-**Giải pháp**: Biến đổi phân phối từ mũ sang chi bình phương sử dụng căn bậc ba: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**Giải pháp**: Biến đổi phân phối từ mũ sang Weibull (hình dạng k=3) sử dụng căn bậc ba: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **Hiệu quả**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Dựa trên định dạng POC2 (Burstcoin) với các cải tiến:
 
 ## Tóm tắt Thông số Kỹ thuật
 
-- **Thời gian Khối**: 120 giây (mainnet), 1 giây (regtest)
+- **Thời gian Khối**: 120 giây (tất cả các mạng: mainnet, testnet, regtest)
 - **Trợ cấp Khối**: 10 BTC ban đầu, halving mỗi 1050000 khối (~4 năm)
 - **Tổng Cung**: ~21 triệu BTC (giống như Bitcoin)
 - **Dung sai Tương lai**: 15 giây (khối tối đa 15 giây trong tương lai được chấp nhận)

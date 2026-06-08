@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Tatizo**: Muda wa bloku wa PoC wa jadi unafuata usambazaji wa exponential, na kusababisha bloku ndefu wakati hakuna mchimbaji anayepata suluhisho zuri.
 
-**Suluhisho**: Ubadilishaji wa usambazaji kutoka exponential hadi chi-squared kwa kutumia mzizi wa tatu: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**Suluhisho**: Ubadilishaji wa usambazaji kutoka exponential hadi Weibull (kipimo cha umbo k=3) kwa kutumia mzizi wa tatu: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **Athari**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Imejengwa juu ya muundo wa POC2 (Burstcoin) na uboreshaji:
 
 ## Muhtasari wa Maelezo ya Kiufundi
 
-- **Muda wa Bloku**: Sekunde 120 (mainnet), sekunde 1 (regtest)
+- **Muda wa Bloku**: Sekunde 120 (mitandao yote: mainnet, testnet, regtest)
 - **Ruzuku ya Bloku**: 10 BTC awali, nusu kila bloku 1050000 (~miaka 4)
 - **Usambazaji wa Jumla**: ~milioni 21 BTC (sawa na Bitcoin)
 - **Uvumilivu wa Baadaye**: Sekunde 15 (bloku hadi sekunde 15 mbele zinakubaliwa)

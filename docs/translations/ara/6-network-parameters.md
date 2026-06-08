@@ -35,7 +35,7 @@
 
 **القيم المحسوبة**:
 - Mainnet/Testnet/Signet (120 ثانية): `36650387592`
-- Regtest (1 ثانية): يستخدم وضع معايرة السعة المنخفضة
+- Regtest (120 ثانية): يستخدم وضع معايرة السعة المنخفضة (base_power 2^58)
 
 ### رسالة التكوين
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **تعديل الصعوبة**:
 - **النافذة المتدحرجة**: `24` كتلة
 - **التعديل**: كل كتلة
-- **الخوارزمية**: المتوسط المتحرك الأسي
+- **الخوارزمية**: المتوسط المتحرك المرجّح (بأسلوب Burstcoin، بحد ±20% لكل كتلة)
 
 **تأخيرات التعيين**:
 - **التفعيل**: `30` كتلة (~1 ساعة)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **توقيت الكتل**:
-- **هدف وقت الكتلة**: `1` ثانية (تعدين فوري للاختبار)
+- **هدف وقت الكتلة**: `120` ثانية (يُعدّن عند الطلب عبر `generatetoaddress` في regtest)
 - **الفترة الزمنية المستهدفة**: `86400` ثانية (1 يوم)
 - **MAX_FUTURE_BLOCK_TIME**: `15` ثانية
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **النافذة المتدحرجة**: `24` كتلة
 - **السماح بالصعوبة الدنيا**: `true`
 - **لا إعادة استهداف**: `true`
-- **معايرة السعة المنخفضة**: `true` (يستخدم معايرة 16-nonce بدلاً من 1 TiB)
+- **معايرة السعة المنخفضة**: `true` (يستخدم معايرة 64-nonce ≈ 16 MiB بدلاً من 1 TiB)
 
 **تأخيرات التعيين**:
-- **التفعيل**: `4` كتل (~4 ثوانٍ)
-- **الإلغاء**: `8` كتل (~8 ثوانٍ)
+- **التفعيل**: `4` كتل (~8 دقائق عند تباعد 120 ثانية)
+- **الإلغاء**: `8` كتل (~16 دقيقة عند تباعد 120 ثانية)
 
 ### معلمات Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **أهداف وقت الكتلة**:
 - Mainnet/Testnet/Signet: `120` ثانية
-- Regtest: `1` ثانية
+- Regtest: `120` ثانية
 
 **TIMESTAMP_WINDOW**: `15` ثانية (يساوي MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### معلمات تعديل الصعوبة
 
 **حجم النافذة المتدحرجة**: `24` كتلة (جميع الشبكات)
-- المتوسط المتحرك الأسي لأوقات الكتل الأخيرة
+- المتوسط المتحرك المرجّح لأوقات الكتل الأخيرة (بأسلوب Burstcoin)
 - تعديل كل كتلة
 - استجابة لتغييرات السعة
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (تأخير التفعيل):
 - Mainnet: `30` كتلة (~1 ساعة)
 - Testnet: `30` كتلة (~1 ساعة)
-- Regtest: `4` كتل (~4 ثوانٍ)
+- Regtest: `4` كتل (~8 دقائق عند تباعد 120 ثانية)
 
 **nForgingRevocationDelay** (تأخير الإلغاء):
 - Mainnet: `720` كتلة (~24 ساعة)
 - Testnet: `720` كتلة (~24 ساعة)
-- Regtest: `8` كتل (~8 ثوانٍ)
+- Regtest: `8` كتل (~16 دقيقة عند تباعد 120 ثانية)
 
 **المبررات**:
 - تأخير التفعيل يمنع إعادة التعيين السريعة أثناء سباقات الكتل

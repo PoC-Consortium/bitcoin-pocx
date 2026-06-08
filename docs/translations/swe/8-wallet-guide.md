@@ -111,13 +111,13 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 5. Transaktion sänds omedelbart
 6. Tilldelning aktiv efter `nForgingAssignmentDelay` block:
    - Mainnet/Testnet: 30 block (~1 timme)
-   - Regtest: 4 block (~4 sekunder)
+   - Regtest: 4 block (~8 minuter vid 120s-avstånd)
 
 **Transaktionsavgift**: Standard 10× `minRelayFee` (anpassningsbar)
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- OP_RETURN-utdata: `POCX`-markör + plot_address + forging_address (44 bytes)
+- OP_RETURN-utdata: `POCX`-markör + plot_address + forging_address (46-byte skript, 44-byte datanyttolast)
 - Växelutdata: Returneras till plånbok
 
 #### Läge 2: Återkalla tilldelning
@@ -136,7 +136,7 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 4. Transaktion sänds omedelbart
 5. Återkallelse effektiv efter `nForgingRevocationDelay` block:
    - Mainnet/Testnet: 720 block (~24 timmar)
-   - Regtest: 8 block (~8 sekunder)
+   - Regtest: 8 block (~16 minuter vid 120s-avstånd)
 
 **Effekt**:
 - Forgingsadress kan fortfarande forga under fördröjningsperiod
@@ -145,7 +145,7 @@ Bitcoin-PoCX använder valutaenheten **BTCX** (inte BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- OP_RETURN-utdata: `XCOP`-markör + plot_address (24 bytes)
+- OP_RETURN-utdata: `XCOP`-markör + plot_address (26-byte skript, 24-byte datanyttolast)
 - Växelutdata: Returneras till plånbok
 
 #### Läge 3: Kontrollera tilldelningsstatus

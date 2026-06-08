@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Отримання поточного призначення
+            // Отримання поточного призначення - має бути у стані ASSIGNED для скасування
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Збереження старого стану для скасування
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 рядків] Визначення маркерів, операції OP_RETURN, перевірка володіння
     │   ├── assignment_state.h     # Хелпери GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Функції запиту стану призначення
+    │   ├── replay.h               # Реорганізація/повтор ефектів призначень
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (шлях реоргу)
     │   ├── transactions.h         # API створення транзакцій гаманця
     │   └── transactions.cpp       # Функції гаманця create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, базова ціль генезису, графік компресії
 ```
+
+> **Примітка:** Константи затримки призначення `nForgingAssignmentDelay` / `nForgingRevocationDelay` знаходяться в `Consensus::Params` Bitcoin Core (`src/consensus/params.h`) і задаються для кожної мережі в `src/kernel/chainparams.cpp` — а не в `pocx/consensus/params.h`.
 
 ## Характеристики продуктивності
 
@@ -766,9 +770,8 @@ src/
 
 ### Області покриття тестами
 
-- Модульні тести: `src/test/pocx_*_tests.cpp`
-- Функціональні тести: `test/functional/feature_pocx_*.py`
-- Інтеграційні тести: Ручне тестування з regtest
+- Модульні тести: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Інтеграційні тести: regtest shell-скрипти в `scripts/assignments/` та `scripts/mining/`
 
 ## Правила консенсусу
 

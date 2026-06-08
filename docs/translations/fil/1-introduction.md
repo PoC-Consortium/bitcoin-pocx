@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problema**: Ang tradisyunal na PoC block time ay sumusunod sa exponential distribution, na humahantong sa mahabang mga block kapag walang miner ang nakahanap ng magandang solusyon.
 
-**Solusyon**: Pagbabago ng distribution mula exponential patungong chi-squared gamit ang cube root: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**Solusyon**: Pagbabago ng distribution mula exponential patungong Weibull (shape k=3) gamit ang cube root: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **Epekto**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Batay sa POC2 format (Burstcoin) na may mga pagpapahusay:
 
 ## Buod ng mga Teknikal na Ispesipikasyon
 
-- **Block Time**: 120 segundo (mainnet), 1 segundo (regtest)
+- **Block Time**: 120 segundo (lahat ng network: mainnet, testnet, regtest)
 - **Block Subsidy**: 10 BTC initial, nagha-halving bawat 1050000 block (~4 na taon)
 - **Kabuuang Supply**: ~21 milyong BTC (pareho sa Bitcoin)
 - **Future Tolerance**: 15 segundo (mga block na hanggang 15s nang maaga ay tinatanggap)

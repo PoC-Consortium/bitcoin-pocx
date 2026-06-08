@@ -26,7 +26,7 @@ Bitcoin-PoCX implémente un mécanisme de consensus de preuve de capacité pur e
 
 **Propriétés clés :**
 - **Économe en énergie :** Le minage utilise des fichiers plot pré-générés au lieu du hachage computationnel
-- **Deadlines time-bendés :** Transformation de distribution (exponentielle → chi-carré) réduit les longs blocs, améliore les temps de bloc moyens
+- **Deadlines time-bendés :** Transformation de distribution (exponentielle → Weibull, forme k=3) réduit les longs blocs, améliore les temps de bloc moyens
 - **Support des assignations :** Les propriétaires de plots peuvent déléguer les droits de forge à d'autres adresses
 - **Intégration C++ native :** Algorithmes cryptographiques implémentés en C++ pour la validation du consensus
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Bloc Genesis :** Utilise une signature de génération initiale codée en dur
 
-**Implémentation :** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implémentation :** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (appelée depuis `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Cible de base (Difficulté)
 
 La cible de base est l'inverse de la difficulté — des valeurs plus élevées signifient un minage plus facile.
 
 **Algorithme d'ajustement :**
-- Temps de bloc cible : 120 secondes (mainnet), 1 seconde (regtest)
+- Temps de bloc cible : 120 secondes (tous les réseaux)
 - Intervalle d'ajustement : À chaque bloc
 - Utilise une moyenne mobile des cibles de base récentes
 - Limitée pour empêcher les oscillations extrêmes de difficulté
@@ -112,7 +112,7 @@ PoCX supporte la preuve de travail évolutive dans les fichiers plot via les niv
 
 **Bornes dynamiques :**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Niveau minimum accepté
     uint32_t nPoCXTargetCompression;  // Niveau recommandé
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Étape 2 : Acquisition du contexte
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Retourne : height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ où :
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Objectif :** Transforme la distribution exponentielle en chi-carré. Les très bonnes solutions forgent plus tard (le réseau a le temps de scanner les disques), les solutions médiocres sont améliorées. Réduit les longs blocs, maintient une moyenne de 120s.
+**Objectif :** Transforme la distribution exponentielle en Weibull (forme k=3). Les très bonnes solutions forgent plus tard (le réseau a le temps de scanner les disques), les solutions médiocres sont améliorées. Réduit les longs blocs, maintient une moyenne de 120s.
 
 **Implémentation :** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Destinataire de la coinbase** (non imposé par le consensus) :
+
+Le mineur définit la sortie coinbase pour payer le signataire effectif (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mais cela n'est **pas** validé par le consensus. Le consensus impose uniquement que la *signature de bloc* soit produite par le signataire effectif — la vérification `bad-pocx-assignment-sig` ci-dessus. Il n'existe aucune règle `bad-pocx-coinbase` ; le destinataire de la coinbase est choisi par le mineur.
+
 **Implémentation :**
 - Connexion : `src/validation.cpp:ConnectBlock()`
 - Validation étendue : `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Les assignations permettent aux propriétaires de plots de déléguer les droits
 - Assignations stockées dans des sorties OP_RETURN (pas d'UTXO)
 - Pas d'exigences de dépense (pas de dust, pas de frais pour détenir)
 - Suivies dans l'état étendu CCoinsViewCache
-- Activées après une période de délai (par défaut : 4 blocs)
+- Activées après une période de délai (par défaut : 30 blocs ; 4 sur regtest)
 
 **États d'assignation :**
 ```cpp

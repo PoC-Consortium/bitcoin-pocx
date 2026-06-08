@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID（正確に40桁のhex文字 = 20バイト; アドレスは受け付けられない）
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **戻り値**（成功時）:
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // 証明検証からの生の品質
   "poc_time": 45            // タイムベンドされたフォージ時間（秒）
 }
 ```
 
-**戻り値**（拒否時）:
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+`accepted`フィールドはありません。拒否時、RPCはJSONオブジェクトを返さ**ず**、`JSONRPCError`をスローします（下記のエラーコードを参照）。
 
 **検証ステップ**:
 1. **フォーマット検証**（高速失敗）:
@@ -124,10 +117,11 @@ bitcoin-cli get_mining_info
    - タイムベンドされたフォージング用にノンスをキューに入れる
    - ブロックはforge_timeに自動的に作成される
 
-**エラーコード**:
-- `RPC_INVALID_PARAMETER`: 無効なフォーマット（account_id、seed）または高さ不一致
+**エラーコード**（`JSONRPCError`としてスロー）:
+- `RPC_INVALID_PARAMETER`: 無効なフォーマット（account_id、seed）または高さ不一致（`"Invalid height: expected X, got Y"`）
 - `RPC_VERIFY_REJECTED`: 生成署名不一致または証明検証失敗
 - `RPC_INVALID_ADDRESS_OR_KEY`: 有効な署名者の秘密鍵なし
+- `RPC_WALLET_UNLOCK_NEEDED`: 有効な署名者の鍵を保持するウォレットがロックされている（`walletpassphrase`でロック解除）
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: 送信キューが満杯
 - `RPC_INTERNAL_ERROR`: PoCXスケジューラ初期化失敗
 
@@ -248,7 +242,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **パラメータ**:
 1. `plot_address`（文字列、必須）- プロット所有者アドレス（秘密鍵を所有必須、P2WPKH bech32）
 2. `forging_address`（文字列、必須）- フォージング権限を割り当てるアドレス（P2WPKH bech32）
-3. `fee_rate`（数値、オプション）- BTC/kvBでの手数料率（デフォルト: 10× minRelayFee）
+3. `fee_rate`（数値、オプション）- BTCX/kvBでの手数料率（デフォルト: `0` → ウォレットの標準最小手数料見積もり; 10× minRelayFeeのデフォルトはQt GUIダイアログにのみ適用され、このRPCには適用されない）
 
 **戻り値**:
 ```json
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **トランザクション構造**:
 - 入力: プロットアドレスからのUTXO（所有権を証明）
-- 出力: OP_RETURN（46バイト）: `POCX`マーカー + plot_address（20バイト）+ forging_address（20バイト）
+- 出力: OP_RETURNスクリプト（46バイト）= `OP_RETURN`オペコード + 1バイトのプッシュ長 + 44バイトのデータペイロード（`POCX`マーカー 4 + plot_address 20 + forging_address 20）
 - 出力: お釣りはウォレットに戻る
 
 **アクティベーション**:
@@ -302,7 +296,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **パラメータ**:
 1. `plot_address`（文字列、必須）- プロットアドレス（秘密鍵を所有必須、P2WPKH bech32）
-2. `fee_rate`（数値、オプション）- BTC/kvBでの手数料率（デフォルト: 10× minRelayFee）
+2. `fee_rate`（数値、オプション）- BTCX/kvBでの手数料率（デフォルト: `0` → ウォレットの標準最小手数料見積もり; 10× minRelayFeeのデフォルトはQt GUIダイアログにのみ適用され、このRPCには適用されない）
 
 **戻り値**:
 ```json
@@ -321,7 +315,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **トランザクション構造**:
 - 入力: プロットアドレスからのUTXO（所有権を証明）
-- 出力: OP_RETURN（26バイト）: `XCOP`マーカー + plot_address（20バイト）
+- 出力: OP_RETURNスクリプト（26バイト）= `OP_RETURN`オペコード + 1バイトのプッシュ長 + 24バイトのデータペイロード（`XCOP`マーカー 4 + plot_address 20）
 - 出力: お釣りはウォレットに戻る
 
 **効果**:
@@ -516,22 +510,23 @@ while True:
     # 2. プロットファイルをスキャン（外部実装）
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. 最良の解を送信
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"解が受け入れられました! 品質: {result['quality']}秒, "
+    # 3. 最良の解を送信（拒否時はJSONRPCErrorをスロー）
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"解が受け入れられました! 品質: {result['raw_quality']}, "
               f"フォージ時間: {result['poc_time']}秒")
+    except JSONRPCError as e:
+        print(f"拒否されました: {e}")
 
     # 4. 次のブロックを待機
     time.sleep(10)  # ポーリング間隔
@@ -602,20 +597,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### 一般的なエラーパターン
 
-**高さ不一致**:
+**高さ不一致**（`RPC_INVALID_PARAMETER`、コード -8 をスロー）:
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **解決策**: マイニング情報を再取得、チェーンが進行した
 
-**生成署名不一致**:
+**生成署名不一致**（`RPC_VERIFY_REJECTED`、コード -26 をスロー）:
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **解決策**: マイニング情報を再取得、新しいブロックが到着した

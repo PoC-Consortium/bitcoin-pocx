@@ -111,13 +111,13 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 5. Transactie wordt onmiddellijk uitgezonden
 6. Toewijzing actief na `nForgingAssignmentDelay` blokken:
    - Mainnet/Testnet: 30 blokken (~1 uur)
-   - Regtest: 4 blokken (~4 seconden)
+   - Regtest: 4 blokken (~8 minuten bij 120s-interval)
 
 **Transactiekosten**: Standaard 10x `minRelayFee` (aanpasbaar)
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- OP_RETURN-uitvoer: `POCX`-markering + plot_address + forging_address (44 bytes)
+- OP_RETURN-uitvoer (46-byte script, 44-byte data-payload): `POCX`-markering + plot_address + forging_address
 - Wisselgelduitvoer: Terug naar wallet
 
 #### Modus 2: Toewijzing intrekken
@@ -136,7 +136,7 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 4. Transactie wordt onmiddellijk uitgezonden
 5. Intrekking effectief na `nForgingRevocationDelay` blokken:
    - Mainnet/Testnet: 720 blokken (~24 uur)
-   - Regtest: 8 blokken (~8 seconden)
+   - Regtest: 8 blokken (~16 minuten bij 120s-interval)
 
 **Effect**:
 - Forgingadres kan nog steeds forgen tijdens vertragingsperiode
@@ -145,7 +145,7 @@ Bitcoin-PoCX gebruikt **BTCX** valuta-eenheid (niet BTC):
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- OP_RETURN-uitvoer: `XCOP`-markering + plot_address (24 bytes)
+- OP_RETURN-uitvoer (26-byte script, 24-byte data-payload): `XCOP`-markering + plot_address
 - Wisselgelduitvoer: Terug naar wallet
 
 #### Modus 3: Toewijzingsstatus controleren

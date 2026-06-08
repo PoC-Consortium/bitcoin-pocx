@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problém**: Tradiční časy bloků PoC následují exponenciální distribuci, což vede k dlouhým blokům, když žádný těžař nenajde dobré řešení.
 
-**Řešení**: Transformace distribuce z exponenciální na chí-kvadrát pomocí třetí odmocniny: `Y = měřítko × (X^(1/3))`.
+**Řešení**: Transformace distribuce z exponenciální na Weibull (shape k=3) pomocí třetí odmocniny: `Y = měřítko × (X^(1/3))`.
 
 **Efekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Založeno na formátu POC2 (Burstcoin) s vylepšeními:
 
 ## Souhrn technických specifikací
 
-- **Čas bloku**: 120 sekund (mainnet), 1 sekunda (regtest)
+- **Čas bloku**: 120 sekund (všechny sítě: mainnet, testnet, regtest)
 - **Subsidy bloku**: 10 BTC počáteční, halving každých 1050000 bloků (~4 roky)
 - **Celková nabídka**: ~21 milionů BTC (stejně jako Bitcoin)
 - **Tolerance budoucnosti**: 15 sekund (bloky až 15s dopředu akceptovány)

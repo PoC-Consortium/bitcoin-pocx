@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // 获取当前委派
+            // 获取当前委派——必须处于 ASSIGNED 状态才能撤销
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // 存储旧状态用于撤销
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # 标记定义，OP_RETURN 操作，所有权检查
     │   ├── assignment_state.h     # GetEffectiveSigner，GetAssignmentState 辅助函数
     │   ├── assignment_state.cpp   # 委派状态查询函数
+    │   ├── replay.h               # 委派效果的重组/重放
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay（重组路径）
     │   ├── transactions.h         # 钱包交易创建 API
     │   └── transactions.cpp       # create_assignment，revoke_assignment 钱包函数
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment，revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay，nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds，创世基础目标值，压缩计划
 ```
+
+> **注意：** 委派延迟常量 `nForgingAssignmentDelay` / `nForgingRevocationDelay` 位于 Bitcoin Core 的 `Consensus::Params`（`src/consensus/params.h`），并在 `src/kernel/chainparams.cpp` 中按网络设置——而非在 `pocx/consensus/params.h` 中。
 
 ## 性能特征
 
@@ -766,9 +770,8 @@ src/
 
 ### 测试覆盖领域
 
-- 单元测试：`src/test/pocx_*_tests.cpp`
-- 功能测试：`test/functional/feature_pocx_*.py`
-- 集成测试：使用 regtest 的手动测试
+- 单元测试：`src/test/pocx_tests.cpp`、`src/test/pocx_simd_tests.cpp`
+- 集成测试：`scripts/assignments/` 和 `scripts/mining/` 下的 regtest shell 脚本
 
 ## 共识规则
 

@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (praecis 40 hex-tegn = 20 bytes; en adresse accepteres ikke)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Returvaerdier** (succes):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // svaerhedsjusteret deadline i sekunder
+  "raw_quality": 120,       // ra kvalitet fra bevisvalidering
   "poc_time": 45            // time-bendet forgetid i sekunder
 }
 ```
 
-**Returvaerdier** (afvist):
-```json
-{
-  "accepted": false,
-  "error": "Generationssignaturmismatch"
-}
-```
+Der er intet `accepted`-felt. Ved afvisning returnerer RPC'en **ikke** et JSON-objekt — den kaster en `JSONRPCError` (se Fejlkoder nedenfor).
 
 **Valideringstrin**:
 1. **Formatvalidering** (hurtig-fejl):
@@ -145,10 +138,11 @@ bitcoin-cli get_mining_info
    - Saet nonce i ko til time-bendet forging
    - Blok vil blive oprettet automatisk ved forge_time
 
-**Fejlkoder**:
-- `RPC_INVALID_PARAMETER`: Ugyldigt format (account_id, seed) eller hojdemismatch
+**Fejlkoder** (kastet som `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Ugyldigt format (account_id, seed) eller hojdemismatch (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generationssignaturmismatch eller bevisvalidering fejlede
 - `RPC_INVALID_ADDRESS_OR_KEY`: Ingen privat nogle til effektiv underskriver
+- `RPC_WALLET_UNLOCK_NEEDED`: Wallet'en, der holder den effektive underskrivers nogle, er last (las op med `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Indsendelsesenko fuld
 - `RPC_INTERNAL_ERROR`: Kunne ikke initialisere PoCX-scheduler
 
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametre**:
 1. `plot_address` (streng, kraevet) - Plotejeradresse (skal eje privat nogle, P2WPKH bech32)
 2. `forging_address` (streng, kraevet) - Adresse at tildele forging-rettigheder til (P2WPKH bech32)
-3. `fee_rate` (numerisk, valgfrit) - Gebyrsats i BTC/kvB (standard: 10x minRelayFee)
+3. `fee_rate` (numerisk, valgfrit) - Gebyrsats i BTCX/kvB (standard: `0` → wallettens standard minimumsgebyr-estimat; standarden 10x minRelayFee gaelder kun for Qt GUI-dialogen, ikke for denne RPC)
 
 **Returvaerdier**:
 ```json
@@ -290,7 +284,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- Output: OP_RETURN (46 bytes): `POCX`-markor + plot_address (20 bytes) + forging_address (20 bytes)
+- Output: OP_RETURN-script (46 bytes) = `OP_RETURN`-opcode + 1-byte push-laengde + 44-byte datapayload (`POCX`-markor 4 + plot_address 20 + forging_address 20)
 - Output: Byttepenge returneret til wallet
 
 **Aktivering**:
@@ -323,7 +317,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametre**:
 1. `plot_address` (streng, kraevet) - Plotadresse (skal eje privat nogle, P2WPKH bech32)
-2. `fee_rate` (numerisk, valgfrit) - Gebyrsats i BTC/kvB (standard: 10x minRelayFee)
+2. `fee_rate` (numerisk, valgfrit) - Gebyrsats i BTCX/kvB (standard: `0` → wallettens standard minimumsgebyr-estimat; standarden 10x minRelayFee gaelder kun for Qt GUI-dialogen, ikke for denne RPC)
 
 **Returvaerdier**:
 ```json
@@ -342,7 +336,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- Output: OP_RETURN (26 bytes): `XCOP`-markor + plot_address (20 bytes)
+- Output: OP_RETURN-script (26 bytes) = `OP_RETURN`-opcode + 1-byte push-laengde + 24-byte datapayload (`XCOP`-markor 4 + plot_address 20)
 - Output: Byttepenge returneret til wallet
 
 **Effekt**:
@@ -537,22 +531,23 @@ while True:
     # 2. Scan plotfiler (ekstern implementering)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Indsend bedste losning
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Losning accepteret! Kvalitet: {result['quality']}s, "
+    # 3. Indsend bedste losning (kaster JSONRPCError ved afvisning)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Losning accepteret! Kvalitet: {result['raw_quality']}, "
               f"Forgetid: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Afvist: {e}")
 
     # 4. Vent pa naeste blok
     time.sleep(10)  # Pollinginterval
@@ -623,20 +618,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Almindelige fejlmonstre
 
-**Hojdemismatch**:
+**Hojdemismatch** (kastet `RPC_INVALID_PARAMETER`, kode -8):
 ```json
 {
-  "accepted": false,
-  "error": "Hojdemismatch: indsendt 12345, nuvaerende 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Losning**: Hent mininginfo igen, kaede rykkede frem
 
-**Generationssignaturmismatch**:
+**Generationssignaturmismatch** (kastet `RPC_VERIFY_REJECTED`, kode -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generationssignaturmismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Losning**: Hent mininginfo igen, ny blok ankom

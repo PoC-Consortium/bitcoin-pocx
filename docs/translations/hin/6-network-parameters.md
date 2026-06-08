@@ -35,7 +35,7 @@
 
 **गणना किए गए मान**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): कम-क्षमता कैलिब्रेशन मोड का उपयोग करता है
+- Regtest (120s): कम-क्षमता कैलिब्रेशन मोड का उपयोग करता है (base_power 2^58)
 
 ### Genesis संदेश
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **कठिनाई समायोजन**:
 - **रोलिंग विंडो**: `24` ब्लॉक
 - **समायोजन**: प्रत्येक ब्लॉक
-- **एल्गोरिथम**: घातांकीय मूविंग एवरेज
+- **एल्गोरिथम**: भारित मूविंग एवरेज (Burstcoin-शैली, प्रति-ब्लॉक ±20% सीमा)
 
 **असाइनमेंट विलंब**:
 - **सक्रियण**: `30` ब्लॉक (~1 घंटा)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **ब्लॉक समय**:
-- **ब्लॉक समय लक्ष्य**: `1` सेकंड (परीक्षण के लिए तत्काल माइनिंग)
+- **ब्लॉक समय लक्ष्य**: `120` सेकंड (regtest में `generatetoaddress` के माध्यम से माँग पर माइन किया जाता है)
 - **लक्ष्य समयावधि**: `86400` सेकंड (1 दिन)
 - **MAX_FUTURE_BLOCK_TIME**: `15` सेकंड
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **रोलिंग विंडो**: `24` ब्लॉक
 - **न्यूनतम कठिनाई की अनुमति**: `true`
 - **कोई रीटार्गेटिंग नहीं**: `true`
-- **कम क्षमता कैलिब्रेशन**: `true` (1 TiB के बजाय 16-nonce कैलिब्रेशन उपयोग करता है)
+- **कम क्षमता कैलिब्रेशन**: `true` (1 TiB के बजाय 64-nonce कैलिब्रेशन ≈ 16 MiB उपयोग करता है)
 
 **असाइनमेंट विलंब**:
-- **सक्रियण**: `4` ब्लॉक (~4 सेकंड)
-- **निरस्तीकरण**: `8` ब्लॉक (~8 सेकंड)
+- **सक्रियण**: `4` ब्लॉक (120s अंतराल पर ~8 मिनट)
+- **निरस्तीकरण**: `8` ब्लॉक (120s अंतराल पर ~16 मिनट)
 
 ### Signet पैरामीटर
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **ब्लॉक समय लक्ष्य**:
 - Mainnet/Testnet/Signet: `120` सेकंड
-- Regtest: `1` सेकंड
+- Regtest: `120` सेकंड
 
 **TIMESTAMP_WINDOW**: `15` सेकंड (MAX_FUTURE_BLOCK_TIME के बराबर)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### कठिनाई समायोजन पैरामीटर
 
 **रोलिंग विंडो आकार**: `24` ब्लॉक (सभी नेटवर्क)
-- हाल के ब्लॉक समय का घातांकीय मूविंग एवरेज
+- हाल के ब्लॉक समय का भारित मूविंग एवरेज (Burstcoin-शैली)
 - प्रत्येक-ब्लॉक समायोजन
 - क्षमता परिवर्तनों के प्रति प्रतिक्रियाशील
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (सक्रियण विलंब):
 - Mainnet: `30` ब्लॉक (~1 घंटा)
 - Testnet: `30` ब्लॉक (~1 घंटा)
-- Regtest: `4` ब्लॉक (~4 सेकंड)
+- Regtest: `4` ब्लॉक (120s अंतराल पर ~8 मिनट)
 
 **nForgingRevocationDelay** (निरस्तीकरण विलंब):
 - Mainnet: `720` ब्लॉक (~24 घंटे)
 - Testnet: `720` ब्लॉक (~24 घंटे)
-- Regtest: `8` ब्लॉक (~8 सेकंड)
+- Regtest: `8` ब्लॉक (120s अंतराल पर ~16 मिनट)
 
 **तर्क**:
 - सक्रियण विलंब ब्लॉक दौड़ के दौरान तेज़ पुनर्असाइनमेंट रोकता है

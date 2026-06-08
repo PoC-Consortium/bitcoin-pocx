@@ -35,7 +35,7 @@ Täydellinen viite Bitcoin-PoCX-verkon konfiguraatiolle kaikille verkkotyypeille
 
 **Lasketut arvot**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Käyttää matalan kapasiteetin kalibrointitilaa
+- Regtest (120s): Käyttää matalan kapasiteetin kalibrointitilaa (base_power 2^58)
 
 ### Genesis-viesti
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Vaikeuden säätö**:
 - **Liukuva ikkuna**: `24` lohkoa
 - **Säätö**: Joka lohko
-- **Algoritmi**: Eksponentiaalinen liukuva keskiarvo
+- **Algoritmi**: Painotettu liukuva keskiarvo (Burstcoin-tyylinen, ±20 % lohkokohtainen raja)
 
 **Delegointiviiveet**:
 - **Aktivointi**: `30` lohkoa (~1 tunti)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Lohkoajoitus**:
-- **Lohkoajan tavoite**: `1` sekunti (välitön louhinta testaukseen)
+- **Lohkoajan tavoite**: `120` sekuntia (louhitaan tarvittaessa `generatetoaddress`-komennolla regtestissä)
 - **Tavoiteaikaväli**: `86400` sekuntia (1 päivä)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekuntia
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Liukuva ikkuna**: `24` lohkoa
 - **Salli minimivaikeus**: `true`
 - **Ei uudelleenkohdennusta**: `true`
-- **Matalan kapasiteetin kalibrointi**: `true` (käyttää 16 noncen kalibrointia 1 TiB:n sijaan)
+- **Matalan kapasiteetin kalibrointi**: `true` (käyttää 64 noncen kalibrointia ≈ 16 MiB 1 TiB:n sijaan)
 
 **Delegointiviiveet**:
-- **Aktivointi**: `4` lohkoa (~4 sekuntia)
-- **Peruutus**: `8` lohkoa (~8 sekuntia)
+- **Aktivointi**: `4` lohkoa (~8 minuuttia 120s välillä)
+- **Peruutus**: `8` lohkoa (~16 minuuttia 120s välillä)
 
 ### Signet-parametrit
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Lohkoajan tavoitteet**:
 - Mainnet/Testnet/Signet: `120` sekuntia
-- Regtest: `1` sekunti
+- Regtest: `120` sekuntia
 
 **TIMESTAMP_WINDOW**: `15` sekuntia (yhtä suuri kuin MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Vaikeuden säätöparametrit
 
 **Liukuvan ikkunan koko**: `24` lohkoa (kaikki verkot)
-- Viimeaikaisten lohkoaikojen eksponentiaalinen liukuva keskiarvo
+- Viimeaikaisten lohkoaikojen painotettu liukuva keskiarvo (Burstcoin-tyylinen)
 - Säätö joka lohkossa
 - Reagoi kapasiteetin muutoksiin
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktivointiviive):
 - Mainnet: `30` lohkoa (~1 tunti)
 - Testnet: `30` lohkoa (~1 tunti)
-- Regtest: `4` lohkoa (~4 sekuntia)
+- Regtest: `4` lohkoa (~8 minuuttia 120s välillä)
 
 **nForgingRevocationDelay** (peruutusviive):
 - Mainnet: `720` lohkoa (~24 tuntia)
 - Testnet: `720` lohkoa (~24 tuntia)
-- Regtest: `8` lohkoa (~8 sekuntia)
+- Regtest: `8` lohkoa (~16 minuuttia 120s välillä)
 
 **Perustelu**:
 - Aktivointiviive estää nopean uudelleendelegoinnin lohkokisojen aikana

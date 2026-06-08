@@ -112,13 +112,13 @@ Bitcoin-PoCX utilise l'unité de devise **BTCX** (pas BTC) :
 5. Transaction diffusée immédiatement
 6. Assignation active après `nForgingAssignmentDelay` blocs :
    - Mainnet/Testnet : 30 blocs (~1 heure)
-   - Regtest : 4 blocs (~4 secondes)
+   - Regtest : 4 blocs (~8 minutes à un espacement de 120s)
 
 **Frais de transaction** : Par défaut 10× `minRelayFee` (personnalisable)
 
 **Structure de transaction** :
 - Entrée : UTXO de l'adresse de plot (prouve la propriété)
-- Sortie OP_RETURN : marqueur `POCX` + plot_address + forging_address (46 octets)
+- Sortie OP_RETURN (script de 46 octets, charge utile de 44 octets) : marqueur `POCX` + plot_address + forging_address
 - Sortie de change : Retourné au portefeuille
 
 #### Mode 2 : Révoquer une assignation
@@ -137,7 +137,7 @@ Bitcoin-PoCX utilise l'unité de devise **BTCX** (pas BTC) :
 4. Transaction diffusée immédiatement
 5. Révocation effective après `nForgingRevocationDelay` blocs :
    - Mainnet/Testnet : 720 blocs (~24 heures)
-   - Regtest : 8 blocs (~8 secondes)
+   - Regtest : 8 blocs (~16 minutes à un espacement de 120s)
 
 **Effet** :
 - L'adresse de forge peut encore forger pendant la période de délai
@@ -146,7 +146,7 @@ Bitcoin-PoCX utilise l'unité de devise **BTCX** (pas BTC) :
 
 **Structure de transaction** :
 - Entrée : UTXO de l'adresse de plot (prouve la propriété)
-- Sortie OP_RETURN : marqueur `XCOP` + plot_address (26 octets)
+- Sortie OP_RETURN (script de 26 octets, charge utile de 24 octets) : marqueur `XCOP` + plot_address
 - Sortie de change : Retourné au portefeuille
 
 #### Mode 3 : Vérifier le statut d'assignation

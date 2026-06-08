@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Masalah**: Waktu blok PoC tradisional mengikuti distribusi eksponensial, menyebabkan blok panjang ketika tidak ada penambang yang menemukan solusi yang baik.
 
-**Solusi**: Transformasi distribusi dari eksponensial ke chi-squared menggunakan akar pangkat tiga: `Y = scale * (X^(1/3))`.
+**Solusi**: Transformasi distribusi dari eksponensial ke Weibull (bentuk k=3) menggunakan akar pangkat tiga: `Y = scale * (X^(1/3))`.
 
 **Efek**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Berbasis format POC2 (Burstcoin) dengan peningkatan:
 
 ## Ringkasan Spesifikasi Teknis
 
-- **Waktu Blok**: 120 detik (mainnet), 1 detik (regtest)
+- **Waktu Blok**: 120 detik (semua jaringan: mainnet, testnet, regtest)
 - **Subsidi Blok**: 10 BTC awal, halving setiap 1050000 blok (~4 tahun)
 - **Total Pasokan**: ~21 juta BTC (sama dengan Bitcoin)
 - **Toleransi Masa Depan**: 15 detik (blok hingga 15 detik ke depan diterima)

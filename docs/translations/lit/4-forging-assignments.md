@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Gauti dabartinį priskyrimą
+            // Gauti dabartinį priskyrimą - atšaukti galima tik ASSIGNED būsenoje
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Saugoti seną būseną atšaukimui
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Grąžina dabartinę priskyrimo būseną grafiko adresui:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 eilutės] Žymeklių apibrėžimai, OP_RETURN ops, nuosavybės tikrinimas
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState pagalbininkai
     │   ├── assignment_state.cpp   # Priskyrimo būsenos užklausų funkcijos
+    │   ├── replay.h               # Priskyrimo efektų reorganizacija/pakartojimas
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorganizacijos kelias)
     │   ├── transactions.h         # Piniginės transakcijos kūrimo API
     │   └── transactions.cpp       # create_assignment, revoke_assignment piniginės funkcijos
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis bazinis tikslas, suspaudimo grafikas
 ```
+
+> **Pastaba:** Priskyrimo atidėjimo konstantos `nForgingAssignmentDelay` / `nForgingRevocationDelay` yra Bitcoin Core `Consensus::Params` struktūroje (`src/consensus/params.h`) ir nustatomos pagal tinklą faile `src/kernel/chainparams.cpp` — ne `pocx/consensus/params.h`.
 
 ## Našumo charakteristikos
 
@@ -766,9 +770,8 @@ Kur n = priskyrimų skaičius grafikui (paprastai mažas, < 10)
 
 ### Testų aprėpties sritys
 
-- Vienetiniai testai: `src/test/pocx_*_tests.cpp`
-- Funkciniai testai: `test/functional/feature_pocx_*.py`
-- Integraciniai testai: Rankinis testavimas su regtest
+- Vienetiniai testai: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integraciniai testai: regtest apvalkalo skriptai kataloguose `scripts/assignments/` ir `scripts/mining/`
 
 ## Konsensuso taisyklės
 

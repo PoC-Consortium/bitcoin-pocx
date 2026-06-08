@@ -12,7 +12,7 @@ A Bitcoin Proof-of-Work (PoW) konszenzusa robusztus biztonságot nyújt, de jele
 
 Implementációnk számos kulcsfontosságú innovációt vezet be:
 (1) Megerősített plotfájl formátumot, amely kiküszöböl minden ismert idő-memória-kompromisszumos támadást a meglévő PoC rendszerekben, biztosítva, hogy a hatékony bányászati teljesítmény szigorúan arányos maradjon az elkötelezett tárolási kapacitással;
-(2) A Time-Bending algoritmust, amely exponenciálisról chi-négyzetre transzformálja a határidő eloszlásokat, csökkentve a blokkidő szórását az átlag megváltoztatása nélkül;
+(2) A Time-Bending algoritmust, amely exponenciálisról Weibull (alak k=3) eloszlásra transzformálja a határidő eloszlásokat, csökkentve a blokkidő szórását az átlag megváltoztatása nélkül;
 (3) OP_RETURN-alapú kovácsolási megbízási mechanizmust, amely lehetővé teszi a nem-letéteményes pool bányászatot; és
 (4) Dinamikus tömörítési skálázást, amely a plotfájl generálási nehézséget a felezési ütemtervekkel összehangolva növeli, a hosszú távú biztonsági határok fenntartása érdekében a hardver fejlődésével.
 
@@ -297,14 +297,16 @@ A tervezett biztonsági határ megőrzése érdekében a PoCX egy skálázási �
 
 Az ütemterv igazodik a hálózat gazdasági ösztönzőihez, különösen a blokkjutalom felezésekhez. Ahogy a blokkonkénti jutalom csökken, a minimum szint fokozatosan növekszik, megőrizve az egyensúlyt a plotolási erőfeszítés és a bányászati potenciál között:
 
-| Időszak | Évek | Felezések | Min Skálázás | Plot Munka Szorzó |
+| Időszak | Évek | Felezések | Min Skálázás | Plot Munka (POC2 alapvonalhoz képest) |
 |---------|------|-----------|-------------|-------------------|
-| 0. Korszak | 0-4 | 0 | X1 | 2× alapvonal |
-| 1. Korszak | 4-12 | 1-2 | X2 | 4× alapvonal |
-| 2. Korszak | 12-28 | 3-6 | X3 | 8× alapvonal |
-| 3. Korszak | 28-60 | 7-14 | X4 | 16× alapvonal |
-| 4. Korszak | 60-124 | 15-30 | X5 | 32× alapvonal |
-| 5. Korszak | 124+ | 31+ | X6 | 64× alapvonal |
+| 0. Korszak | 0-4 | 0 | X1 | 2× POC2 |
+| 1. Korszak | 4-12 | 1-2 | X2 | 4× POC2 |
+| 2. Korszak | 12-28 | 3-6 | X3 | 8× POC2 |
+| 3. Korszak | 28-60 | 7-14 | X4 | 16× POC2 |
+| 4. Korszak | 60-124 | 15-30 | X5 | 32× POC2 |
+| 5. Korszak | 124+ | 31+ | X6 | 64× POC2 |
+
+A szorzó oszlop a megerősítetlen **POC2** alapvonalhoz viszonyítva van kifejezve. Mivel a megerősített X1 formátum már a POC2 munkájának 2×-esét ágyazza be, az Xn szint 2ⁿ × POC2-vel egyenlő — egyenértékűen 2^(n-1) × X1, összhangban a 3.5 szakasz szintenkénti definíciójával.
 
 A bányászok opcionálisan előkészíthetnek plotokat, amelyek egy szinttel meghaladják az aktuális minimumot, lehetővé téve számukra az előre tervezést és az azonnali frissítések elkerülését, amikor a hálózat a következő korszakba lép. Ez az opcionális lépés nem biztosít további előnyt a blokk valószínűség szempontjából — csupán simább működési átmenetet tesz lehetővé.
 
@@ -438,11 +440,11 @@ Az alábbi táblázatok összefoglalják az eredményül kapott mainnet, testnet
 | Magic bájtok | `0xfa 0xbf 0xb5 0xda` |
 | Alapértelmezett port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Blokkidő cél | 1 másodperc |
+| Blokkidő cél | 120 másodperc |
 | Felezési intervallum | 500 blokk |
 | Megbízás aktiválás | 4 blokk |
 | Megbízás visszavonás | 8 blokk |
-| Alacsony kapacitás mód | Engedélyezve (~4 MB plotok) |
+| Alacsony kapacitás mód | Engedélyezve (~16 MiB plotok, 64 nonce) |
 
 ---
 

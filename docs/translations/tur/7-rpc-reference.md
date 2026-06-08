@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (tam 40 hex karakter = 20 bayt; adres kabul edilmez)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Dönüş Değerleri** (başarılı):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // zaman bükülmüş dövme süresi (saniye)
 }
 ```
 
-**Dönüş Değerleri** (reddedildi):
-```json
-{
-  "accepted": false,
-  "error": "Üretim imzası uyuşmazlığı"
-}
-```
+`accepted` alanı yoktur. Reddedildiğinde RPC bir JSON nesnesi **döndürmez** — bir `JSONRPCError` fırlatır (aşağıdaki Hata Kodlarına bakın).
 
 **Doğrulama Adımları**:
 1. **Format Doğrulaması** (hızlı başarısızlık):
@@ -124,10 +117,11 @@ bitcoin-cli get_mining_info
    - Zaman bükülmüş dövme için nonce'u kuyruğa al
    - Blok forge_time'da otomatik olarak oluşturulacak
 
-**Hata Kodları**:
-- `RPC_INVALID_PARAMETER`: Geçersiz format (account_id, seed) veya yükseklik uyuşmazlığı
+**Hata Kodları** (`JSONRPCError` olarak fırlatılır):
+- `RPC_INVALID_PARAMETER`: Geçersiz format (account_id, seed) veya yükseklik uyuşmazlığı (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Üretim imzası uyuşmazlığı veya kanıt doğrulama başarısız
 - `RPC_INVALID_ADDRESS_OR_KEY`: Etkin imzalayan için özel anahtar yok
+- `RPC_WALLET_UNLOCK_NEEDED`: Etkin imzalayanın anahtarını tutan cüzdan kilitli (`walletpassphrase` ile kilidini açın)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Gönderim kuyruğu dolu
 - `RPC_INTERNAL_ERROR`: PoCX zamanlayıcısını başlatma başarısız
 
@@ -248,7 +242,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametreler**:
 1. `plot_address` (string, gerekli) - Plot sahibi adresi (özel anahtara sahip olmalı, P2WPKH bech32)
 2. `forging_address` (string, gerekli) - Dövme haklarının atanacağı adres (P2WPKH bech32)
-3. `fee_rate` (sayısal, isteğe bağlı) - BTC/kvB olarak ücret oranı (varsayılan: 10× minRelayFee)
+3. `fee_rate` (sayısal, isteğe bağlı) - BTCX/kvB olarak ücret oranı (varsayılan: `0` → cüzdanın standart minimum ücret tahmini; 10× minRelayFee varsayılanı yalnızca Qt GUI iletişim kutusu için geçerlidir, bu RPC için değil)
 
 **Dönüş Değerleri**:
 ```json
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **İşlem Yapısı**:
 - Giriş: Plot adresinden UTXO (sahipliği kanıtlar)
-- Çıktı: OP_RETURN (46 bayt): `POCX` işareti + plot_address (20 bayt) + forging_address (20 bayt)
+- Çıktı: OP_RETURN betiği (46 bayt) = `OP_RETURN` opcode + 1 baytlık push uzunluğu + 44 baytlık veri yükü (`POCX` işareti 4 + plot_address 20 + forging_address 20)
 - Çıktı: Para üstü cüzdana döner
 
 **Aktivasyon**:
@@ -302,7 +296,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametreler**:
 1. `plot_address` (string, gerekli) - Plot adresi (özel anahtara sahip olmalı, P2WPKH bech32)
-2. `fee_rate` (sayısal, isteğe bağlı) - BTC/kvB olarak ücret oranı (varsayılan: 10× minRelayFee)
+2. `fee_rate` (sayısal, isteğe bağlı) - BTCX/kvB olarak ücret oranı (varsayılan: `0` → cüzdanın standart minimum ücret tahmini; 10× minRelayFee varsayılanı yalnızca Qt GUI iletişim kutusu için geçerlidir, bu RPC için değil)
 
 **Dönüş Değerleri**:
 ```json
@@ -321,7 +315,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **İşlem Yapısı**:
 - Giriş: Plot adresinden UTXO (sahipliği kanıtlar)
-- Çıktı: OP_RETURN (26 bayt): `XCOP` işareti + plot_address (20 bayt)
+- Çıktı: OP_RETURN betiği (26 bayt) = `OP_RETURN` opcode + 1 baytlık push uzunluğu + 24 baytlık veri yükü (`XCOP` işareti 4 + plot_address 20)
 - Çıktı: Para üstü cüzdana döner
 
 **Etki**:
@@ -516,22 +510,23 @@ while True:
     # 2. Plot dosyalarını tara (harici uygulama)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. En iyi çözümü gönder
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Çözüm kabul edildi! Kalite: {result['quality']}s, "
+    # 3. En iyi çözümü gönder (reddedilirse JSONRPCError fırlatır)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Çözüm kabul edildi! Kalite: {result['raw_quality']}, "
               f"Dövme süresi: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Reddedildi: {e}")
 
     # 4. Sonraki bloğu bekle
     time.sleep(10)  # Yoklama aralığı
@@ -602,20 +597,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Yaygın Hata Desenleri
 
-**Yükseklik Uyuşmazlığı**:
+**Yükseklik Uyuşmazlığı** (`RPC_INVALID_PARAMETER` fırlatılır, kod -8):
 ```json
 {
-  "accepted": false,
-  "error": "Yükseklik uyuşmazlığı: gönderilen 12345, mevcut 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Çözüm**: Madencilik bilgisini yeniden al, zincir ilerledi
 
-**Üretim İmzası Uyuşmazlığı**:
+**Üretim İmzası Uyuşmazlığı** (`RPC_VERIFY_REJECTED` fırlatılır, kod -26):
 ```json
 {
-  "accepted": false,
-  "error": "Üretim imzası uyuşmazlığı"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Çözüm**: Madencilik bilgisini yeniden al, yeni blok geldi

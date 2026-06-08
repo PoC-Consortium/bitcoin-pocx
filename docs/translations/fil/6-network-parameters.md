@@ -35,7 +35,7 @@ Kumpletong sanggunian para sa configuration ng network ng Bitcoin-PoCX sa lahat 
 
 **Mga Nakalkulang Halaga**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Gumagamit ng low-capacity calibration mode
+- Regtest (120s): Gumagamit ng low-capacity calibration mode (base_power 2^58)
 
 ### Genesis Message
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Difficulty Adjustment**:
 - **Rolling Window**: `24` block
 - **Adjustment**: Bawat block
-- **Algorithm**: Exponential moving average
+- **Algorithm**: Weighted moving average (Burstcoin-style, ±20% bawat-block na cap)
 
 **Mga Assignment Delay**:
 - **Activation**: `30` block (~1 oras)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Block Timing**:
-- **Target na Block Time**: `1` segundo (instant mining para sa testing)
+- **Target na Block Time**: `120` segundo (minimina kapag kailangan sa pamamagitan ng `generatetoaddress` sa regtest)
 - **Target Timespan**: `86400` segundo (1 araw)
 - **MAX_FUTURE_BLOCK_TIME**: `15` segundo
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Rolling Window**: `24` block
 - **Allow Min Difficulty**: `true`
 - **No Retargeting**: `true`
-- **Low Capacity Calibration**: `true` (gumagamit ng 16-nonce calibration sa halip na 1 TiB)
+- **Low Capacity Calibration**: `true` (gumagamit ng 64-nonce calibration ≈ 16 MiB sa halip na 1 TiB)
 
 **Mga Assignment Delay**:
-- **Activation**: `4` block (~4 segundo)
-- **Revocation**: `8` block (~8 segundo)
+- **Activation**: `4` block (~8 minuto sa 120s na spacing)
+- **Revocation**: `8` block (~16 minuto sa 120s na spacing)
 
 ### Mga Parameter ng Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Mga Target ng Block Time**:
 - Mainnet/Testnet/Signet: `120` segundo
-- Regtest: `1` segundo
+- Regtest: `120` segundo
 
 **TIMESTAMP_WINDOW**: `15` segundo (katumbas ng MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Mga Parameter ng Difficulty Adjustment
 
 **Laki ng Rolling Window**: `24` block (lahat ng network)
-- Exponential moving average ng mga kamakailang block time
+- Weighted moving average ng mga kamakailang block time (Burstcoin-style)
 - Bawat-block na adjustment
 - Tumutugon sa mga pagbabago ng kapasidad
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (activation delay):
 - Mainnet: `30` block (~1 oras)
 - Testnet: `30` block (~1 oras)
-- Regtest: `4` block (~4 segundo)
+- Regtest: `4` block (~8 minuto sa 120s na spacing)
 
 **nForgingRevocationDelay** (revocation delay):
 - Mainnet: `720` block (~24 oras)
 - Testnet: `720` block (~24 oras)
-- Regtest: `8` block (~8 segundo)
+- Regtest: `8` block (~16 minuto sa 120s na spacing)
 
 **Rasyonal**:
 - Ang activation delay ay pumipigil sa mabilis na reassignment sa panahon ng mga block race

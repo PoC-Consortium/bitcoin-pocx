@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (рівно 40 hex символів = 20 байтів; адреса не приймається)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **Повертані значення** (успіх):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // дедлайн з урахуванням складності в секундах
+  "raw_quality": 120,       // сира якість з валідації доказу
   "poc_time": 45            // time-bended час кування в секундах
 }
 ```
 
-**Повертані значення** (відхилено):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Поля `accepted` немає. У разі відхилення RPC **не** повертає JSON-об'єкт — він кидає `JSONRPCError` (див. Коди помилок нижче).
 
 **Кроки валідації**:
 1. **Валідація формату** (швидкий провал):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Ставить nonce в чергу для time-bended кування
    - Блок буде створено автоматично в forge_time
 
-**Коди помилок**:
-- `RPC_INVALID_PARAMETER`: Невалідний формат (account_id, seed) або невідповідність висоти
+**Коди помилок** (кидаються як `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Невалідний формат (account_id, seed) або невідповідність висоти (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Невідповідність сигнатури генерації або провал валідації доказу
 - `RPC_INVALID_ADDRESS_OR_KEY`: Немає приватного ключа для ефективного підписанта
+- `RPC_WALLET_UNLOCK_NEEDED`: Гаманець, що містить ключ ефективного підписанта, заблокований (розблокуйте за допомогою `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Черга подань заповнена
 - `RPC_INTERNAL_ERROR`: Не вдалося ініціалізувати планувальник PoCX
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Параметри**:
 1. `plot_address` (рядок, обов'язково) - Адреса власника плоту (повинен володіти приватним ключем, P2WPKH bech32)
 2. `forging_address` (рядок, обов'язково) - Адреса для призначення прав кування (P2WPKH bech32)
-3. `fee_rate` (числове, опціонально) - Ставка комісії в BTC/kvB (за замовчуванням: 10× minRelayFee)
+3. `fee_rate` (числове, опціонально) - Ставка комісії в BTCX/kvB (за замовчуванням: `0` → стандартна оцінка мінімальної комісії гаманця; типове значення 10× minRelayFee застосовується лише в діалозі Qt GUI, а не в цьому RPC)
 
 **Повертані значення**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Структура транзакції**:
 - Вхід: UTXO з адреси плоту (доводить володіння)
-- Вихід: OP_RETURN (46 байтів): маркер `POCX` + plot_address (20 байтів) + forging_address (20 байтів)
+- Вихід: OP_RETURN скрипт (46 байтів) = опкод `OP_RETURN` + 1-байтова довжина push + 44-байтовий блок даних (маркер `POCX` 4 + plot_address 20 + forging_address 20)
 - Вихід: Решта повертається до гаманця
 
 **Активація**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Параметри**:
 1. `plot_address` (рядок, обов'язково) - Адреса плоту (повинен володіти приватним ключем, P2WPKH bech32)
-2. `fee_rate` (числове, опціонально) - Ставка комісії в BTC/kvB (за замовчуванням: 10× minRelayFee)
+2. `fee_rate` (числове, опціонально) - Ставка комісії в BTCX/kvB (за замовчуванням: `0` → стандартна оцінка мінімальної комісії гаманця; типове значення 10× minRelayFee застосовується лише в діалозі Qt GUI, а не в цьому RPC)
 
 **Повертані значення**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Структура транзакції**:
 - Вхід: UTXO з адреси плоту (доводить володіння)
-- Вихід: OP_RETURN (26 байтів): маркер `XCOP` + plot_address (20 байтів)
+- Вихід: OP_RETURN скрипт (26 байтів) = опкод `OP_RETURN` + 1-байтова довжина push + 24-байтовий блок даних (маркер `XCOP` 4 + plot_address 20)
 - Вихід: Решта повертається до гаманця
 
 **Ефект**:
@@ -542,22 +536,23 @@ while True:
     # 2. Сканування файлів плотів (зовнішня реалізація)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Подання найкращого рішення
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Рішення прийнято! Якість: {result['quality']}с, "
+    # 3. Подання найкращого рішення (кидає JSONRPCError при відхиленні)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Рішення прийнято! Якість: {result['raw_quality']}, "
               f"Час кування: {result['poc_time']}с")
+    except JSONRPCError as e:
+        print(f"Відхилено: {e}")
 
     # 4. Очікування наступного блоку
     time.sleep(10)  # Інтервал опитування
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Типові патерни помилок
 
-**Невідповідність висоти**:
+**Невідповідність висоти** (кидається `RPC_INVALID_PARAMETER`, код -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Рішення**: Повторно отримайте інформацію майнінгу, ланцюг просунувся вперед
 
-**Невідповідність сигнатури генерації**:
+**Невідповідність сигнатури генерації** (кидається `RPC_VERIFY_REJECTED`, код -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Рішення**: Повторно отримайте інформацію майнінгу, надійшов новий блок

@@ -12,7 +12,7 @@
 
 Triển khai của chúng tôi giới thiệu một số đổi mới quan trọng:
 (1) Định dạng plot được gia cố loại bỏ tất cả các tấn công đánh đổi thời gian-bộ nhớ đã biết trong các hệ thống PoC hiện có, đảm bảo năng lực đào hiệu quả vẫn tỷ lệ nghiêm ngặt với dung lượng lưu trữ cam kết;
-(2) Thuật toán Time-Bending biến đổi phân phối deadline từ mũ sang chi bình phương, giảm variance thời gian khối mà không thay đổi trung bình;
+(2) Thuật toán Time-Bending biến đổi phân phối deadline từ mũ sang Weibull (hình dạng k=3), giảm variance thời gian khối mà không thay đổi trung bình;
 (3) Cơ chế ủy quyền forging dựa trên OP_RETURN cho phép đào pool không giám sát; và
 (4) Mở rộng nén động, tăng độ khó tạo plot phù hợp với lịch trình halving để duy trì biên độ bảo mật dài hạn khi phần cứng cải thiện.
 
@@ -297,14 +297,16 @@ Khi phần cứng phát triển, chi phí tính toán plot giảm so với việ
 
 Lịch trình phù hợp với các động cơ kinh tế của mạng, đặc biệt là halving phần thưởng khối. Khi phần thưởng mỗi khối giảm, cấp độ tối thiểu tăng dần, bảo toàn sự cân bằng giữa nỗ lực tạo plot và tiềm năng đào:
 
-| Khoảng | Năm | Halving | Mở rộng Tối thiểu | Hệ số Công việc Plot |
+| Khoảng | Năm | Halving | Mở rộng Tối thiểu | Công việc Plot (so với cơ sở POC2) |
 |--------|-----|---------|-------------------|---------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2× baseline |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4× baseline |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8× baseline |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16× baseline |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32× baseline |
-| Epoch 5 | 124+ | 31+ | X6 | 64× baseline |
+| Epoch 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Cột hệ số được biểu thị so với định dạng cơ sở **POC2** chưa được làm cứng. Vì định dạng X1 đã được làm cứng nhúng 2× công việc của POC2, cấp độ Xn bằng 2ⁿ × POC2 — tương đương 2^(n-1) × X1, khớp với định nghĩa theo từng cấp trong Mục 3.5.
 
 Thợ đào có thể tùy chọn chuẩn bị plot vượt quá mức tối thiểu hiện tại một cấp độ, cho phép họ lên kế hoạch trước và tránh nâng cấp ngay lập tức khi mạng chuyển sang epoch tiếp theo. Bước tùy chọn này không mang lại lợi thế bổ sung về xác suất khối - nó chỉ cho phép chuyển đổi hoạt động mượt mà hơn.
 
@@ -438,11 +440,11 @@ Các bảng dưới đây tóm tắt các cài đặt mainnet, testnet và regte
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Cổng mặc định | 18444 |
 | Bech32 HRP | `rpocx` |
-| Mục tiêu thời gian khối | 1 giây |
+| Mục tiêu thời gian khối | 120 giây |
 | Khoảng halving | 500 khối |
 | Kích hoạt ủy quyền | 4 khối |
 | Thu hồi ủy quyền | 8 khối |
-| Chế độ dung lượng thấp | Bật (~4 MB plot) |
+| Chế độ dung lượng thấp | Bật (~16 MiB plot, 64 nonce) |
 
 ---
 

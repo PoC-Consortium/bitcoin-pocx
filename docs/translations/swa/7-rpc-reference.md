@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (haswa herufi 40 za hex = baiti 20; anwani haikubaliki)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Thamani za Kurudishwa** (mafanikio):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // muda wa kuunda uliopindwa katika sekunde
 }
 ```
 
-**Thamani za Kurudishwa** (kukataliwa):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Hakuna sehemu ya `accepted`. Inapokataliwa, RPC **hairudishi** kitu cha JSON — inatupa `JSONRPCError` (ona Nambari za Kosa hapa chini).
 
 **Hatua za Uthibitishaji**:
 1. **Uthibitishaji wa Muundo** (kushindwa haraka):
@@ -122,10 +115,11 @@ bitcoin-cli get_mining_info
    - Weka nonce foleni kwa kuunda iliyopindwa muda
    - Bloku itaundwa moja kwa moja wakati wa forge_time
 
-**Nambari za Kosa**:
-- `RPC_INVALID_PARAMETER`: Muundo batili (account_id, seed) au kutofautiana kwa urefu
+**Nambari za Kosa** (zinatupwa kama `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Muundo batili (account_id, seed) au kutofautiana kwa urefu (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Kutofautiana kwa sahihi ya uzalishaji au uthibitishaji wa uthibitisho umeshindwa
 - `RPC_INVALID_ADDRESS_OR_KEY`: Hakuna ufunguo wa kibinafsi kwa msaini anayefanya kazi
+- `RPC_WALLET_UNLOCK_NEEDED`: Pochi inayoshikilia ufunguo wa msaini anayefanya kazi imefungwa (fungua kwa `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Foleni ya uwasilishaji imejaa
 - `RPC_INTERNAL_ERROR`: Imeshindwa kuanzisha kipangaji cha PoCX
 
@@ -246,7 +240,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Vigezo**:
 1. `plot_address` (string, inahitajika) - Anwani ya mmiliki wa plot (lazima umiliki ufunguo wa kibinafsi, P2WPKH bech32)
 2. `forging_address` (string, inahitajika) - Anwani ya kukabidhi haki za kuunda (P2WPKH bech32)
-3. `fee_rate` (nambari, hiari) - Kiwango cha ada katika BTC/kvB (default: 10× minRelayFee)
+3. `fee_rate` (nambari, hiari) - Kiwango cha ada katika BTCX/kvB (default: `0` → makadirio ya kawaida ya ada ya chini ya pochi; default ya 10× minRelayFee inatumika tu kwa kidirisha cha Qt GUI, si RPC hii)
 
 **Thamani za Kurudishwa**:
 ```json
@@ -267,7 +261,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Muundo wa Muamala**:
 - Ingizo: UTXO kutoka anwani ya plot (inathibitisha umiliki)
-- Tokeo: OP_RETURN (byte 46): alama ya `POCX` + plot_address (byte 20) + forging_address (byte 20)
+- Tokeo: skripti ya OP_RETURN (byte 46) = opcode ya `OP_RETURN` + urefu wa push wa baiti 1 + mzigo wa data wa baiti 44 (alama ya `POCX` 4 + plot_address 20 + forging_address 20)
 - Tokeo: Chenji inarudi kwa pochi
 
 **Uanzishaji**:
@@ -300,7 +294,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Vigezo**:
 1. `plot_address` (string, inahitajika) - Anwani ya plot (lazima umiliki ufunguo wa kibinafsi, P2WPKH bech32)
-2. `fee_rate` (nambari, hiari) - Kiwango cha ada katika BTC/kvB (default: 10× minRelayFee)
+2. `fee_rate` (nambari, hiari) - Kiwango cha ada katika BTCX/kvB (default: `0` → makadirio ya kawaida ya ada ya chini ya pochi; default ya 10× minRelayFee inatumika tu kwa kidirisha cha Qt GUI, si RPC hii)
 
 **Thamani za Kurudishwa**:
 ```json
@@ -319,7 +313,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Muundo wa Muamala**:
 - Ingizo: UTXO kutoka anwani ya plot (inathibitisha umiliki)
-- Tokeo: OP_RETURN (byte 26): alama ya `XCOP` + plot_address (byte 20)
+- Tokeo: skripti ya OP_RETURN (byte 26) = opcode ya `OP_RETURN` + urefu wa push wa baiti 1 + mzigo wa data wa baiti 24 (alama ya `XCOP` 4 + plot_address 20)
 - Tokeo: Chenji inarudi kwa pochi
 
 **Athari**:
@@ -514,22 +508,23 @@ while True:
     # 2. Changanua faili za plot (utekelezaji wa nje)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Wasilisha suluhisho bora zaidi
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Suluhisho limekubaliwa! Ubora: {result['quality']}s, "
+    # 3. Wasilisha suluhisho bora zaidi (inatupa JSONRPCError inapokataliwa)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Suluhisho limekubaliwa! Ubora: {result['raw_quality']}, "
               f"Muda wa kuunda: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Limekataliwa: {e}")
 
     # 4. Subiri bloku inayofuata
     time.sleep(10)  # Muda wa kuhoji
@@ -600,20 +595,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Mifumo ya Kawaida ya Makosa
 
-**Kutofautiana kwa Urefu**:
+**Kutofautiana kwa Urefu** (inatupwa `RPC_INVALID_PARAMETER`, code -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Suluhisho**: Pata tena habari za uchimbaji, mtandao umesonga mbele
 
-**Kutofautiana kwa Sahihi ya Uzalishaji**:
+**Kutofautiana kwa Sahihi ya Uzalishaji** (inatupwa `RPC_VERIFY_REJECTED`, code -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Suluhisho**: Pata tena habari za uchimbaji, bloku mpya imefika

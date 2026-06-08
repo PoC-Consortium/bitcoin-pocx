@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Aktuális megbízás lekérése
+            // Aktuális megbízás lekérése - a visszavonáshoz ASSIGNED állapotban kell lennie
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Régi állapot tárolása visszavonáshoz
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Visszaadja az aktuális megbízás állapotot egy plot címhez:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Jelölő definíciók, OP_RETURN műveletek, tulajdonjog ellenőrzés
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState segédfüggvények
     │   ├── assignment_state.cpp   # Megbízás állapot lekérdező függvények
+    │   ├── replay.h               # Megbízás-hatások reorg/visszajátszása
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg útvonal)
     │   ├── transactions.h         # Tárca tranzakció létrehozás API
     │   └── transactions.cpp       # create_assignment, revoke_assignment tárca függvények
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC-k
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genezis alap célérték, kompressziós ütemterv
 ```
+
+> **Megjegyzés:** A megbízás-késleltetési konstansok `nForgingAssignmentDelay` / `nForgingRevocationDelay` a Bitcoin Core `Consensus::Params` struktúrájában (`src/consensus/params.h`) találhatók, és hálózatonként a `src/kernel/chainparams.cpp`-ben vannak beállítva — nem a `pocx/consensus/params.h`-ban.
 
 ## Teljesítmény Jellemzők
 
@@ -766,9 +770,8 @@ Ahol n = megbízások száma plotonként (jellemzően kicsi, < 10)
 
 ### Teszt Lefedettségi Területek
 
-- Egységtesztek: `src/test/pocx_*_tests.cpp`
-- Funkcionális tesztek: `test/functional/feature_pocx_*.py`
-- Integrációs tesztek: Manuális tesztelés regtest-tel
+- Egységtesztek: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integrációs tesztek: regtest shell szkriptek a `scripts/assignments/` és `scripts/mining/` alatt
 
 ## Konszenzus Szabályok
 

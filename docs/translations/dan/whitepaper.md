@@ -12,7 +12,7 @@ Bitcoins Proof-of-Work (PoW)-konsensus giver robust sikkerhed, men forbruger bet
 
 Vores implementering introducerer flere nogleinnovationer:
 (1) Et haerdet plotformat, der eliminerer alle kendte tid-hukommelse-afvejningsangreb i eksisterende PoC-systemer, hvilket sikrer, at effektiv miningkraft forbliver strengt proportional med engageret lagerkapacitet;
-(2) Time-Bending-algoritmen, der transformerer deadline-fordelinger fra eksponentiel til chi-kvadrat, reducerer bloktidsvarians uden at aendre gennemsnittet;
+(2) Time-Bending-algoritmen, der transformerer deadline-fordelinger fra eksponentiel til Weibull (shape k=3), reducerer bloktidsvarians uden at aendre gennemsnittet;
 (3) En OP_RETURN-baseret forging-assignment-mekanisme, der muliggor ikke-custodial pool-mining; og
 (4) Dynamisk kompressionsskalering, der oger plotgenereringssvaerhedsgrad i overensstemmelse med halveringsplaner for at opretholde langsigtede sikkerhedsmarginer, efterhanden som hardware forbedres.
 
@@ -297,14 +297,16 @@ For at bevare den tilsigtede sikkerhedsmargin implementerer PoCX en skaleringspl
 
 Planen tilpasser sig netvaerkets okonomiske incitamenter, saerligt blokbelonningshalveringer. Efterhanden som belonningen pr. blok falder, stiger minimumsniveauet gradvist, hvilket bevarer balancen mellem plottingsindsats og miningpotentiale:
 
-| Periode | Ar | Halveringer | Min. skalering | Plotarbejdsmultiplikator |
+| Periode | Ar | Halveringer | Min. skalering | Plotarbejde (vs. POC2-baseline) |
 |---------|-----|------------|----------------|-------------------------|
-| Epoke 0 | 0-4 | 0 | X1 | 2x baseline |
-| Epoke 1 | 4-12 | 1-2 | X2 | 4x baseline |
-| Epoke 2 | 12-28 | 3-6 | X3 | 8x baseline |
-| Epoke 3 | 28-60 | 7-14 | X4 | 16x baseline |
-| Epoke 4 | 60-124 | 15-30 | X5 | 32x baseline |
-| Epoke 5 | 124+ | 31+ | X6 | 64x baseline |
+| Epoke 0 | 0-4 | 0 | X1 | 2x POC2 |
+| Epoke 1 | 4-12 | 1-2 | X2 | 4x POC2 |
+| Epoke 2 | 12-28 | 3-6 | X3 | 8x POC2 |
+| Epoke 3 | 28-60 | 7-14 | X4 | 16x POC2 |
+| Epoke 4 | 60-124 | 15-30 | X5 | 32x POC2 |
+| Epoke 5 | 124+ | 31+ | X6 | 64x POC2 |
+
+Multiplikatorkolonnen er udtrykt relativt til det uhaerdede **POC2**-baseline-format. Da det haerdede X1-format allerede indlejrer 2x arbejdet i POC2, er niveau Xn lig med 2ⁿ × POC2 — svarende til 2^(n-1) × X1, i overensstemmelse med definitionen per niveau i Afsnit 3.5.
 
 Minere kan valgfrit forberede plots, der overstiger det nuvaerende minimum med et niveau, hvilket tillader dem at planlaeegge forud og undga ojeblikkelige opgraderinger, nar netvaerket overgår til den naeste epoke. Dette valgfrie trin giver ikke yderligere fordel med hensyn til bloksandsynlighed - det tillader blot en glaettere operationel overgang.
 
@@ -438,11 +440,11 @@ Tabellerne nedenfor opsummerer de resulterende mainnet-, testnet- og regtest-ind
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Standardport | 18444 |
 | Bech32 HRP | `rpocx` |
-| Bloktidsmal | 1 sekund |
+| Bloktidsmal | 120 sekunder |
 | Halveringsinterval | 500 blokke |
 | Assignment-aktivering | 4 blokke |
 | Assignment-tilbagekaldelse | 8 blokke |
-| Lavkapacitetstilstand | Aktiveret (~4 MB plots) |
+| Lavkapacitetstilstand | Aktiveret (~16 MiB plots, 64 nonces) |
 
 ---
 

@@ -26,7 +26,7 @@ Bitcoin-PoCX מיישם מנגנון קונצנזוס טהור של Proof of Cap
 
 **תכונות מפתח:**
 - **יעיל אנרגטית:** הכרייה משתמשת בקובצי plot מיוצרים מראש במקום hashing חישובי
-- **Deadlines עם עיקום זמן:** טרנספורמציית התפלגות (מעריכית→כי-ריבוע) מפחיתה בלוקים ארוכים, משפרת זמני בלוק ממוצעים
+- **Deadlines עם עיקום זמן:** טרנספורמציית התפלגות (מעריכית→Weibull, צורה k=3) מפחיתה בלוקים ארוכים, משפרת זמני בלוק ממוצעים
 - **תמיכת הקצאות:** בעלי plots יכולים להאציל זכויות כרייה לכתובות אחרות
 - **אינטגרציית C++ טבעית:** אלגוריתמים קריפטוגרפיים מיושמים ב-C++ לאימות קונצנזוס
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **בלוק בראשית:** משתמש בחתימת יצירה ראשונית קבועה בקוד
 
-**יישום:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**יישום:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (נקראת מתוך `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (קושי)
 
 Base target הוא ההפוך של קושי - ערכים גבוהים יותר משמעותם כרייה קלה יותר.
 
 **אלגוריתם התאמה:**
-- זמן בלוק יעד: 120 שניות (mainnet), שנייה אחת (regtest)
+- זמן בלוק יעד: 120 שניות (כל הרשתות)
 - מרווח התאמה: כל בלוק
 - משתמש בממוצע נע של base targets אחרונים
 - מוגבל למניעת תנודות קושי קיצוניות
@@ -112,7 +112,7 @@ PoCX תומך ב-proof-of-work מדורג בקובצי plot דרך רמות סי
 
 **גבולות דינמיים:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // רמה מינימלית מתקבלת
     uint32_t nPoCXTargetCompression;  // רמה מומלצת
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### שלב 2: רכישת הקשר
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // מחזיר: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**מטרה:** טרנספורמציה מהתפלגות מעריכית לכי-ריבוע. פתרונות טובים מאוד מתכווצים מאוחר יותר (לרשת יש זמן לסרוק דיסקים), פתרונות גרועים משופרים. מפחית בלוקים ארוכים, שומר על ממוצע 120 שניות.
+**מטרה:** טרנספורמציה מהתפלגות מעריכית ל-Weibull (צורה k=3). פתרונות טובים מאוד מתכווצים מאוחר יותר (לרשת יש זמן לסרוק דיסקים), פתרונות גרועים משופרים. מפחית בלוקים ארוכים, שומר על ממוצע 120 שניות.
 
 **יישום:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**נמען Coinbase** (לא נאכף על ידי הקונצנזוס):
+
+הכורה מגדיר את פלט ה-coinbase לשלם לחותם האפקטיבי (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), אך הקונצנזוס **אינו** מאמת זאת. הקונצנזוס אוכף רק שה-*חתימת הבלוק* נוצרה על ידי החותם האפקטיבי — בדיקת `bad-pocx-assignment-sig` שלמעלה. אין כלל `bad-pocx-coinbase`; נמען ה-coinbase נבחר על ידי הכורה.
+
 **יישום:**
 - חיבור: `src/validation.cpp:ConnectBlock()`
 - אימות מורחב: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ ActivateBestChain (טיפול ב-reorg, הרחבת שרשרת)
 - הקצאות מאוחסנות בפלטי OP_RETURN (לא UTXO)
 - אין דרישות הוצאה (אין dust, אין עמלות להחזקה)
 - נעקב ב-CCoinsViewCache במצב מורחב
-- מופעל לאחר תקופת עיכוב (ברירת מחדל: 4 בלוקים)
+- מופעל לאחר תקופת עיכוב (ברירת מחדל: 30 בלוקים; 4 ב-regtest)
 
 **מצבי הקצאה:**
 ```cpp

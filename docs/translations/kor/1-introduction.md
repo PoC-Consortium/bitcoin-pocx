@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **문제**: 전통적인 PoC 블록 시간은 지수 분포를 따르며, 채굴자가 좋은 솔루션을 찾지 못할 때 긴 블록이 발생합니다.
 
-**해결책**: 세제곱근을 사용하여 지수 분포를 카이제곱 분포로 변환: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**해결책**: 세제곱근을 사용하여 지수 분포를 Weibull 분포(형상 k=3)로 변환: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **효과**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ cmake --build build
 
 ## 기술 사양 요약
 
-- **블록 시간**: 120초 (메인넷), 1초 (regtest)
+- **블록 시간**: 120초 (모든 네트워크: 메인넷, 테스트넷, regtest)
 - **블록 보조금**: 초기 10 BTC, 1050000 블록마다 반감 (~4년)
 - **총 공급량**: ~2,100만 BTC (Bitcoin과 동일)
 - **미래 허용**: 15초 (최대 15초 앞선 블록 허용)

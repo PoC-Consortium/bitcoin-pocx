@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (точно 40 hex символа = 20 байта; адрес не се приема)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **Върнати стойности** (успех):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // краен срок, коригиран за трудност, в секунди
+  "raw_quality": 120,       // сурово качество от валидация на доказателство
   "poc_time": 45            // time-bended време за подписване в секунди
 }
 ```
 
-**Върнати стойности** (отхвърлено):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Няма поле `accepted`. При отхвърляне RPC **не** връща JSON обект — хвърля `JSONRPCError` (вижте Кодове за грешка по-долу).
 
 **Стъпки на валидация**:
 1. **Валидация на формат** (бърз отказ):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Поставяне на nonce на опашка за time-bended подписване
    - Блокът ще бъде създаден автоматично в forge_time
 
-**Кодове за грешка**:
-- `RPC_INVALID_PARAMETER`: Невалиден формат (account_id, seed) или несъответствие на височина
+**Кодове за грешка** (хвърлят се като `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Невалиден формат (account_id, seed) или несъответствие на височина (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Несъответствие на генерационен подпис или провал на валидация на доказателство
 - `RPC_INVALID_ADDRESS_OR_KEY`: Няма частен ключ за ефективен подписващ
+- `RPC_WALLET_UNLOCK_NEEDED`: Портфейлът, който държи ключа на ефективния подписващ, е заключен (отключете с `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Опашката за подаване е пълна
 - `RPC_INTERNAL_ERROR`: Неуспешна инициализация на PoCX планировчик
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Параметри**:
 1. `plot_address` (string, задължителен) — Адрес на собственик на plot (трябва да притежава частен ключ, P2WPKH bech32)
 2. `forging_address` (string, задължителен) — Адрес за делегиране на права за подписване (P2WPKH bech32)
-3. `fee_rate` (числово, незадължителен) — Такса в BTC/kvB (по подразбиране: 10× minRelayFee)
+3. `fee_rate` (числово, незадължителен) — Такса в BTCX/kvB (по подразбиране: `0` → стандартната оценка за минимална такса на портфейла; стандартът 10× minRelayFee важи само за диалога на Qt GUI, не за този RPC)
 
 **Върнати стойности**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Структура на транзакция**:
 - Вход: UTXO от адрес на plot (доказва собственост)
-- Изход: OP_RETURN (46 байта): `POCX` маркер + plot_address (20 байта) + forging_address (20 байта)
+- Изход: OP_RETURN скрипт (46 байта) = опкод `OP_RETURN` + 1 байт дължина на push + 44 байта полезен товар (`POCX` маркер 4 + plot_address 20 + forging_address 20)
 - Изход: Ресто, върнато в портфейла
 
 **Активиране**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Параметри**:
 1. `plot_address` (string, задължителен) — Адрес на plot (трябва да притежава частен ключ, P2WPKH bech32)
-2. `fee_rate` (числово, незадължителен) — Такса в BTC/kvB (по подразбиране: 10× minRelayFee)
+2. `fee_rate` (числово, незадължителен) — Такса в BTCX/kvB (по подразбиране: `0` → стандартната оценка за минимална такса на портфейла; стандартът 10× minRelayFee важи само за диалога на Qt GUI, не за този RPC)
 
 **Върнати стойности**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Структура на транзакция**:
 - Вход: UTXO от адрес на plot (доказва собственост)
-- Изход: OP_RETURN (26 байта): `XCOP` маркер + plot_address (20 байта)
+- Изход: OP_RETURN скрипт (26 байта) = опкод `OP_RETURN` + 1 байт дължина на push + 24 байта полезен товар (`XCOP` маркер 4 + plot_address 20)
 - Изход: Ресто, върнато в портфейла
 
 **Ефект**:
@@ -542,22 +536,23 @@ while True:
     # 2. Сканиране на plot файлове (външна имплементация)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Подаване на най-доброто решение
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Решение прието! Качество: {result['quality']}s, "
+    # 3. Подаване на най-доброто решение (хвърля JSONRPCError при отхвърляне)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Решение прието! Качество: {result['raw_quality']}, "
               f"Време за подписване: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Отхвърлено: {e}")
 
     # 4. Изчакване на следващ блок
     time.sleep(10)  # Интервал на polling
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Често срещани модели на грешки
 
-**Несъответствие на височина**:
+**Несъответствие на височина** (хвърля се `RPC_INVALID_PARAMETER`, код -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Решение**: Извлечете отново mining info, веригата се е придвижила напред
 
-**Несъответствие на генерационен подпис**:
+**Несъответствие на генерационен подпис** (хвърля се `RPC_VERIFY_REJECTED`, код -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Решение**: Извлечете отново mining info, пристигнал е нов блок

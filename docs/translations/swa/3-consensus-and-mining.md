@@ -26,7 +26,7 @@ Bitcoin-PoCX inatekeleza utaratibu safi wa makubaliano ya Proof of Capacity kama
 
 **Sifa Muhimu:**
 - **Ufanisi wa Nishati:** Uchimbaji unatumia faili za plot zilizozalishwa mapema badala ya hashing ya kompyuta
-- **Tarehe za Mwisho Zilizopindwa Muda:** Ubadilishaji wa usambazaji (exponential→chi-squared) unapunguza bloku ndefu, unaboresha muda wa wastani wa bloku
+- **Tarehe za Mwisho Zilizopindwa Muda:** Ubadilishaji wa usambazaji (exponential→Weibull, kipimo cha umbo k=3) unapunguza bloku ndefu, unaboresha muda wa wastani wa bloku
 - **Msaada wa Ugawaji:** Wamiliki wa plot wanaweza kukabidhi haki za kuunda kwa anwani nyingine
 - **Muungano wa Asili wa C++:** Algorithm za kriptografia zimetekelezwa katika C++ kwa uthibitishaji wa makubaliano
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Bloku ya Mwanzo:** Inatumia sahihi ya awali ya uzalishaji iliyosimbwa ngumu
 
-**Utekelezaji:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Utekelezaji:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (inaitwa kutoka `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Lengo la Msingi (Ugumu)
 
 Lengo la msingi ni kinyume cha ugumu - thamani za juu zaidi zinamaanisha uchimbaji rahisi zaidi.
 
 **Algorithm ya Marekebisho:**
-- Lengo la muda wa bloku: sekunde 120 (mainnet), sekunde 1 (regtest)
+- Lengo la muda wa bloku: sekunde 120 (mitandao yote)
 - Muda wa marekebisho: Kila bloku
 - Inatumia wastani unaosogea wa lengo la msingi la hivi karibuni
 - Imezuiwa kuzuia mabadiliko makubwa ya ugumu
@@ -112,7 +112,7 @@ PoCX inasaidia proof-of-work inayopanuka katika faili za plot kupitia viwango vy
 
 **Mipaka Inayobadilika:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Kiwango cha chini kinachokubaliwa
     uint32_t nPoCXTargetCompression;  // Kiwango kinachopendekezwa
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Hatua ya 2: Kupata Muktadha
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Inarudisha: height, generation_signature, base_target, block_hash
 ```
 
@@ -265,7 +265,7 @@ ambapo:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Madhumuni:** Inabadilisha usambazaji wa exponential kuwa chi-squared. Suluhisho nzuri sana zinaunda baadaye (mtandao una muda wa kuchanganua diski), suluhisho duni zimeboreshwa. Inapunguza bloku ndefu, inadumisha wastani wa sekunde 120.
+**Madhumuni:** Inabadilisha usambazaji wa exponential kuwa Weibull (kipimo cha umbo k=3). Suluhisho nzuri sana zinaunda baadaye (mtandao una muda wa kuchanganua diski), suluhisho duni zimeboreshwa. Inapunguza bloku ndefu, inadumisha wastani wa sekunde 120.
 
 **Utekelezaji:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -558,6 +558,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Mpokeaji wa Coinbase** (haitekelezwi na consensus):
+
+Mchimbaji huweka pato la coinbase kulipa msaini halisi (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), lakini hili **haithibitishwi** na consensus. Consensus inatekeleza tu kwamba *sahihi ya bloku* itolewe na msaini halisi — ukaguzi wa `bad-pocx-assignment-sig` hapo juu. Hakuna kanuni ya `bad-pocx-coinbase`; mpokeaji wa coinbase huchaguliwa na mchimbaji.
+
 **Utekelezaji:**
 - Muunganisho: `src/validation.cpp:ConnectBlock()`
 - Uthibitishaji ulioongezwa: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -618,7 +622,7 @@ Ugawaji unaruhusu wamiliki wa plot kukabidhi haki za kuunda kwa anwani nyingine 
 - Ugawaji umehifadhiwa katika matokeo ya OP_RETURN (hakuna UTXO)
 - Hakuna mahitaji ya matumizi (hakuna vumbi, hakuna ada za kushikilia)
 - Inafuatiliwa katika hali iliyoongezwa ya CCoinsViewCache
-- Inawezeshwa baada ya kipindi cha ucheleweshaji (default: bloku 4)
+- Inawezeshwa baada ya kipindi cha ucheleweshaji (default: bloku 30; 4 kwenye regtest)
 
 **Hali za Ugawaji:**
 ```cpp

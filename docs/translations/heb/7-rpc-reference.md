@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (בדיוק 40 תווי hex = 20 בתים; כתובת אינה מתקבלת)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **ערכי החזרה** (הצלחה):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // deadline מותאם קושי בשניות
+  "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // זמן כרייה עם עיקום זמן בשניות
 }
 ```
 
-**ערכי החזרה** (נדחה):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+אין שדה `accepted`. בדחייה ה-RPC **אינו** מחזיר אובייקט JSON — הוא זורק `JSONRPCError` (ראה קודי שגיאה למטה).
 
 **שלבי אימות**:
 1. **אימות פורמט** (fail-fast):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - הכנס nonce לתור לכרייה עם עיקום זמן
    - בלוק ייווצר אוטומטית ב-forge_time
 
-**קודי שגיאה**:
-- `RPC_INVALID_PARAMETER`: פורמט לא תקף (account_id, seed) או חוסר התאמה בגובה
+**קודי שגיאה** (נזרקים כ-`JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: פורמט לא תקף (account_id, seed) או חוסר התאמה בגובה (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: חוסר התאמה בחתימת יצירה או אימות הוכחה נכשל
 - `RPC_INVALID_ADDRESS_OR_KEY`: אין מפתח פרטי לחותם אפקטיבי
+- `RPC_WALLET_UNLOCK_NEEDED`: הארנק המחזיק את מפתח החותם האפקטיבי נעול (פתח עם `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: תור הגשה מלא
 - `RPC_INTERNAL_ERROR`: נכשלה אתחול מתזמן PoCX
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **פרמטרים**:
 1. `plot_address` (מחרוזת, נדרש) - כתובת בעל plot (חייב להחזיק מפתח פרטי, P2WPKH bech32)
 2. `forging_address` (מחרוזת, נדרש) - כתובת להקצאת זכויות כרייה אליה (P2WPKH bech32)
-3. `fee_rate` (מספרי, אופציונלי) - קצב עמלה ב-BTC/kvB (ברירת מחדל: 10× minRelayFee)
+3. `fee_rate` (מספרי, אופציונלי) - קצב עמלה ב-BTCX/kvB (ברירת מחדל: `0` ← אומדן עמלת המינימום הסטנדרטית של הארנק; ברירת המחדל של 10× minRelayFee חלה רק על דיאלוג Qt GUI, לא על RPC זה)
 
 **ערכי החזרה**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **מבנה עסקה**:
 - קלט: UTXO מכתובת plot (מוכיח בעלות)
-- פלט: OP_RETURN (46 בתים): סמן `POCX` + plot_address (20 בתים) + forging_address (20 בתים)
+- פלט: סקריפט OP_RETURN (46 בתים) = אופקוד `OP_RETURN` + 1 בית אורך push + מטען נתונים של 44 בתים (סמן `POCX` 4 + plot_address 20 + forging_address 20)
 - פלט: עודף חוזר לארנק
 
 **הפעלה**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **פרמטרים**:
 1. `plot_address` (מחרוזת, נדרש) - כתובת plot (חייב להחזיק מפתח פרטי, P2WPKH bech32)
-2. `fee_rate` (מספרי, אופציונלי) - קצב עמלה ב-BTC/kvB (ברירת מחדל: 10× minRelayFee)
+2. `fee_rate` (מספרי, אופציונלי) - קצב עמלה ב-BTCX/kvB (ברירת מחדל: `0` ← אומדן עמלת המינימום הסטנדרטית של הארנק; ברירת המחדל של 10× minRelayFee חלה רק על דיאלוג Qt GUI, לא על RPC זה)
 
 **ערכי החזרה**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **מבנה עסקה**:
 - קלט: UTXO מכתובת plot (מוכיח בעלות)
-- פלט: OP_RETURN (26 בתים): סמן `XCOP` + plot_address (20 בתים)
+- פלט: סקריפט OP_RETURN (26 בתים) = אופקוד `OP_RETURN` + 1 בית אורך push + מטען נתונים של 24 בתים (סמן `XCOP` 4 + plot_address 20)
 - פלט: עודף חוזר לארנק
 
 **אפקט**:
@@ -542,22 +536,23 @@ while True:
     # 2. סרוק קובצי plot (יישום חיצוני)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. הגש את הפתרון הטוב ביותר
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"פתרון התקבל! איכות: {result['quality']}s, "
+    # 3. הגש את הפתרון הטוב ביותר (זורק JSONRPCError בדחייה)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"פתרון התקבל! איכות: {result['raw_quality']}, "
               f"זמן כרייה: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"נדחה: {e}")
 
     # 4. המתן לבלוק הבא
     time.sleep(10)  # מרווח תשאול
@@ -628,20 +623,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### דפוסי שגיאה נפוצים
 
-**חוסר התאמה בגובה**:
+**חוסר התאמה בגובה** (נזרק `RPC_INVALID_PARAMETER`, קוד -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **פתרון**: אחזר מחדש מידע כרייה, השרשרת התקדמה
 
-**חוסר התאמה בחתימת יצירה**:
+**חוסר התאמה בחתימת יצירה** (נזרק `RPC_VERIFY_REJECTED`, קוד -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **פתרון**: אחזר מחדש מידע כרייה, בלוק חדש הגיע

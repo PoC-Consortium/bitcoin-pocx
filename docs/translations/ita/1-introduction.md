@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problema**: I tempi di blocco PoC tradizionali seguono una distribuzione esponenziale, portando a blocchi lunghi quando nessun miner trova una buona soluzione.
 
-**Soluzione**: Trasformazione della distribuzione da esponenziale a chi-quadrato usando la radice cubica: `Y = scala × (X^(1/3))`.
+**Soluzione**: Trasformazione della distribuzione da esponenziale a Weibull (forma k=3) usando la radice cubica: `Y = scala × (X^(1/3))`.
 
 **Effetto**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Basato sul formato POC2 (Burstcoin) con miglioramenti:
 
 ## Riepilogo delle specifiche tecniche
 
-- **Tempo di blocco**: 120 secondi (mainnet), 1 secondo (regtest)
+- **Tempo di blocco**: 120 secondi (tutte le reti: mainnet, testnet, regtest)
 - **Sussidio di blocco**: 10 BTC iniziali, halving ogni 1050000 blocchi (~4 anni)
 - **Offerta totale**: ~21 milioni di BTC (come Bitcoin)
 - **Tolleranza futura**: 15 secondi (blocchi fino a 15s in anticipo accettati)

@@ -35,7 +35,7 @@ Täielik viide Bitcoin-PoCX võrgu konfiguratsioonile kõigis võrgutüüpides.
 
 **Arvutatud väärtused**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Kasutab madala mahtuvuse kalibreerimisrežiimi
+- Regtest (120s): Kasutab madala mahtuvuse kalibreerimisrežiimi (base_power 2^58)
 
 ### Genesisiteade
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Raskuse kohandamine**:
 - **Libisev aken**: `24` plokki
 - **Kohandamine**: Igal plokil
-- **Algoritm**: Eksponentsiaalne libisev keskmine
+- **Algoritm**: Kaalutud libisev keskmine (Burstcoin-stiilis, ±20% ploki kohta piirang)
 
 **Ülesannete viivitused**:
 - **Aktiveerimine**: `30` plokki (~1 tund)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Ploki ajastus**:
-- **Plokkide aja sihtmärk**: `1` sekund (kohene kaevandamine testimiseks)
+- **Plokkide aja sihtmärk**: `120` sekundit (kaevandatakse nõudmisel `generatetoaddress` kaudu regtestis)
 - **Siht-ajavahemik**: `86400` sekundit (1 päev)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekundit
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Libisev aken**: `24` plokki
 - **Luba min raskus**: `true`
 - **Pole ümbersihtimist**: `true`
-- **Madala mahtuvuse kalibreerimine**: `true` (kasutab 16-nonce kalibreerimist 1 TiB asemel)
+- **Madala mahtuvuse kalibreerimine**: `true` (kasutab 64-nonce kalibreerimist ≈ 16 MiB 1 TiB asemel)
 
 **Ülesannete viivitused**:
-- **Aktiveerimine**: `4` plokki (~4 sekundit)
-- **Tühistamine**: `8` plokki (~8 sekundit)
+- **Aktiveerimine**: `4` plokki (~8 minutit 120s sammuga)
+- **Tühistamine**: `8` plokki (~16 minutit 120s sammuga)
 
 ### Signet parameetrid
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Plokkide aja sihtmärgid**:
 - Mainnet/Testnet/Signet: `120` sekundit
-- Regtest: `1` sekund
+- Regtest: `120` sekundit
 
 **TIMESTAMP_WINDOW**: `15` sekundit (võrdub MAX_FUTURE_BLOCK_TIME-ga)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Raskuse kohandamise parameetrid
 
 **Libiseva akna suurus**: `24` plokki (kõik võrgud)
-- Hiljutiste plokkide aegade eksponentsiaalne libisev keskmine
+- Hiljutiste plokkide aegade kaalutud libisev keskmine (Burstcoin-stiilis)
 - Kohandamine igal plokil
 - Reageerib mahu muutustele
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktiveerimise viivitus):
 - Mainnet: `30` plokki (~1 tund)
 - Testnet: `30` plokki (~1 tund)
-- Regtest: `4` plokki (~4 sekundit)
+- Regtest: `4` plokki (~8 minutit 120s sammuga)
 
 **nForgingRevocationDelay** (tühistamise viivitus):
 - Mainnet: `720` plokki (~24 tundi)
 - Testnet: `720` plokki (~24 tundi)
-- Regtest: `8` plokki (~8 sekundit)
+- Regtest: `8` plokki (~16 minutit 120s sammuga)
 
 **Põhjendus**:
 - Aktiveerimise viivitus takistab kiiret ümberseadistamist plokkide võidujooksude ajal

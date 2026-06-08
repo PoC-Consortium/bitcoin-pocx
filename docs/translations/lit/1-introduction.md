@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problema**: Tradiciniai PoC bloko laikai seka eksponentinį pasiskirstymą, sukeliantį ilgus blokus, kai joks kasėjas neranda gero sprendimo.
 
-**Sprendimas**: Pasiskirstymo transformacija iš eksponentinio į chi-kvadratinį naudojant kubinę šaknį: `Y = skalė × (X^(1/3))`.
+**Sprendimas**: Pasiskirstymo transformacija iš eksponentinio į Weibull (formos parametras k=3) naudojant kubinę šaknį: `Y = skalė × (X^(1/3))`.
 
 **Poveikis**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Paremtas POC2 formatu (Burstcoin) su patobulinimais:
 
 ## Techninių specifikacijų santrauka
 
-- **Bloko laikas**: 120 sekundžių (pagrindinis tinklas), 1 sekundė (regtest)
+- **Bloko laikas**: 120 sekundžių (visuose tinkluose: mainnet, testnet, regtest)
 - **Bloko subsidija**: 10 BTC pradinė, perpus mažėja kas 1050000 blokų (~4 metai)
 - **Bendra pasiūla**: ~21 milijonų BTC (kaip Bitcoin)
 - **Ateities tolerancija**: 15 sekundžių (blokai iki 15s į priekį priimami)

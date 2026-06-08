@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Lấy ủy quyền hiện tại
+            // Lấy ủy quyền hiện tại - phải ở trạng thái ASSIGNED để thu hồi
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Lưu trạng thái cũ cho undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Trả về trạng thái ủy quyền hiện tại cho địa chỉ plot:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Định nghĩa marker, ops OP_RETURN, kiểm tra quyền sở hữu
     │   ├── assignment_state.h     # Helper GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Hàm truy vấn trạng thái ủy quyền
+    │   ├── replay.h               # Tổ chức lại/replay hiệu ứng ủy quyền
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (đường dẫn reorg)
     │   ├── transactions.h         # API tạo giao dịch ví
     │   └── transactions.cpp       # Hàm ví create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, mục tiêu cơ sở genesis, lịch trình nén
 ```
+
+> **Lưu ý:** Các hằng số độ trễ ủy quyền `nForgingAssignmentDelay` / `nForgingRevocationDelay` nằm trong `Consensus::Params` của Bitcoin Core (`src/consensus/params.h`) và được đặt theo từng mạng trong `src/kernel/chainparams.cpp` — không phải trong `pocx/consensus/params.h`.
 
 ## Đặc điểm Hiệu năng
 
@@ -766,9 +770,8 @@ Trong đó n = số ủy quyền cho một plot (thường nhỏ, < 10)
 
 ### Các Vùng Coverage Test
 
-- Unit test: `src/test/pocx_*_tests.cpp`
-- Functional test: `test/functional/feature_pocx_*.py`
-- Integration test: Testing thủ công với regtest
+- Unit test: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integration test: các script shell regtest trong `scripts/assignments/` và `scripts/mining/`
 
 ## Quy tắc Đồng thuận
 

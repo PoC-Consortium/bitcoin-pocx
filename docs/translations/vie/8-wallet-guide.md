@@ -111,13 +111,13 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 5. Giao dịch phát sóng ngay lập tức
 6. Ủy quyền hoạt động sau `nForgingAssignmentDelay` khối:
    - Mainnet/Testnet: 30 khối (~1 giờ)
-   - Regtest: 4 khối (~4 giây)
+   - Regtest: 4 khối (~8 phút với khoảng cách 120 giây)
 
 **Phí Giao dịch**: Mặc định 10× `minRelayFee` (có thể tùy chỉnh)
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output OP_RETURN: marker `POCX` + plot_address + forging_address (44 byte)
+- Output OP_RETURN (script 46 byte, dữ liệu 44 byte): marker `POCX` + plot_address + forging_address
 - Output tiền thừa: Trả về ví
 
 #### Chế độ 2: Thu hồi Ủy quyền
@@ -136,7 +136,7 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 4. Giao dịch phát sóng ngay lập tức
 5. Thu hồi có hiệu lực sau `nForgingRevocationDelay` khối:
    - Mainnet/Testnet: 720 khối (~24 giờ)
-   - Regtest: 8 khối (~8 giây)
+   - Regtest: 8 khối (~16 phút với khoảng cách 120 giây)
 
 **Hiệu quả**:
 - Địa chỉ forging vẫn có thể forge trong khoảng độ trễ
@@ -145,7 +145,7 @@ Bitcoin-PoCX sử dụng đơn vị tiền tệ **BTCX** (không phải BTC):
 
 **Cấu trúc Giao dịch**:
 - Input: UTXO từ địa chỉ plot (chứng minh quyền sở hữu)
-- Output OP_RETURN: marker `XCOP` + plot_address (24 byte)
+- Output OP_RETURN (script 26 byte, dữ liệu 24 byte): marker `XCOP` + plot_address
 - Output tiền thừa: Trả về ví
 
 #### Chế độ 3: Kiểm tra Trạng thái Ủy quyền

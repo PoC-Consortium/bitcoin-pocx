@@ -106,7 +106,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (exact 40 caractere hex = 20 octeți; o adresă nu este acceptată)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -115,19 +115,12 @@ bitcoin-cli get_mining_info
 **Valori returnate** (succes):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // deadline ajustat la dificultate în secunde
+  "raw_quality": 120,       // calitate brută din validarea dovezii
   "poc_time": 45            // timp de forjare time-bended în secunde
 }
 ```
 
-**Valori returnate** (respins):
-```json
-{
-  "accepted": false,
-  "error": "Nepotrivire semnătură de generare"
-}
-```
+Nu există câmpul `accepted`. La respingere, RPC-ul **nu** returnează un obiect JSON — aruncă un `JSONRPCError` (vezi Coduri de eroare mai jos).
 
 **Pași de validare**:
 1. **Validare format** (eșec rapid):
@@ -146,10 +139,11 @@ bitcoin-cli get_mining_info
    - Pune nonce-ul în coadă pentru forjare time-bended
    - Blocul va fi creat automat la forge_time
 
-**Coduri de eroare**:
-- `RPC_INVALID_PARAMETER`: Format invalid (account_id, seed) sau nepotrivire înălțime
+**Coduri de eroare** (aruncate ca `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Format invalid (account_id, seed) sau nepotrivire înălțime (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Nepotrivire semnătură de generare sau validare dovadă eșuată
 - `RPC_INVALID_ADDRESS_OR_KEY`: Fără cheie privată pentru semnatarul efectiv
+- `RPC_WALLET_UNLOCK_NEEDED`: Portofelul care deține cheia semnatarului efectiv este blocat (deblochează cu `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Coada de trimitere plină
 - `RPC_INTERNAL_ERROR`: Inițializarea planificatorului PoCX a eșuat
 
@@ -272,7 +266,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametri**:
 1. `plot_address` (string, obligatoriu) - Adresa proprietarului plot-ului (trebuie să dețină cheia privată, P2WPKH bech32)
 2. `forging_address` (string, obligatoriu) - Adresa căreia i se atribuie drepturile de forjare (P2WPKH bech32)
-3. `fee_rate` (numeric, opțional) - Rata taxei în BTC/kvB (implicit: 10× minRelayFee)
+3. `fee_rate` (numeric, opțional) - Rata taxei în BTCX/kvB (implicit: `0` → estimarea standard a taxei minime a portofelului; valoarea implicită de 10× minRelayFee se aplică doar dialogului Qt GUI, nu acestui RPC)
 
 **Valori returnate**:
 ```json
@@ -293,7 +287,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Structura tranzacției**:
 - Intrare: UTXO de la adresa plot (demonstrează proprietatea)
-- Ieșire: OP_RETURN (46 octeți): marker `POCX` + plot_address (20 octeți) + forging_address (20 octeți)
+- Ieșire: script OP_RETURN (46 octeți) = opcode `OP_RETURN` + lungime push de 1 octet + sarcină utilă de date de 44 octeți (marker `POCX` 4 + plot_address 20 + forging_address 20)
 - Ieșire: Restul returnat în portofel
 
 **Activare**:
@@ -327,7 +321,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametri**:
 1. `plot_address` (string, obligatoriu) - Adresa plot-ului (trebuie să dețină cheia privată, P2WPKH bech32)
-2. `fee_rate` (numeric, opțional) - Rata taxei în BTC/kvB (implicit: 10× minRelayFee)
+2. `fee_rate` (numeric, opțional) - Rata taxei în BTCX/kvB (implicit: `0` → estimarea standard a taxei minime a portofelului; valoarea implicită de 10× minRelayFee se aplică doar dialogului Qt GUI, nu acestui RPC)
 
 **Valori returnate**:
 ```json
@@ -346,7 +340,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Structura tranzacției**:
 - Intrare: UTXO de la adresa plot (demonstrează proprietatea)
-- Ieșire: OP_RETURN (26 octeți): marker `XCOP` + plot_address (20 octeți)
+- Ieșire: script OP_RETURN (26 octeți) = opcode `OP_RETURN` + lungime push de 1 octet + sarcină utilă de date de 24 octeți (marker `XCOP` 4 + plot_address 20)
 - Ieșire: Restul returnat în portofel
 
 **Efect**:
@@ -541,22 +535,23 @@ while True:
     # 2. Scanează fișierele plot (implementare externă)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Trimite cea mai bună soluție
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Soluție acceptată! Calitate: {result['quality']}s, "
+    # 3. Trimite cea mai bună soluție (aruncă JSONRPCError la respingere)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Soluție acceptată! Calitate: {result['raw_quality']}, "
               f"Timp forjare: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Respins: {e}")
 
     # 4. Așteaptă următorul bloc
     time.sleep(10)  # Interval de interogare
@@ -627,20 +622,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Modele de erori comune
 
-**Nepotrivire înălțime**:
+**Nepotrivire înălțime** (aruncat `RPC_INVALID_PARAMETER`, cod -8):
 ```json
 {
-  "accepted": false,
-  "error": "Nepotrivire înălțime: trimisă 12345, curentă 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Soluție**: Re-obțineți mining info, lanțul a avansat
 
-**Nepotrivire semnătură de generare**:
+**Nepotrivire semnătură de generare** (aruncat `RPC_VERIFY_REJECTED`, cod -26):
 ```json
 {
-  "accepted": false,
-  "error": "Nepotrivire semnătură de generare"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Soluție**: Re-obțineți mining info, un nou bloc a sosit

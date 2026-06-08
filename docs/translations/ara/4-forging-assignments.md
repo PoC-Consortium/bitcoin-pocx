@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // الحصول على التعيين الحالي
+            // الحصول على التعيين الحالي - يجب أن يكون في حالة ASSIGNED للإلغاء
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // تخزين الحالة القديمة للتراجع
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 سطر] تعريفات العلامات، عمليات OP_RETURN، فحص الملكية
     │   ├── assignment_state.h     # مساعدات GetEffectiveSigner، GetAssignmentState
     │   ├── assignment_state.cpp   # دوال استعلام حالة التعيين
+    │   ├── replay.h               # إعادة تنظيم/إعادة تشغيل تأثيرات التعيين
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (مسار إعادة التنظيم)
     │   ├── transactions.h         # واجهة برمجة إنشاء معاملة المحفظة
     │   └── transactions.cpp       # دوال محفظة create_assignment، revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPCs create_assignment، revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay، nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds، الهدف الأساسي للتكوين، جدول الضغط
 ```
+
+> **ملاحظة:** ثوابت تأخير التعيين `nForgingAssignmentDelay` / `nForgingRevocationDelay` موجودة في `Consensus::Params` الخاص بـ Bitcoin Core (`src/consensus/params.h`) وتُضبط لكل شبكة في `src/kernel/chainparams.cpp` — وليس في `pocx/consensus/params.h`.
 
 ## خصائص الأداء
 
@@ -766,9 +770,8 @@ src/
 
 ### مجالات تغطية الاختبار
 
-- اختبارات الوحدة: `src/test/pocx_*_tests.cpp`
-- الاختبارات الوظيفية: `test/functional/feature_pocx_*.py`
-- اختبارات التكامل: اختبار يدوي مع regtest
+- اختبارات الوحدة: `src/test/pocx_tests.cpp`، `src/test/pocx_simd_tests.cpp`
+- اختبارات التكامل: سكريبتات shell الخاصة بـ regtest ضمن `scripts/assignments/` و `scripts/mining/`
 
 ## قواعد الإجماع
 

@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Mevcut atamayı al
+            // Mevcut atamayı al - iptal için ASSIGNED durumunda olmalıdır
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Geri alma için eski durumu depola
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Bir plot adresi için mevcut atama durumunu döndürür:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # İşaret tanımları, OP_RETURN işlemleri, sahiplik kontrolü
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState yardımcıları
     │   ├── assignment_state.cpp   # Atama durumu sorgulama işlevleri
+    │   ├── replay.h               # Atama etkilerinin reorg/yeniden oynatımı
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg yolu)
     │   ├── transactions.h         # Cüzdan işlem oluşturma API'si
     │   └── transactions.cpp       # create_assignment, revoke_assignment cüzdan işlevleri
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC'leri
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis temel hedefi, sıkıştırma takvimi
 ```
+
+> **Not:** Atama gecikme sabitleri `nForgingAssignmentDelay` / `nForgingRevocationDelay` Bitcoin Core'un `Consensus::Params` yapısında (`src/consensus/params.h`) bulunur ve her ağ için `src/kernel/chainparams.cpp` içinde ayarlanır — `pocx/consensus/params.h` içinde değil.
 
 ## Performans Özellikleri
 
@@ -766,9 +770,8 @@ Burada n = plot başına atama sayısı (tipik olarak küçük, < 10)
 
 ### Test Kapsama Alanları
 
-- Birim testleri: `src/test/pocx_*_tests.cpp`
-- İşlevsel testler: `test/functional/feature_pocx_*.py`
-- Entegrasyon testleri: Regtest ile manuel test
+- Birim testleri: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Entegrasyon testleri: `scripts/assignments/` ve `scripts/mining/` altındaki regtest kabuk betikleri
 
 ## Konsensüs Kuralları
 

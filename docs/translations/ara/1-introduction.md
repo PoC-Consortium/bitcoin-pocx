@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **المشكلة**: أوقات كتل PoC التقليدية تتبع توزيعاً أسياً، مما يؤدي إلى كتل طويلة عندما لا يجد أي مُعدّن حلاً جيداً.
 
-**الحل**: تحويل التوزيع من أسي إلى مربع كاي باستخدام الجذر التكعيبي: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**الحل**: تحويل التوزيع من أسي إلى Weibull (shape k=3) باستخدام الجذر التكعيبي: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **التأثير**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ cmake --build build
 
 ## ملخص المواصفات التقنية
 
-- **وقت الكتلة**: 120 ثانية (الشبكة الرئيسية)، 1 ثانية (regtest)
+- **وقت الكتلة**: 120 ثانية (جميع الشبكات: الشبكة الرئيسية، testnet، regtest)
 - **إعانة الكتلة**: 10 BTC مبدئياً، تنصيف كل 1050000 كتلة (~4 سنوات)
 - **إجمالي العرض**: ~21 مليون BTC (نفس Bitcoin)
 - **تحمّل المستقبل**: 15 ثانية (الكتل حتى 15 ثانية للأمام مقبولة)

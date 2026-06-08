@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **समस्या**: पारंपरिक PoC ब्लॉक समय घातांकीय वितरण का पालन करते हैं, जब कोई माइनर अच्छा समाधान नहीं पाता तो लंबे ब्लॉक होते हैं।
 
-**समाधान**: घन मूल का उपयोग करते हुए घातांकीय से ची-वर्ग में वितरण परिवर्तन: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`।
+**समाधान**: घन मूल का उपयोग करते हुए घातांकीय से Weibull (आकार k=3) में वितरण परिवर्तन: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`।
 
 **प्रभाव**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ POC2 प्रारूप (Burstcoin) पर आधारित संवर्
 
 ## तकनीकी विनिर्देश सारांश
 
-- **ब्लॉक समय**: 120 सेकंड (mainnet), 1 सेकंड (regtest)
+- **ब्लॉक समय**: 120 सेकंड (सभी नेटवर्क: mainnet, testnet, regtest)
 - **ब्लॉक सब्सिडी**: 10 BTC प्रारंभिक, हर 1050000 ब्लॉक (~4 वर्ष) में halving
 - **कुल आपूर्ति**: ~21 मिलियन BTC (Bitcoin के समान)
 - **भविष्य सहनशीलता**: 15 सेकंड (15s आगे तक के ब्लॉक स्वीकार किए जाते हैं)

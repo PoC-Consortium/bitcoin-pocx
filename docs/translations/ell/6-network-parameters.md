@@ -35,7 +35,7 @@
 
 **Υπολογισμένες Τιμές**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Χρησιμοποιεί λειτουργία βαθμονόμησης χαμηλής χωρητικότητας
+- Regtest (120s): Χρησιμοποιεί λειτουργία βαθμονόμησης χαμηλής χωρητικότητας (base_power 2^58)
 
 ### Μήνυμα Genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Προσαρμογή Δυσκολίας**:
 - **Κυλιόμενο Παράθυρο**: `24` blocks
 - **Προσαρμογή**: Κάθε block
-- **Αλγόριθμος**: Εκθετικός κινητός μέσος όρος
+- **Αλγόριθμος**: Σταθμισμένος κινητός μέσος όρος (τύπου Burstcoin, όριο ±20% ανά block)
 
 **Καθυστερήσεις Ανάθεσης**:
 - **Ενεργοποίηση**: `30` blocks (~1 ώρα)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Χρονισμός Block**:
-- **Στόχος Χρόνου Block**: `1` δευτερόλεπτο (άμεση εξόρυξη για δοκιμές)
+- **Στόχος Χρόνου Block**: `120` δευτερόλεπτα (εξορύσσεται κατ' απαίτηση μέσω `generatetoaddress` σε regtest)
 - **Target Timespan**: `86400` δευτερόλεπτα (1 ημέρα)
 - **MAX_FUTURE_BLOCK_TIME**: `15` δευτερόλεπτα
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Κυλιόμενο Παράθυρο**: `24` blocks
 - **Επιτρέπεται Ελάχιστη Δυσκολία**: `true`
 - **Χωρίς Αναστόχευση**: `true`
-- **Βαθμονόμηση Χαμηλής Χωρητικότητας**: `true` (χρησιμοποιεί βαθμονόμηση 16-nonce αντί 1 TiB)
+- **Βαθμονόμηση Χαμηλής Χωρητικότητας**: `true` (χρησιμοποιεί βαθμονόμηση 64-nonce ≈ 16 MiB αντί 1 TiB)
 
 **Καθυστερήσεις Ανάθεσης**:
-- **Ενεργοποίηση**: `4` blocks (~4 δευτερόλεπτα)
-- **Ανάκληση**: `8` blocks (~8 δευτερόλεπτα)
+- **Ενεργοποίηση**: `4` blocks (~8 λεπτά σε απόσταση 120s)
+- **Ανάκληση**: `8` blocks (~16 λεπτά σε απόσταση 120s)
 
 ### Παράμετροι Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Στόχοι Χρόνου Block**:
 - Mainnet/Testnet/Signet: `120` δευτερόλεπτα
-- Regtest: `1` δευτερόλεπτο
+- Regtest: `120` δευτερόλεπτα
 
 **TIMESTAMP_WINDOW**: `15` δευτερόλεπτα (ίσο με MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Παράμετροι Προσαρμογής Δυσκολίας
 
 **Μέγεθος Κυλιόμενου Παραθύρου**: `24` blocks (όλα τα δίκτυα)
-- Εκθετικός κινητός μέσος όρος πρόσφατων χρόνων block
+- Σταθμισμένος κινητός μέσος όρος πρόσφατων χρόνων block (τύπου Burstcoin)
 - Προσαρμογή κάθε block
 - Ανταποκρίνεται σε αλλαγές χωρητικότητας
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (καθυστέρηση ενεργοποίησης):
 - Mainnet: `30` blocks (~1 ώρα)
 - Testnet: `30` blocks (~1 ώρα)
-- Regtest: `4` blocks (~4 δευτερόλεπτα)
+- Regtest: `4` blocks (~8 λεπτά σε απόσταση 120s)
 
 **nForgingRevocationDelay** (καθυστέρηση ανάκλησης):
 - Mainnet: `720` blocks (~24 ώρες)
 - Testnet: `720` blocks (~24 ώρες)
-- Regtest: `8` blocks (~8 δευτερόλεπτα)
+- Regtest: `8` blocks (~16 λεπτά σε απόσταση 120s)
 
 **Αιτιολόγηση**:
 - Η καθυστέρηση ενεργοποίησης αποτρέπει γρήγορη επανανάθεση κατά τη διάρκεια block races

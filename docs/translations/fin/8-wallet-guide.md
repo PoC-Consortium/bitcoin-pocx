@@ -111,13 +111,13 @@ Bitcoin-PoCX käyttää **BTCX**-valuuttayksikköä (ei BTC):
 5. Transaktio lähetetään välittömästi
 6. Delegointi aktiivinen `nForgingAssignmentDelay`-lohkojen jälkeen:
    - Mainnet/Testnet: 30 lohkoa (~1 tunti)
-   - Regtest: 4 lohkoa (~4 sekuntia)
+   - Regtest: 4 lohkoa (~8 minuuttia 120s välillä)
 
 **Transaktiomaksu**: Oletus 10× `minRelayFee` (muokattavissa)
 
 **Transaktiorakenne**:
 - Syöte: UTXO plotin osoitteesta (todistaa omistajuuden)
-- OP_RETURN-tuloste: `POCX`-merkki + plot_address + forging_address (46 tavua)
+- OP_RETURN-tuloste (46 tavun skripti, 44 tavun datakuorma): `POCX`-merkki + plot_address + forging_address
 - Vaihtorahatuloste: Palautetaan lompakkoon
 
 #### Tila 2: Peruuta delegointi
@@ -136,7 +136,7 @@ Bitcoin-PoCX käyttää **BTCX**-valuuttayksikköä (ei BTC):
 4. Transaktio lähetetään välittömästi
 5. Peruutus voimassa `nForgingRevocationDelay`-lohkojen jälkeen:
    - Mainnet/Testnet: 720 lohkoa (~24 tuntia)
-   - Regtest: 8 lohkoa (~8 sekuntia)
+   - Regtest: 8 lohkoa (~16 minuuttia 120s välillä)
 
 **Vaikutus**:
 - Forging-osoite voi yhä forgata viivejakson ajan
@@ -145,7 +145,7 @@ Bitcoin-PoCX käyttää **BTCX**-valuuttayksikköä (ei BTC):
 
 **Transaktiorakenne**:
 - Syöte: UTXO plotin osoitteesta (todistaa omistajuuden)
-- OP_RETURN-tuloste: `XCOP`-merkki + plot_address (26 tavua)
+- OP_RETURN-tuloste (26 tavun skripti, 24 tavun datakuorma): `XCOP`-merkki + plot_address
 - Vaihtorahatuloste: Palautetaan lompakkoon
 
 #### Tila 3: Tarkista delegoinnin tila

@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (exact 40 hex-tekens = 20 bytes; een adres wordt niet geaccepteerd)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Retourwaarden** (succes):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // ruwe kwaliteit uit bewijsvalidatie
   "poc_time": 45            // time-bended forgetijd in seconden
 }
 ```
 
-**Retourwaarden** (afgewezen):
-```json
-{
-  "accepted": false,
-  "error": "Generatiehandtekening komt niet overeen"
-}
-```
+Er is geen `accepted`-veld. Bij afwijzing retourneert de RPC **geen** JSON-object — er wordt een `JSONRPCError` gegooid (zie Foutcodes hieronder).
 
 **Validatiestappen**:
 1. **Formaatvalidatie** (fail-fast):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Plaats nonce in wachtrij voor time-bended forging
    - Blok wordt automatisch gecreeerd op forge_time
 
-**Foutcodes**:
-- `RPC_INVALID_PARAMETER`: Ongeldig formaat (account_id, seed) of hoogte komt niet overeen
+**Foutcodes** (gegooid als `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Ongeldig formaat (account_id, seed) of hoogte komt niet overeen (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generatiehandtekening komt niet overeen of bewijsvalidatie gefaald
 - `RPC_INVALID_ADDRESS_OR_KEY`: Geen privesleutel voor effectieve ondertekenaar
+- `RPC_WALLET_UNLOCK_NEEDED`: De wallet met de sleutel van de effectieve ondertekenaar is vergrendeld (ontgrendel met `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Indieningswachtrij vol
 - `RPC_INTERNAL_ERROR`: PoCX-scheduler kon niet worden geinitialiseerd
 
@@ -271,7 +265,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parameters**:
 1. `plot_address` (string, vereist) - Ploteigenaaradres (moet privesleutel bezitten, P2WPKH bech32)
 2. `forging_address` (string, vereist) - Adres om forgingrechten aan toe te wijzen (P2WPKH bech32)
-3. `fee_rate` (numeriek, optioneel) - Kostenpercentage in BTC/kvB (standaard: 10x minRelayFee)
+3. `fee_rate` (numeriek, optioneel) - Kostenpercentage in BTCX/kvB (standaard: `0` → standaard minimumkostenschatting van de wallet; de standaard van 10× minRelayFee geldt alleen voor het Qt GUI-dialoogvenster, niet voor deze RPC)
 
 **Retourwaarden**:
 ```json
@@ -292,7 +286,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- Uitvoer: OP_RETURN (46 bytes): `POCX`-markering + plot_address (20 bytes) + forging_address (20 bytes)
+- Uitvoer: OP_RETURN-script (46 bytes) = `OP_RETURN`-opcode + 1-byte push-lengte + 44-byte data-payload (`POCX`-markering 4 + plot_address 20 + forging_address 20)
 - Uitvoer: Wisselgeld terug naar wallet
 
 **Activering**:
@@ -325,7 +319,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parameters**:
 1. `plot_address` (string, vereist) - Plotadres (moet privesleutel bezitten, P2WPKH bech32)
-2. `fee_rate` (numeriek, optioneel) - Kostenpercentage in BTC/kvB (standaard: 10x minRelayFee)
+2. `fee_rate` (numeriek, optioneel) - Kostenpercentage in BTCX/kvB (standaard: `0` → standaard minimumkostenschatting van de wallet; de standaard van 10× minRelayFee geldt alleen voor het Qt GUI-dialoogvenster, niet voor deze RPC)
 
 **Retourwaarden**:
 ```json
@@ -344,7 +338,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transactiestructuur**:
 - Invoer: UTXO van plotadres (bewijst eigenaarschap)
-- Uitvoer: OP_RETURN (26 bytes): `XCOP`-markering + plot_address (20 bytes)
+- Uitvoer: OP_RETURN-script (26 bytes) = `OP_RETURN`-opcode + 1-byte push-lengte + 24-byte data-payload (`XCOP`-markering 4 + plot_address 20)
 - Uitvoer: Wisselgeld terug naar wallet
 
 **Effect**:
@@ -539,22 +533,23 @@ while True:
     # 2. Scan plotbestanden (externe implementatie)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Dien beste oplossing in
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Oplossing geaccepteerd! Kwaliteit: {result['quality']}s, "
+    # 3. Dien beste oplossing in (gooit JSONRPCError bij afwijzing)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Oplossing geaccepteerd! Kwaliteit: {result['raw_quality']}, "
               f"Forgetijd: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Afgewezen: {e}")
 
     # 4. Wacht op volgend blok
     time.sleep(10)  # Pollinterval
@@ -625,20 +620,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Veelvoorkomende foutpatronen
 
-**Hoogte komt niet overeen**:
+**Hoogte komt niet overeen** (gegooid `RPC_INVALID_PARAMETER`, code -8):
 ```json
 {
-  "accepted": false,
-  "error": "Hoogte komt niet overeen: ingediend 12345, huidige 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Oplossing**: Haal mining-info opnieuw op, keten is verder gegaan
 
-**Generatiehandtekening komt niet overeen**:
+**Generatiehandtekening komt niet overeen** (gegooid `RPC_VERIFY_REJECTED`, code -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generatiehandtekening komt niet overeen"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Oplossing**: Haal mining-info opnieuw op, nieuw blok is gearriveerd

@@ -112,13 +112,13 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 5. Transaksjon kringkastes umiddelbart
 6. Tildeling aktiv etter `nForgingAssignmentDelay` blokker:
    - Mainnet/Testnett: 30 blokker (~1 time)
-   - Regtest: 4 blokker (~4 sekunder)
+   - Regtest: 4 blokker (~8 minutter ved 120s-intervall)
 
 **Transaksjonsgebyr**: Standard 10× `minRelayFee` (kan tilpasses)
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- OP_RETURN-output: `POCX`-markør + plot_address + forging_address (44 bytes)
+- OP_RETURN-output (46-byte skript, 44-byte datanyttelast): `POCX`-markør + plot_address + forging_address
 - Vekslepenge-output: Returnert til lommebok
 
 #### Modus 2: Opphev tildeling
@@ -137,7 +137,7 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 4. Transaksjon kringkastes umiddelbart
 5. Oppheving effektiv etter `nForgingRevocationDelay` blokker:
    - Mainnet/Testnett: 720 blokker (~24 timer)
-   - Regtest: 8 blokker (~8 sekunder)
+   - Regtest: 8 blokker (~16 minutter ved 120s-intervall)
 
 **Effekt**:
 - Forging-adresse kan fortsatt forge under forsinkelsesperiode
@@ -146,7 +146,7 @@ Bitcoin-PoCX bruker **BTCX**-valutaenhet (ikke BTC):
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- OP_RETURN-output: `XCOP`-markør + plot_address (24 bytes)
+- OP_RETURN-output (26-byte skript, 24-byte datanyttelast): `XCOP`-markør + plot_address
 - Vekslepenge-output: Returnert til lommebok
 
 #### Modus 3: Sjekk tildelingsstatus

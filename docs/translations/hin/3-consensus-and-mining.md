@@ -26,7 +26,7 @@ Bitcoin-PoCX Bitcoin के Proof of Work के पूर्ण प्रति
 
 **मुख्य गुण:**
 - **ऊर्जा कुशल:** माइनिंग कम्प्यूटेशनल हैशिंग के बजाय पूर्व-उत्पन्न plot फ़ाइलों का उपयोग करती है
-- **Time Bended Deadlines:** वितरण परिवर्तन (घातांकीय→ची-वर्ग) लंबे ब्लॉक कम करता है, औसत ब्लॉक समय में सुधार
+- **Time Bended Deadlines:** वितरण परिवर्तन (घातांकीय→Weibull, आकार k=3) लंबे ब्लॉक कम करता है, औसत ब्लॉक समय में सुधार
 - **असाइनमेंट समर्थन:** Plot मालिक फोर्जिंग अधिकार अन्य पतों को प्रत्यायोजित कर सकते हैं
 - **नेटिव C++ एकीकरण:** सहमति सत्यापन के लिए C++ में लागू क्रिप्टोग्राफिक एल्गोरिथम
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis ब्लॉक:** हार्डकोडेड प्रारंभिक generation signature का उपयोग करता है
 
-**कार्यान्वयन:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**कार्यान्वयन:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (`src/pocx/mining/block_context.cpp:GetNewBlockContext()` से कॉल किया जाता है)
 
 ### Base Target (कठिनाई)
 
 Base target कठिनाई का विलोम है - उच्च मान का अर्थ आसान माइनिंग।
 
 **समायोजन एल्गोरिथम:**
-- लक्ष्य ब्लॉक समय: 120 सेकंड (mainnet), 1 सेकंड (regtest)
+- लक्ष्य ब्लॉक समय: 120 सेकंड (सभी नेटवर्क)
 - समायोजन अंतराल: प्रत्येक ब्लॉक
 - हाल के base targets के मूविंग एवरेज का उपयोग
 - अत्यधिक कठिनाई स्विंग रोकने के लिए क्लैंप
@@ -112,7 +112,7 @@ PoCX स्केलिंग स्तरों (Xn) के माध्यम 
 
 **डायनामिक सीमाएं:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // न्यूनतम स्वीकृत स्तर
     uint32_t nPoCXTargetCompression;  // अनुशंसित स्तर
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### चरण 2: संदर्भ अधिग्रहण
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // लौटाता है: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**उद्देश्य:** घातांकीय को ची-वर्ग वितरण में बदलता है। बहुत अच्छे समाधान बाद में फोर्ज होते हैं (नेटवर्क के पास डिस्क स्कैन करने का समय होता है), खराब समाधान में सुधार। लंबे ब्लॉक कम, 120s औसत बनाए रखा।
+**उद्देश्य:** घातांकीय को Weibull (आकार k=3) वितरण में बदलता है। बहुत अच्छे समाधान बाद में फोर्ज होते हैं (नेटवर्क के पास डिस्क स्कैन करने का समय होता है), खराब समाधान में सुधार। लंबे ब्लॉक कम, 120s औसत बनाए रखा।
 
 **कार्यान्वयन:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase प्राप्तकर्ता** (कंसेंसस द्वारा लागू नहीं):
+
+माइनर coinbase आउटपुट को प्रभावी हस्ताक्षरकर्ता को भुगतान करने के लिए सेट करता है (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), लेकिन कंसेंसस इसे सत्यापित **नहीं** करता। कंसेंसस केवल यह लागू करता है कि *ब्लॉक हस्ताक्षर* प्रभावी हस्ताक्षरकर्ता द्वारा उत्पन्न हो — ऊपर दी गई `bad-pocx-assignment-sig` जाँच। कोई `bad-pocx-coinbase` नियम नहीं है; coinbase प्राप्तकर्ता माइनर द्वारा चुना जाता है।
+
 **कार्यान्वयन:**
 - कनेक्शन: `src/validation.cpp:ConnectBlock()`
 - विस्तारित सत्यापन: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ ActivateBestChain (reorg हैंडलिंग, चेन विस्ता�
 - असाइनमेंट OP_RETURN आउटपुट में संग्रहीत (कोई UTXO नहीं)
 - कोई खर्च आवश्यकताएं नहीं (कोई dust नहीं, होल्डिंग के लिए कोई शुल्क नहीं)
 - CCoinsViewCache विस्तारित स्थिति में ट्रैक
-- विलंब अवधि के बाद सक्रिय (डिफ़ॉल्ट: 4 ब्लॉक)
+- विलंब अवधि के बाद सक्रिय (डिफ़ॉल्ट: 30 ब्लॉक; regtest पर 4)
 
 **असाइनमेंट स्थितियां:**
 ```cpp

@@ -26,7 +26,7 @@ O Bitcoin-PoCX implementa um mecanismo de consenso puro de Proof of Capacity com
 
 **Propriedades Principais:**
 - **Eficiente em Energia:** A mineração usa arquivos de plot pré-gerados em vez de hashing computacional
-- **Deadlines com Time Bending:** Transformação de distribuição (exponencial→qui-quadrado) reduz blocos longos, melhora tempos médios de bloco
+- **Deadlines com Time Bending:** Transformação de distribuição (exponencial→Weibull, parâmetro de forma k=3) reduz blocos longos, melhora tempos médios de bloco
 - **Suporte a Atribuição:** Proprietários de plots podem delegar direitos de forja para outros endereços
 - **Integração Nativa em C++:** Algoritmos criptográficos implementados em C++ para validação de consenso
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Bloco Gênesis:** Usa uma assinatura de geração inicial hardcoded
 
-**Implementação:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementação:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (chamado a partir de `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Dificuldade)
 
 O base target é o inverso da dificuldade — valores mais altos significam mineração mais fácil.
 
 **Algoritmo de Ajuste:**
-- Tempo de bloco alvo: 120 segundos (mainnet), 1 segundo (regtest)
+- Tempo de bloco alvo: 120 segundos (todas as redes)
 - Intervalo de ajuste: A cada bloco
 - Usa média móvel de base targets recentes
 - Limitado para prevenir oscilações extremas de dificuldade
@@ -112,7 +112,7 @@ O PoCX suporta proof-of-work escalável em arquivos de plot através de níveis 
 
 **Limites Dinâmicos:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Nível mínimo aceito
     uint32_t nPoCXTargetCompression;  // Nível recomendado
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Passo 2: Aquisição de Contexto
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Retorna: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ onde:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Propósito:** Transforma distribuição exponencial para qui-quadrado. Soluções muito boas são forjadas mais tarde (rede tem tempo para escanear discos), soluções fracas são melhoradas. Reduz blocos longos, mantém média de 120s.
+**Propósito:** Transforma distribuição exponencial para Weibull (parâmetro de forma k=3). Soluções muito boas são forjadas mais tarde (rede tem tempo para escanear discos), soluções fracas são melhoradas. Reduz blocos longos, mantém média de 120s.
 
 **Implementação:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Destinatário do Coinbase** (não imposto pelo consenso):
+
+O minerador define a saída do coinbase para pagar ao signatário efetivo (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), mas isso **não** é validado pelo consenso. O consenso impõe apenas que a *assinatura do bloco* seja produzida pelo signatário efetivo — a verificação `bad-pocx-assignment-sig` acima. Não existe regra `bad-pocx-coinbase`; o destinatário do coinbase é escolhido pelo minerador.
+
 **Implementação:**
 - Conexão: `src/validation.cpp:ConnectBlock()`
 - Validação estendida: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Atribuições permitem que proprietários de plots deleguem direitos de forja pa
 - Atribuições armazenadas em saídas OP_RETURN (sem UTXO)
 - Sem requisitos de gasto (sem dust, sem taxas para manter)
 - Rastreadas no estado estendido do CCoinsViewCache
-- Ativadas após período de atraso (padrão: 4 blocos)
+- Ativadas após período de atraso (padrão: 30 blocos; 4 no regtest)
 
 **Estados de Atribuição:**
 ```cpp

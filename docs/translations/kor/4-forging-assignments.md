@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // 현재 할당 가져오기
+            // 현재 할당 가져오기 - 취소하려면 ASSIGNED 상태여야 함
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // 실행 취소를 위해 이전 상태 저장
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259줄] 마커 정의, OP_RETURN 작업, 소유권 확인
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState 헬퍼
     │   ├── assignment_state.cpp   # 할당 상태 조회 함수
+    │   ├── replay.h               # 할당 효과의 재구성/리플레이
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (재구성 경로)
     │   ├── transactions.h         # 지갑 트랜잭션 생성 API
     │   └── transactions.cpp       # create_assignment, revoke_assignment 지갑 함수
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, 제네시스 베이스 타겟, 압축 스케줄
 ```
+
+> **참고:** 할당 지연 상수 `nForgingAssignmentDelay` / `nForgingRevocationDelay`는 Bitcoin Core의 `Consensus::Params`(`src/consensus/params.h`)에 있으며 `src/kernel/chainparams.cpp`에서 네트워크별로 설정됩니다 — `pocx/consensus/params.h`가 아닙니다.
 
 ## 성능 특성
 
@@ -766,9 +770,8 @@ src/
 
 ### 테스트 커버리지 영역
 
-- 단위 테스트: `src/test/pocx_*_tests.cpp`
-- 기능 테스트: `test/functional/feature_pocx_*.py`
-- 통합 테스트: regtest로 수동 테스트
+- 단위 테스트: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- 통합 테스트: `scripts/assignments/` 및 `scripts/mining/` 아래의 regtest 셸 스크립트
 
 ## 합의 규칙
 

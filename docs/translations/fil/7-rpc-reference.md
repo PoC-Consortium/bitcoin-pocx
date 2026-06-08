@@ -84,7 +84,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (eksaktong 40 hex na karakter = 20 byte; hindi tinatanggap ang address)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -93,19 +93,12 @@ bitcoin-cli get_mining_info
 **Mga Return Value** (tagumpay):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended forge time sa segundo
 }
 ```
 
-**Mga Return Value** (ni-reject):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Walang `accepted` na field. Sa pag-reject, **hindi** nagbabalik ng JSON object ang RPC — naghahagis ito ng `JSONRPCError` (tingnan ang Mga Error Code sa ibaba).
 
 **Mga Hakbang ng Validation**:
 1. **Format Validation** (fail-fast):
@@ -126,10 +119,11 @@ bitcoin-cli get_mining_info
    - I-queue ang nonce para sa time-bended forging
    - Awtomatikong gagawin ang block sa forge_time
 
-**Mga Error Code**:
-- `RPC_INVALID_PARAMETER`: Invalid na format (account_id, seed) o height mismatch
+**Mga Error Code** (inihahagis bilang `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Invalid na format (account_id, seed) o height mismatch (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generation signature mismatch o nabigo ang proof validation
 - `RPC_INVALID_ADDRESS_OR_KEY`: Walang private key para sa effective signer
+- `RPC_WALLET_UNLOCK_NEEDED`: Naka-lock ang wallet na may hawak ng key ng effective signer (i-unlock gamit ang `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Puno ang submission queue
 - `RPC_INTERNAL_ERROR`: Nabigong i-initialize ang PoCX scheduler
 
@@ -252,7 +246,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Mga Parameter**:
 1. `plot_address` (string, kinakailangan) - Address ng may-ari ng plot (dapat nagmamay-ari ng private key, P2WPKH bech32)
 2. `forging_address` (string, kinakailangan) - Address na ia-assign ng mga karapatan sa forging (P2WPKH bech32)
-3. `fee_rate` (numeric, opsyonal) - Fee rate sa BTC/kvB (default: 10× minRelayFee)
+3. `fee_rate` (numeric, opsyonal) - Fee rate sa BTCX/kvB (default: `0` → standard na minimum-fee estimate ng wallet; ang 10× minRelayFee na default ay para lamang sa Qt GUI dialog, hindi sa RPC na ito)
 
 **Mga Return Value**:
 ```json
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- Output: OP_RETURN (46 byte): `POCX` marker + plot_address (20 byte) + forging_address (20 byte)
+- Output: OP_RETURN script (46 byte) = `OP_RETURN` opcode + 1-byte push length + 44-byte data payload (`POCX` marker 4 + plot_address 20 + forging_address 20)
 - Output: Sukli na ibinabalik sa wallet
 
 **Activation**:
@@ -307,7 +301,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Mga Parameter**:
 1. `plot_address` (string, kinakailangan) - Plot address (dapat nagmamay-ari ng private key, P2WPKH bech32)
-2. `fee_rate` (numeric, opsyonal) - Fee rate sa BTC/kvB (default: 10× minRelayFee)
+2. `fee_rate` (numeric, opsyonal) - Fee rate sa BTCX/kvB (default: `0` → standard na minimum-fee estimate ng wallet; ang 10× minRelayFee na default ay para lamang sa Qt GUI dialog, hindi sa RPC na ito)
 
 **Mga Return Value**:
 ```json
@@ -326,7 +320,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- Output: OP_RETURN (26 byte): `XCOP` marker + plot_address (20 byte)
+- Output: OP_RETURN script (26 byte) = `OP_RETURN` opcode + 1-byte push length + 24-byte data payload (`XCOP` marker 4 + plot_address 20)
 - Output: Sukli na ibinabalik sa wallet
 
 **Epekto**:
@@ -521,22 +515,23 @@ while True:
     # 2. I-scan ang mga plot file (external implementation)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Isumite ang pinakamahusay na solusyon
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
+    # 3. Isumite ang pinakamahusay na solusyon (naghahagis ng JSONRPCError sa pag-reject)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
         print(f"Solution accepted! Quality: {result['raw_quality']}, "
               f"Forge time: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Ni-reject: {e}")
 
     # 4. Maghintay ng susunod na block
     time.sleep(10)  # Poll interval
@@ -607,20 +602,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Mga Karaniwang Pattern ng Error
 
-**Height Mismatch**:
+**Height Mismatch** (inihahagis na `RPC_INVALID_PARAMETER`, code -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Solusyon**: I-fetch ulit ang mining info, umusad ang chain
 
-**Generation Signature Mismatch**:
+**Generation Signature Mismatch** (inihahagis na `RPC_VERIFY_REJECTED`, code -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Solusyon**: I-fetch ulit ang mining info, dumating ang bagong block

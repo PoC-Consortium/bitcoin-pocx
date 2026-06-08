@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Pata ugawaji wa sasa
+            // Pata ugawaji wa sasa - lazima uwe katika hali ya ASSIGNED ili kufuta
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Hifadhi hali ya zamani kwa kutengua
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Inarudisha hali ya sasa ya ugawaji kwa anwani ya plot:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [mistari 259] Ufafanuzi wa alama, operesheni za OP_RETURN, ukaguzi wa umiliki
     │   ├── assignment_state.h     # Wasaidizi wa GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Kazi za hoja ya hali ya ugawaji
+    │   ├── replay.h               # Reorg/urudiaji wa athari za ugawaji
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (njia ya reorg)
     │   ├── transactions.h         # API ya uundaji wa muamala wa pochi
     │   └── transactions.cpp       # Kazi za pochi za create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC za create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, lengo la msingi la genesis, ratiba ya compression
 ```
+
+> **Kumbuka:** Vigezo vya ucheleweshaji wa ugawaji `nForgingAssignmentDelay` / `nForgingRevocationDelay` viko katika `Consensus::Params` ya Bitcoin Core (`src/consensus/params.h`) na huwekwa kwa kila mtandao katika `src/kernel/chainparams.cpp` — si katika `pocx/consensus/params.h`.
 
 ## Sifa za Utendaji
 
@@ -766,9 +770,8 @@ Ambapo n = idadi ya ugawaji kwa plot (kawaida ndogo, < 10)
 
 ### Maeneo ya Majaribio
 
-- Majaribio ya kitengo: `src/test/pocx_*_tests.cpp`
-- Majaribio ya utendaji: `test/functional/feature_pocx_*.py`
-- Majaribio ya muungano: Majaribio ya mikono na regtest
+- Majaribio ya kitengo: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Majaribio ya muungano: skripti za shell za regtest chini ya `scripts/assignments/` na `scripts/mining/`
 
 ## Sheria za Makubaliano
 

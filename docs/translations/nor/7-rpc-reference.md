@@ -83,7 +83,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (nøyaktig 40 hex-tegn = 20 bytes; en adresse godtas ikke)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -92,19 +92,12 @@ bitcoin-cli get_mining_info
 **Returverdier** (suksess):
 ```json
 {
-  "accepted": true,
-  "quality": 120,           // vanskelighetsjustert deadline i sekunder
+  "raw_quality": 120,       // rå kvalitet fra bevisvalidering
   "poc_time": 45            // time-bended forgetid i sekunder
 }
 ```
 
-**Returverdier** (avvist):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Det finnes ikke noe `accepted`-felt. Ved avvisning returnerer ikke RPC-en et JSON-objekt — den kaster en `JSONRPCError` (se Feilkoder nedenfor).
 
 **Valideringstrinn**:
 1. **Formatvalidering** (rask-feil):
@@ -123,10 +116,11 @@ bitcoin-cli get_mining_info
    - Kø nonce for time-bended forging
    - Blokk vil opprettes automatisk ved forge_time
 
-**Feilkoder**:
-- `RPC_INVALID_PARAMETER`: Ugyldig format (account_id, seed) eller høydemismatch
+**Feilkoder** (kastet som `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Ugyldig format (account_id, seed) eller høydemismatch (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generasjonssignaturmismatch eller bevisvalidering feilet
 - `RPC_INVALID_ADDRESS_OR_KEY`: Ingen privat nøkkel for effektiv signerer
+- `RPC_WALLET_UNLOCK_NEEDED`: Lommeboken som holder den effektive signererens nøkkel er låst (lås opp med `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Innsendingskø full
 - `RPC_INTERNAL_ERROR`: Kunne ikke initialisere PoCX-planlegger
 
@@ -249,7 +243,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametere**:
 1. `plot_address` (streng, påkrevd) - Ploteieradresse (må eie privat nøkkel, P2WPKH bech32)
 2. `forging_address` (streng, påkrevd) - Adresse å tildele forging-rettigheter til (P2WPKH bech32)
-3. `fee_rate` (numerisk, valgfritt) - Gebyrrate i BTC/kvB (standard: 10× minRelayFee)
+3. `fee_rate` (numerisk, valgfritt) - Gebyrrate i BTCX/kvB (standard: `0` → lommebokens standard minimumsgebyrestimat; standarden på 10× minRelayFee gjelder kun Qt GUI-dialogen, ikke denne RPC-en)
 
 **Returverdier**:
 ```json
@@ -270,7 +264,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- Output: OP_RETURN (46 bytes): `POCX`-markør + plot_address (20 bytes) + forging_address (20 bytes)
+- Output: OP_RETURN-skript (46 bytes) = `OP_RETURN`-opkode + 1-byte push-lengde + 44-byte datanyttelast (`POCX`-markør 4 + plot_address 20 + forging_address 20)
 - Output: Vekslepenger returnert til lommebok
 
 **Aktivering**:
@@ -304,7 +298,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametere**:
 1. `plot_address` (streng, påkrevd) - Plotadresse (må eie privat nøkkel, P2WPKH bech32)
-2. `fee_rate` (numerisk, valgfritt) - Gebyrrate i BTC/kvB (standard: 10× minRelayFee)
+2. `fee_rate` (numerisk, valgfritt) - Gebyrrate i BTCX/kvB (standard: `0` → lommebokens standard minimumsgebyrestimat; standarden på 10× minRelayFee gjelder kun Qt GUI-dialogen, ikke denne RPC-en)
 
 **Returverdier**:
 ```json
@@ -323,7 +317,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaksjonsstruktur**:
 - Input: UTXO fra plotadresse (beviser eierskap)
-- Output: OP_RETURN (26 bytes): `XCOP`-markør + plot_address (20 bytes)
+- Output: OP_RETURN-skript (26 bytes) = `OP_RETURN`-opkode + 1-byte push-lengde + 24-byte datanyttelast (`XCOP`-markør 4 + plot_address 20)
 - Output: Vekslepenger returnert til lommebok
 
 **Effekt**:
@@ -518,22 +512,23 @@ while True:
     # 2. Skann plotfiler (ekstern implementasjon)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Send inn beste løsning
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Løsning akseptert! Kvalitet: {result['quality']}s, "
+    # 3. Send inn beste løsning (kaster JSONRPCError ved avvisning)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Løsning akseptert! Kvalitet: {result['raw_quality']}, "
               f"Forgetid: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Avvist: {e}")
 
     # 4. Vent på neste blokk
     time.sleep(10)  # Pollingintervall
@@ -604,20 +599,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Vanlige feilmønstre
 
-**Høydemismatch**:
+**Høydemismatch** (kastet `RPC_INVALID_PARAMETER`, kode -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Løsning**: Hent mininginfo på nytt, kjeden har gått fremover
 
-**Generasjonssignaturmismatch**:
+**Generasjonssignaturmismatch** (kastet `RPC_VERIFY_REJECTED`, kode -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Løsning**: Hent mininginfo på nytt, ny blokk har ankommet

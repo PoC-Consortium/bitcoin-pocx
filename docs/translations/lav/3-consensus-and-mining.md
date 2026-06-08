@@ -26,7 +26,7 @@ Bitcoin-PoCX implementē tīru jaudas pierādījuma konsensa mehānismu kā piln
 
 **Galvenās īpašības:**
 - **Energoefektīvs:** Kalnrūpniecība izmanto iepriekš ģenerētus plotfailus, nevis skaitļošanas jaukšanu
-- **Laika līkumo termiņi:** Sadalījuma transformācija (eksponenciālais→hī-kvadrāta) samazina garus blokus, uzlabo vidējos bloku laikus
+- **Laika līkumo termiņi:** Sadalījuma transformācija (eksponenciālais→Weibull, forma k=3) samazina garus blokus, uzlabo vidējos bloku laikus
 - **Piešķīrumu atbalsts:** Plotfailu īpašnieki var deleģēt kalšanas tiesības citām adresēm
 - **Vietēja C++ integrācija:** Kriptogrāfiskie algoritmi implementēti C++ konsensa validācijai
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Ģenēzes bloks:** Izmanto cieti kodētu sākotnējo ģenerēšanas parakstu
 
-**Implementācija:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementācija:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (izsaukts no `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Bāzes mērķis (grūtība)
 
 Bāzes mērķis ir grūtības apgrieztā vērtība — augstākas vērtības nozīmē vieglāku kalnrūpniecību.
 
 **Pielāgošanas algoritms:**
-- Mērķa bloka laiks: 120 sekundes (mainnet), 1 sekunde (regtest)
+- Mērķa bloka laiks: 120 sekundes (visi tīkli)
 - Pielāgošanas intervāls: Katru bloku
 - Izmanto neseno bāzes mērķu mainīgo vidējo
 - Ierobežots, lai novērstu ekstrēmas grūtības svārstības
@@ -112,7 +112,7 @@ PoCX atbalsta mērogojamu darba pierādījumu plotfailos caur mērogošanas līm
 
 **Dinamiskas robežas:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimālais pieņemtais līmenis
     uint32_t nPoCXTargetCompression;  // Ieteicamais līmenis
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### 2. solis: Konteksta iegūšana
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Atgriež: height, generation_signature, base_target, block_hash
 ```
 
@@ -265,7 +265,7 @@ kur:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Mērķis:** Transformē eksponenciālo uz hī-kvadrāta sadalījumu. Ļoti labi risinājumi tiek kalti vēlāk (tīklam ir laiks skenēt diskus), slikti risinājumi uzlaboti. Samazina garus blokus, uztur 120s vidējo.
+**Mērķis:** Transformē eksponenciālo uz Weibull (forma k=3) sadalījumu. Ļoti labi risinājumi tiek kalti vēlāk (tīklam ir laiks skenēt diskus), slikti risinājumi uzlaboti. Samazina garus blokus, uztur 120s vidējo.
 
 **Implementācija:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -547,6 +547,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase saņēmējs** (nav konsensa izpildīts):
+
+Kalnracis iestata coinbase izvadi, lai maksātu efektīvajam parakstītājam (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), bet to **ne**validē konsenss. Konsenss izpilda tikai to, ka *bloka paraksts* ir izveidots no efektīvā parakstītāja — augstāk minēto `bad-pocx-assignment-sig` pārbaudi. Nav `bad-pocx-coinbase` noteikuma; coinbase saņēmēju izvēlas kalnracis.
+
 **Implementācija:**
 - Savienošana: `src/validation.cpp:ConnectBlock()`
 - Paplašināta validācija: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -607,7 +611,7 @@ Piešķīrumi ļauj plotfailu īpašniekiem deleģēt kalšanas tiesības citām
 - Piešķīrumi glabāti OP_RETURN izvadēs (nav UTXO)
 - Nav tēriņu prasību (nav putekļu, nav maksu turēšanai)
 - Izsekoti CCoinsViewCache paplašinātajā stāvoklī
-- Aktivizēti pēc aizkaves perioda (noklusējums: 4 bloki)
+- Aktivizēti pēc aizkaves perioda (noklusējums: 30 bloki; 4 regtest)
 
 **Piešķīrumu stāvokļi:**
 ```cpp

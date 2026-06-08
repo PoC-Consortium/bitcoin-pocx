@@ -12,7 +12,7 @@ Le consensus par preuve de travail (PoW) de Bitcoin offre une sécurité robuste
 
 Notre implémentation introduit plusieurs innovations clés :
 (1) Un format de plot renforcé qui élimine toutes les attaques par compromis temps-mémoire connues dans les systèmes PoC existants, garantissant que la puissance de minage effective reste strictement proportionnelle à la capacité de stockage engagée ;
-(2) L'algorithme Time Bending, qui transforme les distributions de deadline de l'exponentielle vers le chi-carré, réduisant la variance du temps de bloc sans modifier la moyenne ;
+(2) L'algorithme Time Bending, qui transforme les distributions de deadline de l'exponentielle vers Weibull (forme k=3), réduisant la variance du temps de bloc sans modifier la moyenne ;
 (3) Un mécanisme d'assignation de forge basé sur OP_RETURN permettant le minage en pool non-custodial ; et
 (4) Une mise à l'échelle dynamique de la compression, qui augmente la difficulté de génération de plot en alignement avec les calendriers de halving pour maintenir les marges de sécurité à long terme à mesure que le matériel s'améliore.
 
@@ -297,14 +297,16 @@ Pour préserver la marge de sécurité prévue, PoCX implémente un calendrier d
 
 Le calendrier s'aligne avec les incitations économiques du réseau, particulièrement les halvings des récompenses de bloc. À mesure que la récompense par bloc diminue, le niveau minimum augmente graduellement, préservant l'équilibre entre l'effort de plotting et le potentiel de minage :
 
-| Période | Années | Halvings | Mise à l'échelle min | Multiplicateur de travail de plot |
+| Période | Années | Halvings | Mise à l'échelle min | Travail de plot (vs ligne de base POC2) |
 |---------|--------|----------|----------------------|-----------------------------------|
-| Époque 0 | 0-4 | 0 | X1 | 2× ligne de base |
-| Époque 1 | 4-12 | 1-2 | X2 | 4× ligne de base |
-| Époque 2 | 12-28 | 3-6 | X3 | 8× ligne de base |
-| Époque 3 | 28-60 | 7-14 | X4 | 16× ligne de base |
-| Époque 4 | 60-124 | 15-30 | X5 | 32× ligne de base |
-| Époque 5 | 124+ | 31+ | X6 | 64× ligne de base |
+| Époque 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Époque 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Époque 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Époque 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Époque 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Époque 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+La colonne du multiplicateur est exprimée par rapport à la ligne de base **POC2** non renforcée. Comme le format X1 renforcé intègre déjà 2× le travail de POC2, le niveau Xn équivaut à 2ⁿ × POC2 — soit, de manière équivalente, 2^(n-1) × X1, ce qui correspond à la définition par niveau de la Section 3.5.
 
 Les mineurs peuvent optionnellement préparer des plots dépassant le minimum actuel d'un niveau, leur permettant de planifier à l'avance et d'éviter les mises à niveau immédiates quand le réseau passe à l'époque suivante. Cette étape optionnelle ne confère aucun avantage supplémentaire en termes de probabilité de bloc — elle permet simplement une transition opérationnelle plus douce.
 
@@ -438,11 +440,11 @@ Les tableaux ci-dessous résument les paramètres mainnet, testnet et regtest r�
 | Octets magiques | `0xfa 0xbf 0xb5 0xda` |
 | Port par défaut | 18444 |
 | HRP Bech32 | `rpocx` |
-| Temps de bloc cible | 1 seconde |
+| Temps de bloc cible | 120 secondes |
 | Intervalle de halving | 500 blocs |
 | Activation d'assignation | 4 blocs |
 | Révocation d'assignation | 8 blocs |
-| Mode basse capacité | Activé (~4 Mo de plots) |
+| Mode basse capacité | Activé (~16 MiB de plots, 64 nonces) |
 
 ---
 

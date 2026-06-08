@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (tieši 40 hex simboli = 20 baiti; adrese netiek pieņemta)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Atgriešanas vērtības** (veiksme):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // neapstrādāta kvalitāte no pierādījuma validācijas
   "poc_time": 45            // laika līkumo kalšanas laiks sekundēs
 }
 ```
 
-**Atgriešanas vērtības** (noraidīts):
-```json
-{
-  "accepted": false,
-  "error": "Ģenerēšanas paraksta nesakritība"
-}
-```
+Nav `accepted` lauka. Noraidīšanas gadījumā RPC **ne**atgriež JSON objektu — tas met `JSONRPCError` (skatīt Kļūdu kodus zemāk).
 
 **Validācijas soļi**:
 1. **Formāta validācija** (ātra neveiksme):
@@ -145,10 +138,11 @@ bitcoin-cli get_mining_info
    - Ievietot nonce rindā laika līkumo kalšanai
    - Bloks tiks izveidots automātiski forge_time laikā
 
-**Kļūdu kodi**:
-- `RPC_INVALID_PARAMETER`: Nederīgs formāts (account_id, seed) vai augstuma nesakritība
+**Kļūdu kodi** (mesti kā `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Nederīgs formāts (account_id, seed) vai augstuma nesakritība (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Ģenerēšanas paraksta nesakritība vai pierādījuma validācija neizdevās
 - `RPC_INVALID_ADDRESS_OR_KEY`: Nav privātās atslēgas efektīvajam parakstītājam
+- `RPC_WALLET_UNLOCK_NEEDED`: Maciņš, kas tur efektīvā parakstītāja atslēgu, ir bloķēts (atbloķēt ar `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Iesniegumu rinda pilna
 - `RPC_INTERNAL_ERROR`: Neizdevās inicializēt PoCX plānotāju
 
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametri**:
 1. `plot_address` (virkne, obligāts) - Plotfaila īpašnieka adrese (jāpieder privātā atslēga, P2WPKH bech32)
 2. `forging_address` (virkne, obligāts) - Adrese, kurai piešķirt kalšanas tiesības (P2WPKH bech32)
-3. `fee_rate` (skaitlisks, neobligāts) - Maksas likme BTC/kvB (noklusējums: 10× minRelayFee)
+3. `fee_rate` (skaitlisks, neobligāts) - Maksas likme BTCX/kvB (noklusējums: `0` → maciņa standarta minimālās maksas aprēķins; 10× minRelayFee noklusējums attiecas tikai uz Qt GUI dialogu, nevis šo RPC)
 
 **Atgriešanas vērtības**:
 ```json
@@ -290,7 +284,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Darījuma struktūra**:
 - Ievade: UTXO no plotfaila adreses (pierāda īpašumtiesības)
-- Izvade: OP_RETURN (46 baiti): `POCX` marķieris + plot_address (20 baiti) + forging_address (20 baiti)
+- Izvade: OP_RETURN skripts (46 baiti) = `OP_RETURN` opkods + 1 baita push garums + 44 baitu datu lietderīgā krava (`POCX` marķieris 4 + plot_address 20 + forging_address 20)
 - Izvade: Atlikums atgriezts maciņā
 
 **Aktivizācija**:
@@ -323,7 +317,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametri**:
 1. `plot_address` (virkne, obligāts) - Plotfaila adrese (jāpieder privātā atslēga, P2WPKH bech32)
-2. `fee_rate` (skaitlisks, neobligāts) - Maksas likme BTC/kvB (noklusējums: 10× minRelayFee)
+2. `fee_rate` (skaitlisks, neobligāts) - Maksas likme BTCX/kvB (noklusējums: `0` → maciņa standarta minimālās maksas aprēķins; 10× minRelayFee noklusējums attiecas tikai uz Qt GUI dialogu, nevis šo RPC)
 
 **Atgriešanas vērtības**:
 ```json
@@ -342,7 +336,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Darījuma struktūra**:
 - Ievade: UTXO no plotfaila adreses (pierāda īpašumtiesības)
-- Izvade: OP_RETURN (26 baiti): `XCOP` marķieris + plot_address (20 baiti)
+- Izvade: OP_RETURN skripts (26 baiti) = `OP_RETURN` opkods + 1 baita push garums + 24 baitu datu lietderīgā krava (`XCOP` marķieris 4 + plot_address 20)
 - Izvade: Atlikums atgriezts maciņā
 
 **Efekts**:
@@ -537,22 +531,23 @@ while True:
     # 2. Skenēt plotfailus (ārēja implementācija)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Iesniegt labāko risinājumu
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Risinājums pieņemts! Kvalitāte: {result['quality']}s, "
+    # 3. Iesniegt labāko risinājumu (noraidīšanas gadījumā met JSONRPCError)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Risinājums pieņemts! Kvalitāte: {result['raw_quality']}, "
               f"Kalšanas laiks: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Noraidīts: {e}")
 
     # 4. Gaidīt nākamo bloku
     time.sleep(10)  # Aptaujas intervāls
@@ -623,20 +618,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Biežākie kļūdu modeļi
 
-**Augstuma nesakritība**:
+**Augstuma nesakritība** (mests `RPC_INVALID_PARAMETER`, kods -8):
 ```json
 {
-  "accepted": false,
-  "error": "Augstuma nesakritība: iesniegts 12345, pašreizējais 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Risinājums**: Atkārtoti iegūt kalnrūpniecības info, ķēde ir pavirzījusies uz priekšu
 
-**Ģenerēšanas paraksta nesakritība**:
+**Ģenerēšanas paraksta nesakritība** (mests `RPC_VERIFY_REJECTED`, kods -26):
 ```json
 {
-  "accepted": false,
-  "error": "Ģenerēšanas paraksta nesakritība"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Risinājums**: Atkārtoti iegūt kalnrūpniecības info, jauns bloks ir pienācis

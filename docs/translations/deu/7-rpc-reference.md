@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (genau 40 Hex-Zeichen = 20 Bytes; eine Adresse wird nicht akzeptiert)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Rückgabewerte** (Erfolg):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // Time-Bended Forge-Zeit in Sekunden
 }
 ```
 
-**Rückgabewerte** (abgelehnt):
-```json
-{
-  "accepted": false,
-  "error": "Generierungssignatur stimmt nicht überein"
-}
-```
+Es gibt kein `accepted`-Feld. Bei Ablehnung gibt der RPC **kein** JSON-Objekt zurück — er wirft einen `JSONRPCError` (siehe Fehlercodes unten).
 
 **Validierungsschritte**:
 1. **Formatvalidierung** (Schnell-Fehlschlag):
@@ -124,10 +117,11 @@ bitcoin-cli get_mining_info
    - Nonce für Time-Bended Forging einreihen
    - Block wird automatisch zur forge_time erstellt
 
-**Fehlercodes**:
-- `RPC_INVALID_PARAMETER`: Ungültiges Format (account_id, seed) oder Höhenabweichung
+**Fehlercodes** (geworfen als `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Ungültiges Format (account_id, seed) oder Höhenabweichung (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generierungssignatur stimmt nicht überein oder Beweisvalidierung fehlgeschlagen
 - `RPC_INVALID_ADDRESS_OR_KEY`: Kein privater Schlüssel für effektiven Unterzeichner
+- `RPC_WALLET_UNLOCK_NEEDED`: Wallet, die den Schlüssel des effektiven Unterzeichners hält, ist gesperrt (mit `walletpassphrase` entsperren)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Übermittlungswarteschlange voll
 - `RPC_INTERNAL_ERROR`: PoCX-Scheduler konnte nicht initialisiert werden
 
@@ -248,7 +242,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parameter**:
 1. `plot_address` (string, erforderlich) - Plotbesitzer-Adresse (muss privaten Schlüssel besitzen, P2WPKH bech32)
 2. `forging_address` (string, erforderlich) - Adresse für Forging-Rechte-Zuweisung (P2WPKH bech32)
-3. `fee_rate` (numerisch, optional) - Gebührenrate in BTC/kvB (Standard: 10× minRelayFee)
+3. `fee_rate` (numerisch, optional) - Gebührenrate in BTCX/kvB (Standard: `0` → Standard-Mindestgebühren-Schätzung der Wallet; der 10×-minRelayFee-Standard gilt nur für den Qt-GUI-Dialog, nicht für diesen RPC)
 
 **Rückgabewerte**:
 ```json
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- Ausgabe: OP_RETURN (46 Bytes): `POCX`-Marker + plot_address (20 Bytes) + forging_address (20 Bytes)
+- Ausgabe: OP_RETURN-Skript (46 Bytes) = `OP_RETURN`-Opcode + 1-Byte-Push-Länge + 44-Byte-Daten-Payload (`POCX`-Marker 4 + plot_address 20 + forging_address 20)
 - Ausgabe: Wechselgeld zurück ans Wallet
 
 **Aktivierung**:
@@ -302,7 +296,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parameter**:
 1. `plot_address` (string, erforderlich) - Plot-Adresse (muss privaten Schlüssel besitzen, P2WPKH bech32)
-2. `fee_rate` (numerisch, optional) - Gebührenrate in BTC/kvB (Standard: 10× minRelayFee)
+2. `fee_rate` (numerisch, optional) - Gebührenrate in BTCX/kvB (Standard: `0` → Standard-Mindestgebühren-Schätzung der Wallet; der 10×-minRelayFee-Standard gilt nur für den Qt-GUI-Dialog, nicht für diesen RPC)
 
 **Rückgabewerte**:
 ```json
@@ -321,7 +315,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaktionsstruktur**:
 - Eingabe: UTXO von Plot-Adresse (beweist Eigentum)
-- Ausgabe: OP_RETURN (26 Bytes): `XCOP`-Marker + plot_address (20 Bytes)
+- Ausgabe: OP_RETURN-Skript (26 Bytes) = `OP_RETURN`-Opcode + 1-Byte-Push-Länge + 24-Byte-Daten-Payload (`XCOP`-Marker 4 + plot_address 20)
 - Ausgabe: Wechselgeld zurück ans Wallet
 
 **Effekt**:
@@ -516,22 +510,23 @@ while True:
     # 2. Plotdateien scannen (externe Implementierung)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Beste Lösung übermitteln
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Lösung akzeptiert! Qualität: {result['quality']}s, "
+    # 3. Beste Lösung übermitteln (wirft JSONRPCError bei Ablehnung)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Lösung akzeptiert! Qualität: {result['raw_quality']}, "
               f"Forge-Zeit: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Abgelehnt: {e}")
 
     # 4. Auf nächsten Block warten
     time.sleep(10)  # Abfrage-Intervall
@@ -602,20 +597,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Häufige Fehlermuster
 
-**Höhenabweichung**:
+**Höhenabweichung** (geworfen `RPC_INVALID_PARAMETER`, Code -8):
 ```json
 {
-  "accepted": false,
-  "error": "Höhenabweichung: übermittelt 12345, aktuell 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Lösung**: Mining-Info neu abrufen, Chain ist weitergegangen
 
-**Generierungssignatur stimmt nicht überein**:
+**Generierungssignatur stimmt nicht überein** (geworfen `RPC_VERIFY_REJECTED`, Code -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generierungssignatur stimmt nicht überein"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Lösung**: Mining-Info neu abrufen, neuer Block angekommen

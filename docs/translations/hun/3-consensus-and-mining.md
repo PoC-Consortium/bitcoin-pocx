@@ -26,7 +26,7 @@ A Bitcoin-PoCX egy tiszta Proof of Capacity konszenzus mechanizmust valósít me
 
 **Fő Tulajdonságok:**
 - **Energiahatékony:** A bányászat előre generált plotfájlokat használ számítási hash-elés helyett
-- **Time Bended Határidők:** Eloszlás transzformáció (exponenciálisról chi-négyzetre) csökkenti a hosszú blokkokat, javítja az átlagos blokkidőket
+- **Time Bended Határidők:** Eloszlás transzformáció (exponenciálisról Weibull-ra, alak k=3) csökkenti a hosszú blokkokat, javítja az átlagos blokkidőket
 - **Megbízás Támogatás:** Plot tulajdonosok kovácsolási jogokat delegálhatnak más címekre
 - **Natív C++ Integráció:** Kriptográfiai algoritmusok C++-ban implementálva konszenzus validációhoz
 
@@ -92,14 +92,14 @@ generationSignature = SHA256(előző_generationSignature || előző_bányász_pu
 
 **Genezis Blokk:** Rögzített kezdeti generációs aláírást használ
 
-**Implementáció:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementáció:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (a `src/pocx/mining/block_context.cpp:GetNewBlockContext()`-ból hívva)
 
 ### Alap Célérték (Nehézség)
 
 Az alap célérték a nehézség inverze — magasabb értékek könnyebb bányászatot jelentenek.
 
 **Beállítási Algoritmus:**
-- Cél blokkidő: 120 másodperc (mainnet), 1 másodperc (regtest)
+- Cél blokkidő: 120 másodperc (minden hálózat)
 - Beállítási intervallum: Minden blokk
 - Mozgóátlagot használ a legutóbbi alap célértékekből
 - Korlátozva a szélsőséges nehézségi kilengések megakadályozására
@@ -112,7 +112,7 @@ A PoCX támogatja a skálázható proof-of-work-öt a plotfájlokban skálázás
 
 **Dinamikus Határok:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimum elfogadott szint
     uint32_t nPoCXTargetCompression;  // Ajánlott szint
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### 2. Lépés: Kontextus Beszerzés
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Visszaad: height, generation_signature, base_target, block_hash
 ```
 
@@ -262,7 +262,7 @@ ahol:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Cél:** Exponenciálist chi-négyzet eloszlássá transzformál. A nagyon jó megoldások később kovácsolódnak (a hálózatnak van ideje átnézni a lemezeket), a gyenge megoldások javulnak. Csökkenti a hosszú blokkokat, fenntartja a 120mp átlagot.
+**Cél:** Exponenciálist Weibull (alak k=3) eloszlássá transzformál. A nagyon jó megoldások később kovácsolódnak (a hálózatnak van ideje átnézni a lemezeket), a gyenge megoldások javulnak. Csökkenti a hosszú blokkokat, fenntartja a 120mp átlagot.
 
 **Implementáció:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -555,6 +555,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase Címzett** (nem konszenzus által kikényszerített):
+
+A bányász a coinbase kimenetet úgy állítja be, hogy az effektív aláírónak fizessen (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), de ezt **nem** validálja a konszenzus. A konszenzus csak azt kényszeríti ki, hogy a *blokk aláírást* az effektív aláíró állítsa elő — a fenti `bad-pocx-assignment-sig` ellenőrzés. Nincs `bad-pocx-coinbase` szabály; a coinbase címzettjét a bányász választja.
+
 **Implementáció:**
 - Csatlakoztatás: `src/validation.cpp:ConnectBlock()`
 - Kiterjesztett validáció: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -615,7 +619,7 @@ A megbízások lehetővé teszik a plot tulajdonosoknak, hogy kovácsolási jogo
 - Megbízások OP_RETURN kimenetekben tárolva (nincs UTXO)
 - Nincsenek költési követelmények (nincs dust, nincs díj a tartásért)
 - CCoinsViewCache kiterjesztett állapotában nyilvántartva
-- Késleltetési periódus után aktiválódik (alapértelmezett: 4 blokk)
+- Késleltetési periódus után aktiválódik (alapértelmezett: 30 blokk; 4 regteszten)
 
 **Megbízás Állapotok:**
 ```cpp

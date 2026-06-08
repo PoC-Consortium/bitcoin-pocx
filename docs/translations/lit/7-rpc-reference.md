@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (tiksliai 40 hex simbolių = 20 baitų; adresas nepriimamas)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Grąžinamos reikšmės** (sėkmė):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // neapdorota kokybė iš įrodymo validacijos
   "poc_time": 45            // laiko lenktas kalimo laikas sekundėmis
 }
 ```
 
-**Grąžinamos reikšmės** (atmesta):
-```json
-{
-  "accepted": false,
-  "error": "Generavimo parašo neatitikimas"
-}
-```
+Nėra `accepted` lauko. Atmetimo atveju RPC **negrąžina** JSON objekto — jis išmeta `JSONRPCError` (žr. Klaidų kodus žemiau).
 
 **Validacijos žingsniai**:
 1. **Formato validacija** (greitas atmetimas):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Įdėti nonce į eilę laiko lenktam kalimui
    - Blokas bus sukurtas automatiškai forge_time metu
 
-**Klaidų kodai**:
-- `RPC_INVALID_PARAMETER`: Neteisingas formatas (account_id, seed) arba aukščio neatitikimas
+**Klaidų kodai** (išmetami kaip `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Neteisingas formatas (account_id, seed) arba aukščio neatitikimas (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generavimo parašo neatitikimas arba įrodymo validacija nepavyko
 - `RPC_INVALID_ADDRESS_OR_KEY`: Nėra privataus rakto efektyviajam pasirašytojui
+- `RPC_WALLET_UNLOCK_NEEDED`: Piniginė, turinti efektyviojo pasirašytojo raktą, yra užrakinta (atrakinkite su `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Pateikimo eilė pilna
 - `RPC_INTERNAL_ERROR`: Nepavyko inicializuoti PoCX planuotojo
 
@@ -271,7 +265,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametrai**:
 1. `plot_address` (eilutė, privalomas) - Grafiko savininko adresas (turi turėti privatų raktą, P2WPKH bech32)
 2. `forging_address` (eilutė, privalomas) - Adresas, kuriam priskirti kalimo teises (P2WPKH bech32)
-3. `fee_rate` (skaitinis, neprivalomas) - Mokesčio dažnis BTC/kvB (numatytas: 10× minRelayFee)
+3. `fee_rate` (skaitinis, neprivalomas) - Mokesčio dažnis BTCX/kvB (numatytas: `0` → piniginės standartinis minimalaus mokesčio įvertis; 10× minRelayFee numatytoji reikšmė taikoma tik Qt GUI dialogui, ne šiam RPC)
 
 **Grąžinamos reikšmės**:
 ```json
@@ -292,7 +286,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transakcijos struktūra**:
 - Įvestis: UTXO iš grafiko adreso (įrodo nuosavybę)
-- Išvestis: OP_RETURN (46 baitai): `POCX` žymeklis + grafiko_adresas (20 baitų) + kalimo_adresas (20 baitų)
+- Išvestis: OP_RETURN scenarijus (46 baitai) = `OP_RETURN` opkodas + 1 baito stūmimo ilgis + 44 baitų duomenų naudingoji apkrova (`POCX` žymeklis 4 + plot_address 20 + forging_address 20)
 - Išvestis: Grąža grąžinama į piniginę
 
 **Aktyvacija**:
@@ -325,7 +319,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametrai**:
 1. `plot_address` (eilutė, privalomas) - Grafiko adresas (turi turėti privatų raktą, P2WPKH bech32)
-2. `fee_rate` (skaitinis, neprivalomas) - Mokesčio dažnis BTC/kvB (numatytas: 10× minRelayFee)
+2. `fee_rate` (skaitinis, neprivalomas) - Mokesčio dažnis BTCX/kvB (numatytas: `0` → piniginės standartinis minimalaus mokesčio įvertis; 10× minRelayFee numatytoji reikšmė taikoma tik Qt GUI dialogui, ne šiam RPC)
 
 **Grąžinamos reikšmės**:
 ```json
@@ -344,7 +338,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transakcijos struktūra**:
 - Įvestis: UTXO iš grafiko adreso (įrodo nuosavybę)
-- Išvestis: OP_RETURN (26 baitai): `XCOP` žymeklis + grafiko_adresas (20 baitų)
+- Išvestis: OP_RETURN scenarijus (26 baitai) = `OP_RETURN` opkodas + 1 baito stūmimo ilgis + 24 baitų duomenų naudingoji apkrova (`XCOP` žymeklis 4 + plot_address 20)
 - Išvestis: Grąža grąžinama į piniginę
 
 **Poveikis**:
@@ -539,22 +533,23 @@ while True:
     # 2. Nuskaityti grafiko failus (išorinis įgyvendinimas)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Pateikti geriausią sprendimą
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Sprendimas priimtas! Kokybė: {result['quality']}s, "
+    # 3. Pateikti geriausią sprendimą (atmetus išmetamas JSONRPCError)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Sprendimas priimtas! Kokybė: {result['raw_quality']}, "
               f"Kalimo laikas: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Atmesta: {e}")
 
     # 4. Laukti kito bloko
     time.sleep(10)  # Apklausos intervalas
@@ -625,20 +620,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Dažni klaidų šablonai
 
-**Aukščio neatitikimas**:
+**Aukščio neatitikimas** (išmetamas `RPC_INVALID_PARAMETER`, kodas -8):
 ```json
 {
-  "accepted": false,
-  "error": "Aukščio neatitikimas: pateikta 12345, dabartinis 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Sprendimas**: Pakartotinai gauti kasimo informaciją, grandinė pažengė
 
-**Generavimo parašo neatitikimas**:
+**Generavimo parašo neatitikimas** (išmetamas `RPC_VERIFY_REJECTED`, kodas -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generavimo parašo neatitikimas"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Sprendimas**: Pakartotinai gauti kasimo informaciją, naujas blokas atėjo

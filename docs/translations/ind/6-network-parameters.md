@@ -35,7 +35,7 @@ Referensi lengkap untuk konfigurasi jaringan Bitcoin-PoCX di semua tipe jaringan
 
 **Nilai yang Dihitung**:
 - Mainnet/Testnet/Signet (120 detik): `36650387592`
-- Regtest (1 detik): Menggunakan mode kalibrasi kapasitas rendah
+- Regtest (120 detik): Menggunakan mode kalibrasi kapasitas rendah (base_power 2^58)
 
 ### Pesan Genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Penyesuaian Kesulitan**:
 - **Jendela Bergulir**: `24` blok
 - **Penyesuaian**: Setiap blok
-- **Algoritma**: Rata-rata bergerak eksponensial
+- **Algoritma**: Rata-rata bergerak tertimbang (gaya Burstcoin, batas ±20% per blok)
 
 **Penundaan Penugasan**:
 - **Aktivasi**: `30` blok (~1 jam)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Waktu Blok**:
-- **Target Waktu Blok**: `1` detik (penambangan instan untuk pengujian)
+- **Target Waktu Blok**: `120` detik (ditambang sesuai permintaan via `generatetoaddress` di regtest)
 - **Target Timespan**: `86400` detik (1 hari)
 - **MAX_FUTURE_BLOCK_TIME**: `15` detik
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Jendela Bergulir**: `24` blok
 - **Izinkan Kesulitan Minimum**: `true`
 - **Tanpa Retargeting**: `true`
-- **Kalibrasi Kapasitas Rendah**: `true` (menggunakan kalibrasi 16-nonce daripada 1 TiB)
+- **Kalibrasi Kapasitas Rendah**: `true` (menggunakan kalibrasi 64-nonce ≈ 16 MiB daripada 1 TiB)
 
 **Penundaan Penugasan**:
-- **Aktivasi**: `4` blok (~4 detik)
-- **Pencabutan**: `8` blok (~8 detik)
+- **Aktivasi**: `4` blok (~8 menit pada jarak 120 detik)
+- **Pencabutan**: `8` blok (~16 menit pada jarak 120 detik)
 
 ### Parameter Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Target Waktu Blok**:
 - Mainnet/Testnet/Signet: `120` detik
-- Regtest: `1` detik
+- Regtest: `120` detik
 
 **TIMESTAMP_WINDOW**: `15` detik (sama dengan MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Parameter Penyesuaian Kesulitan
 
 **Ukuran Jendela Bergulir**: `24` blok (semua jaringan)
-- Rata-rata bergerak eksponensial dari waktu blok terbaru
+- Rata-rata bergerak tertimbang dari waktu blok terbaru (gaya Burstcoin)
 - Penyesuaian setiap blok
 - Responsif terhadap perubahan kapasitas
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (penundaan aktivasi):
 - Mainnet: `30` blok (~1 jam)
 - Testnet: `30` blok (~1 jam)
-- Regtest: `4` blok (~4 detik)
+- Regtest: `4` blok (~8 menit pada jarak 120 detik)
 
 **nForgingRevocationDelay** (penundaan pencabutan):
 - Mainnet: `720` blok (~24 jam)
 - Testnet: `720` blok (~24 jam)
-- Regtest: `8` blok (~8 detik)
+- Regtest: `8` blok (~16 menit pada jarak 120 detik)
 
 **Alasan**:
 - Penundaan aktivasi mencegah penugasan ulang cepat selama perlombaan blok

@@ -35,7 +35,7 @@ Tüm ağ türlerinde Bitcoin-PoCX ağ yapılandırması için eksiksiz referans.
 
 **Hesaplanan Değerler**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Düşük kapasite kalibrasyon modu kullanır
+- Regtest (120s): Düşük kapasite kalibrasyon modu kullanır (base_power 2^58)
 
 ### Genesis Mesajı
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Zorluk Ayarlaması**:
 - **Yuvarlanan Pencere**: `24` blok
 - **Ayarlama**: Her blok
-- **Algoritma**: Üstel hareketli ortalama
+- **Algoritma**: Ağırlıklı hareketli ortalama (Burstcoin tarzı, blok başına ±%20 sınır)
 
 **Atama Gecikmeleri**:
 - **Aktivasyon**: `30` blok (~1 saat)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Blok Zamanlaması**:
-- **Blok Süresi Hedefi**: `1` saniye (test için anında madencilik)
+- **Blok Süresi Hedefi**: `120` saniye (regtest'te `generatetoaddress` ile talep üzerine madencilik)
 - **Hedef Zaman Aralığı**: `86400` saniye (1 gün)
 - **MAX_FUTURE_BLOCK_TIME**: `15` saniye
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Yuvarlanan Pencere**: `24` blok
 - **Minimum Zorluk İzni**: `true`
 - **Yeniden Hedefleme Yok**: `true`
-- **Düşük Kapasite Kalibrasyonu**: `true` (1 TiB yerine 16 nonce kalibrasyonu kullanır)
+- **Düşük Kapasite Kalibrasyonu**: `true` (1 TiB yerine 64 nonce kalibrasyonu ≈ 16 MiB kullanır)
 
 **Atama Gecikmeleri**:
-- **Aktivasyon**: `4` blok (~4 saniye)
-- **İptal**: `8` blok (~8 saniye)
+- **Aktivasyon**: `4` blok (~8 dakika 120s aralıkta)
+- **İptal**: `8` blok (~16 dakika 120s aralıkta)
 
 ### Signet Parametreleri
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Blok Süresi Hedefleri**:
 - Mainnet/Testnet/Signet: `120` saniye
-- Regtest: `1` saniye
+- Regtest: `120` saniye
 
 **TIMESTAMP_WINDOW**: `15` saniye (MAX_FUTURE_BLOCK_TIME'a eşit)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Zorluk Ayarlama Parametreleri
 
 **Yuvarlanan Pencere Boyutu**: `24` blok (tüm ağlar)
-- Son blok sürelerinin üstel hareketli ortalaması
+- Son blok sürelerinin ağırlıklı hareketli ortalaması (Burstcoin tarzı)
 - Her blokta ayarlama
 - Kapasite değişikliklerine duyarlı
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktivasyon gecikmesi):
 - Mainnet: `30` blok (~1 saat)
 - Testnet: `30` blok (~1 saat)
-- Regtest: `4` blok (~4 saniye)
+- Regtest: `4` blok (~8 dakika 120s aralıkta)
 
 **nForgingRevocationDelay** (iptal gecikmesi):
 - Mainnet: `720` blok (~24 saat)
 - Testnet: `720` blok (~24 saat)
-- Regtest: `8` blok (~8 saniye)
+- Regtest: `8` blok (~16 dakika 120s aralıkta)
 
 **Gerekçe**:
 - Aktivasyon gecikmesi blok yarışları sırasında hızlı yeniden atamayı önler

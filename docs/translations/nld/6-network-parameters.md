@@ -35,7 +35,7 @@ Volledige referentie voor Bitcoin-PoCX-netwerkconfiguratie over alle netwerktype
 
 **Berekende waarden**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Gebruikt lage-capaciteitskalibratiemodus
+- Regtest (120s): Gebruikt lage-capaciteitskalibratiemodus (base_power 2^58)
 
 ### Genesisbericht
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Moeilijkheidsaanpassing**:
 - **Rollend venster**: `24` blokken
 - **Aanpassing**: Elk blok
-- **Algoritme**: Exponentieel voortschrijdend gemiddelde
+- **Algoritme**: Gewogen voortschrijdend gemiddelde (Burstcoin-stijl, ±20% limiet per blok)
 
 **Toewijzingsvertragingen**:
 - **Activering**: `30` blokken (~1 uur)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Bloktiming**:
-- **Bloktijddoel**: `1` seconde (instant mining voor testen)
+- **Bloktijddoel**: `120` seconden (gedolven op aanvraag via `generatetoaddress` in regtest)
 - **Doeltijdspanne**: `86400` seconden (1 dag)
 - **MAX_FUTURE_BLOCK_TIME**: `15` seconden
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Rollend venster**: `24` blokken
 - **Sta minimummoeilijkheid toe**: `true`
 - **Geen hertargeting**: `true`
-- **Lage-capaciteitskalibratie**: `true` (gebruikt 16-nonce kalibratie in plaats van 1 TiB)
+- **Lage-capaciteitskalibratie**: `true` (gebruikt 64-nonce kalibratie ≈ 16 MiB in plaats van 1 TiB)
 
 **Toewijzingsvertragingen**:
-- **Activering**: `4` blokken (~4 seconden)
-- **Intrekking**: `8` blokken (~8 seconden)
+- **Activering**: `4` blokken (~8 minuten bij 120s-interval)
+- **Intrekking**: `8` blokken (~16 minuten bij 120s-interval)
 
 ### Signet-parameters
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Bloktijddoelen**:
 - Mainnet/Testnet/Signet: `120` seconden
-- Regtest: `1` seconde
+- Regtest: `120` seconden
 
 **TIMESTAMP_WINDOW**: `15` seconden (gelijk aan MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Moeilijkheidsaanpassingsparameters
 
 **Rollend venstergrootte**: `24` blokken (alle netwerken)
-- Exponentieel voortschrijdend gemiddelde van recente bloktijden
+- Gewogen voortschrijdend gemiddelde van recente bloktijden (Burstcoin-stijl)
 - Aanpassing elk blok
 - Responsief op capaciteitswijzigingen
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (activeringsvertraging):
 - Mainnet: `30` blokken (~1 uur)
 - Testnet: `30` blokken (~1 uur)
-- Regtest: `4` blokken (~4 seconden)
+- Regtest: `4` blokken (~8 minuten bij 120s-interval)
 
 **nForgingRevocationDelay** (intrekkingsvertraging):
 - Mainnet: `720` blokken (~24 uur)
 - Testnet: `720` blokken (~24 uur)
-- Regtest: `8` blokken (~8 seconden)
+- Regtest: `8` blokken (~16 minuten bij 120s-interval)
 
 **Rationale**:
 - Activeringsvertraging voorkomt snelle hertoewijzing tijdens blokraces

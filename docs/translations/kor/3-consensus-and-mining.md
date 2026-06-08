@@ -26,7 +26,7 @@ Bitcoin-PoCX는 Bitcoin의 작업 증명을 완전히 대체하는 순수 용량
 
 **핵심 속성:**
 - **에너지 효율**: 채굴이 계산 해싱 대신 사전 생성된 플롯 파일 사용
-- **시간 왜곡 데드라인**: 분포 변환(지수->카이제곱)으로 긴 블록 감소, 평균 블록 시간 개선
+- **시간 왜곡 데드라인**: 분포 변환(지수->Weibull, 형상 k=3)으로 긴 블록 감소, 평균 블록 시간 개선
 - **할당 지원**: 플롯 소유자가 다른 주소에 포징 권한 위임 가능
 - **네이티브 C++ 통합**: 합의 검증을 위해 암호화 알고리즘이 C++로 구현
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **제네시스 블록:** 하드코딩된 초기 생성 서명 사용
 
-**구현:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**구현:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (`src/pocx/mining/block_context.cpp:GetNewBlockContext()`에서 호출)
 
 ### 기본 목표 (난이도)
 
 기본 목표는 난이도의 역수입니다 - 높은 값은 더 쉬운 채굴을 의미합니다.
 
 **조정 알고리즘:**
-- 목표 블록 시간: 120초 (메인넷), 1초 (regtest)
+- 목표 블록 시간: 120초 (모든 네트워크)
 - 조정 간격: 매 블록
 - 최근 기본 목표의 이동 평균 사용
 - 극단적인 난이도 변동 방지를 위한 제한
@@ -112,7 +112,7 @@ PoCX는 스케일링 레벨(Xn)을 통해 플롯 파일에서 확장 가능한 �
 
 **동적 범위:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // 허용되는 최소 레벨
     uint32_t nPoCXTargetCompression;  // 권장 레벨
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### 단계 2: 컨텍스트 획득
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // 반환: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**목적:** 지수 분포를 카이제곱 분포로 변환합니다. 매우 좋은 솔루션은 나중에 포징됩니다(네트워크가 디스크를 스캔할 시간 확보). 나쁜 솔루션은 개선됩니다. 긴 블록이 줄고, 120초 평균이 유지됩니다.
+**목적:** 지수 분포를 Weibull 분포(형상 k=3)로 변환합니다. 매우 좋은 솔루션은 나중에 포징됩니다(네트워크가 디스크를 스캔할 시간 확보). 나쁜 솔루션은 개선됩니다. 긴 블록이 줄고, 120초 평균이 유지됩니다.
 
 **구현:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -554,6 +554,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase 수령자** (합의로 강제되지 않음):
+
+마이너가 coinbase 출력을 유효 서명자에게 지급하도록 설정하지만(`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), 이는 합의에 의해 검증되지 **않습니다**. 합의가 강제하는 것은 *블록 서명*이 유효 서명자에 의해 생성되는 것뿐입니다 — 위의 `bad-pocx-assignment-sig` 검사입니다. `bad-pocx-coinbase` 규칙은 존재하지 않으며; coinbase 수령자는 마이너가 선택합니다.
+
 **구현:**
 - 연결: `src/validation.cpp:ConnectBlock()`
 - 확장 검증: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -614,7 +618,7 @@ ActivateBestChain (재구성 처리, 체인 확장)
 - 할당이 OP_RETURN 출력에 저장됨 (UTXO 없음)
 - 지출 요구사항 없음 (더스트 없음, 보유 수수료 없음)
 - CCoinsViewCache 확장 상태에서 추적됨
-- 지연 기간 후 활성화 (기본: 4 블록)
+- 지연 기간 후 활성화 (기본: 30 블록; regtest에서는 4)
 
 **할당 상태:**
 ```cpp

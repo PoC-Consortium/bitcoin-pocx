@@ -35,7 +35,7 @@ Išsami Bitcoin-PoCX tinklo konfigūracijos informacija visuose tinklo tipuose.
 
 **Apskaičiuotos reikšmės**:
 - Pagrindinis tinklas/Testinis tinklas/Signet (120s): `36650387592`
-- Regtest (1s): Naudoja mažos talpos kalibravimo režimą
+- Regtest (120s): Naudoja mažos talpos kalibravimo režimą (base_power 2^58)
 
 ### Pradinis pranešimas
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Sudėtingumo koregavimas**:
 - **Slenkantis langas**: `24` blokai
 - **Koregavimas**: Kiekvienas blokas
-- **Algoritmas**: Eksponentinis slenkantis vidurkis
+- **Algoritmas**: Svertinis slenkantis vidurkis (Burstcoin stiliaus, ±20% riba kiekvienam blokui)
 
 **Priskyrimo atidėjimai**:
 - **Aktyvacija**: `30` blokų (~1 valanda)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Bloko laikymas**:
-- **Bloko laiko tikslas**: `1` sekundė (momentinis kasimas testavimui)
+- **Bloko laiko tikslas**: `120` sekundžių (regtest tinkle kasama pagal poreikį per `generatetoaddress`)
 - **Tikslinis laiko intervalas**: `86400` sekundžių (1 diena)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekundžių
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Slenkantis langas**: `24` blokai
 - **Leisti minimalų sudėtingumą**: `true`
 - **Be tikslinio koregavimo**: `true`
-- **Mažos talpos kalibravimas**: `true` (naudoja 16-nonce kalibravimą vietoj 1 TiB)
+- **Mažos talpos kalibravimas**: `true` (naudoja 64-nonce kalibravimą ≈ 16 MiB vietoj 1 TiB)
 
 **Priskyrimo atidėjimai**:
-- **Aktyvacija**: `4` blokai (~4 sekundės)
-- **Atšaukimas**: `8` blokai (~8 sekundės)
+- **Aktyvacija**: `4` blokai (~8 minučių esant 120s intervalui)
+- **Atšaukimas**: `8` blokai (~16 minučių esant 120s intervalui)
 
 ### Signet parametrai
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Bloko laiko tikslai**:
 - Pagrindinis tinklas/Testinis tinklas/Signet: `120` sekundžių
-- Regtest: `1` sekundė
+- Regtest: `120` sekundžių
 
 **TIMESTAMP_WINDOW**: `15` sekundžių (lygu MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Sudėtingumo koregavimo parametrai
 
 **Slenkančio lango dydis**: `24` blokai (visi tinklai)
-- Eksponentinis slenkantis vidurkis paskutinių blokų laikų
+- Svertinis slenkantis vidurkis paskutinių blokų laikų (Burstcoin stiliaus)
 - Kiekvieno bloko koregavimas
 - Reaguoja į talpos pokyčius
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktyvacijos atidėjimas):
 - Pagrindinis tinklas: `30` blokų (~1 valanda)
 - Testinis tinklas: `30` blokų (~1 valanda)
-- Regtest: `4` blokai (~4 sekundės)
+- Regtest: `4` blokai (~8 minučių esant 120s intervalui)
 
 **nForgingRevocationDelay** (atšaukimo atidėjimas):
 - Pagrindinis tinklas: `720` blokų (~24 valandos)
 - Testinis tinklas: `720` blokų (~24 valandos)
-- Regtest: `8` blokai (~8 sekundės)
+- Regtest: `8` blokai (~16 minučių esant 120s intervalui)
 
 **Pagrindimas**:
 - Aktyvacijos atidėjimas apsaugo nuo greito perpriskyrimo blokų lenktynių metu

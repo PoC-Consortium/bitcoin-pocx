@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Obtenir l'assignation actuelle
+            // Obtenir l'assignation actuelle - doit être à l'état ASSIGNED pour révoquer
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Stocker l'ancien état pour annulation
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Retourne le statut d'assignation actuel pour une adresse de plot :
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Définitions de marqueurs, ops OP_RETURN, vérification de propriété
     │   ├── assignment_state.h     # Helpers GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Fonctions de requête d'état d'assignation
+    │   ├── replay.h               # Réorganisation/rejeu des effets d'assignation
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (chemin de réorg)
     │   ├── transactions.h         # API de création de transaction portefeuille
     │   └── transactions.cpp       # Fonctions portefeuille create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPCs create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, cible de base genesis, calendrier de compression
 ```
+
+> **Note :** Les constantes de délai `nForgingAssignmentDelay` / `nForgingRevocationDelay` se trouvent dans `Consensus::Params` de Bitcoin Core (`src/consensus/params.h`) et sont définies par réseau dans `src/kernel/chainparams.cpp` — pas dans `pocx/consensus/params.h`.
 
 ## Caractéristiques de performance
 
@@ -766,9 +770,8 @@ Où n = nombre d'assignations pour un plot (typiquement petit, < 10)
 
 ### Domaines de couverture de tests
 
-- Tests unitaires : `src/test/pocx_*_tests.cpp`
-- Tests fonctionnels : `test/functional/feature_pocx_*.py`
-- Tests d'intégration : Tests manuels avec regtest
+- Tests unitaires : `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Tests d'intégration : scripts shell regtest sous `scripts/assignments/` et `scripts/mining/`
 
 ## Règles de consensus
 

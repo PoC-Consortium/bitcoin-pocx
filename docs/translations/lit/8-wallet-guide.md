@@ -111,13 +111,13 @@ Bitcoin-PoCX naudoja **BTCX** valiutos vienetą (ne BTC):
 5. Transakcija transliuojama iš karto
 6. Priskyrimas aktyvus po `nForgingAssignmentDelay` blokų:
    - Pagrindinis tinklas/Testinis tinklas: 30 blokų (~1 valanda)
-   - Regtest: 4 blokai (~4 sekundės)
+   - Regtest: 4 blokai (~8 minučių esant 120s intervalui)
 
 **Transakcijos mokestis**: Numatytas 10× `minRelayFee` (konfigūruojamas)
 
 **Transakcijos struktūra**:
 - Įvestis: UTXO iš grafiko adreso (įrodo nuosavybę)
-- OP_RETURN išvestis: `POCX` žymeklis + grafiko_adresas + kalimo_adresas (46 baitai)
+- OP_RETURN išvestis (46 baitų scenarijus, 44 baitų duomenų naudingoji apkrova): `POCX` žymeklis + grafiko_adresas + kalimo_adresas
 - Grąžos išvestis: Grąžinama į piniginę
 
 #### 2 režimas: Atšaukti priskyrimą
@@ -136,7 +136,7 @@ Bitcoin-PoCX naudoja **BTCX** valiutos vienetą (ne BTC):
 4. Transakcija transliuojama iš karto
 5. Atšaukimas įsigalioja po `nForgingRevocationDelay` blokų:
    - Pagrindinis tinklas/Testinis tinklas: 720 blokų (~24 valandos)
-   - Regtest: 8 blokai (~8 sekundės)
+   - Regtest: 8 blokai (~16 minučių esant 120s intervalui)
 
 **Poveikis**:
 - Kalimo adresas vis dar gali kalti atidėjimo periodo metu
@@ -145,7 +145,7 @@ Bitcoin-PoCX naudoja **BTCX** valiutos vienetą (ne BTC):
 
 **Transakcijos struktūra**:
 - Įvestis: UTXO iš grafiko adreso (įrodo nuosavybę)
-- OP_RETURN išvestis: `XCOP` žymeklis + grafiko_adresas (26 baitai)
+- OP_RETURN išvestis (26 baitų scenarijus, 24 baitų duomenų naudingoji apkrova): `XCOP` žymeklis + grafiko_adresas
 - Grąžos išvestis: Grąžinama į piniginę
 
 #### 3 režimas: Tikrinti priskyrimo būseną

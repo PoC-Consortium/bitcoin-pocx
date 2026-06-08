@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (exakt 40 hextecken = 20 byte; en adress accepteras inte)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **Returvärden** (framgång):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // tidsböjd forgningstid i sekunder
 }
 ```
 
-**Returvärden** (avvisad):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+Det finns inget `accepted`-fält. Vid avvisning returnerar RPC:n **inte** ett JSON-objekt — den kastar ett `JSONRPCError` (se Felkoder nedan).
 
 **Valideringssteg**:
 1. **Formatvalidering** (fail-fast):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Köa nonce för tidsböjd forgning
    - Block skapas automatiskt vid forge_time
 
-**Felkoder**:
-- `RPC_INVALID_PARAMETER`: Ogiltigt format (account_id, seed) eller höjdmismatch
+**Felkoder** (kastas som `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Ogiltigt format (account_id, seed) eller höjdmismatch (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generationssignaturmismatch eller bevisvalidering misslyckades
 - `RPC_INVALID_ADDRESS_OR_KEY`: Ingen privat nyckel för effektiv signerare
+- `RPC_WALLET_UNLOCK_NEEDED`: Plånboken som håller den effektiva signerarens nyckel är låst (lås upp med `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Inlämningskö full
 - `RPC_INTERNAL_ERROR`: Misslyckades med att initiera PoCX-schemaläggare
 
@@ -271,7 +265,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametrar**:
 1. `plot_address` (sträng, obligatorisk) - Plotägaradress (måste äga privat nyckel, P2WPKH bech32)
 2. `forging_address` (sträng, obligatorisk) - Adress att tilldela forgningsrättigheter till (P2WPKH bech32)
-3. `fee_rate` (numerisk, valfri) - Avgiftsgrad i BTC/kvB (standard: 10× minRelayFee)
+3. `fee_rate` (numerisk, valfri) - Avgiftsgrad i BTCX/kvB (standard: `0` → plånbokens standarduppskattning av minimiavgift; standarden 10× minRelayFee gäller endast Qt GUI-dialogen, inte denna RPC)
 
 **Returvärden**:
 ```json
@@ -292,7 +286,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- Utdata: OP_RETURN (46 bytes): `POCX`-markör + plot_address (20 bytes) + forging_address (20 bytes)
+- Utdata: OP_RETURN-skript (46 bytes) = `OP_RETURN`-opcode + 1-byte push-längd + 44-byte datanyttolast (`POCX`-markör 4 + plot_address 20 + forging_address 20)
 - Utdata: Växel returneras till plånbok
 
 **Aktivering**:
@@ -325,7 +319,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametrar**:
 1. `plot_address` (sträng, obligatorisk) - Plotadress (måste äga privat nyckel, P2WPKH bech32)
-2. `fee_rate` (numerisk, valfri) - Avgiftsgrad i BTC/kvB (standard: 10× minRelayFee)
+2. `fee_rate` (numerisk, valfri) - Avgiftsgrad i BTCX/kvB (standard: `0` → plånbokens standarduppskattning av minimiavgift; standarden 10× minRelayFee gäller endast Qt GUI-dialogen, inte denna RPC)
 
 **Returvärden**:
 ```json
@@ -344,7 +338,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaktionsstruktur**:
 - Input: UTXO från plotadress (bevisar ägarskap)
-- Utdata: OP_RETURN (26 bytes): `XCOP`-markör + plot_address (20 bytes)
+- Utdata: OP_RETURN-skript (26 bytes) = `OP_RETURN`-opcode + 1-byte push-längd + 24-byte datanyttolast (`XCOP`-markör 4 + plot_address 20)
 - Utdata: Växel returneras till plånbok
 
 **Effekt**:
@@ -539,22 +533,23 @@ while True:
     # 2. Skanna plotfiler (extern implementation)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Skicka bästa lösning
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Lösning accepterad! Kvalitet: {result['quality']}s, "
+    # 3. Skicka bästa lösning (kastar JSONRPCError vid avvisning)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Lösning accepterad! Kvalitet: {result['raw_quality']}, "
               f"Forgningstid: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Avvisad: {e}")
 
     # 4. Vänta på nästa block
     time.sleep(10)  # Pollningsintervall
@@ -625,20 +620,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Vanliga felmönster
 
-**Höjdmismatch**:
+**Höjdmismatch** (kastas `RPC_INVALID_PARAMETER`, kod -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Lösning**: Hämta om mininginfo, kedjan har flyttat framåt
 
-**Generationssignaturmismatch**:
+**Generationssignaturmismatch** (kastas `RPC_VERIFY_REJECTED`, kod -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Lösning**: Hämta om mininginfo, nytt block anlänt

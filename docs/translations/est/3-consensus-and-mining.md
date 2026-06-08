@@ -26,7 +26,7 @@ Bitcoin-PoCX implementeerib puhta mahtutõestuse konsensusmehhanismi täieliku a
 
 **Põhiomadused:**
 - **Energiatõhus:** Kaevandamine kasutab eelgenereeritud graafikufaile arvutusräsimise asemel
-- **Ajapaindega tähtajad:** Jaotuse teisendamine (eksponentsiaalne->hii-ruut) vähendab pikki plokke, parandab keskmisi plokiaegu
+- **Ajapaindega tähtajad:** Jaotuse teisendamine (eksponentsiaalne->Weibull, kuju k=3) vähendab pikki plokke, parandab keskmisi plokiaegu
 - **Ülesannete tugi:** Graafikuomanikud saavad delegeerida sepistamisõigusi teistele aadressidele
 - **Natiivne C++ integratsioon:** Krüptograafilised algoritmid implementeeritud C++-s konsensuse valideerimiseks
 
@@ -92,14 +92,14 @@ generationSignature = SHA256(eelmine_genereerimisallkiri || eelmise_kaevandaja_p
 
 **Geneesisplokk:** Kasutab kodeeritud algset genereerimisallkirja
 
-**Implementatsioon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementatsioon:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (kutsutud failist `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Baassihtmärk (raskus)
 
 Baassihtmärk on raskuse pöördväärtus - kõrgemad väärtused tähendavad kergemat kaevandamist.
 
 **Kohandamise algoritm:**
-- Sihtplokkide aeg: 120 sekundit (mainnet), 1 sekund (regtest)
+- Sihtplokkide aeg: 120 sekundit (kõik võrgud)
 - Kohandamise intervall: Igal plokil
 - Kasutab hiljutiste baassihtmärkide libisevat keskmist
 - Piiratud, et takistada ekstreemseid raskuse kõikumisi
@@ -112,7 +112,7 @@ PoCX toetab skaleeritavat tööst tuletatud tõestust graafikufailides läbi ska
 
 **Dünaamilised piirid:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimaalne aktsepteeritud tase
     uint32_t nPoCXTargetCompression;  // Soovitatav tase
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Samm 2: Konteksti hankimine
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Tagastab: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ kus:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Eesmärk:** Teisendab eksponentsiaalse hii-ruut jaotuseks. Väga head lahendused sepistavad hiljem (võrgul on aega kettaid skaneerida), kehvad lahendused paranevad. Vähendab pikki plokke, säilitab 120s keskmise.
+**Eesmärk:** Teisendab eksponentsiaalse Weibull (kuju k=3) jaotuseks. Väga head lahendused sepistavad hiljem (võrgul on aega kettaid skaneerida), kehvad lahendused paranevad. Vähendab pikki plokke, säilitab 120s keskmise.
 
 **Implementatsioon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase saaja** (ei ole konsensusega jõustatud):
+
+Kaevandaja seab coinbase väljundi maksma efektiivsele allkirjastajale (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), kuid konsensus seda **ei** valideeri. Konsensus jõustab ainult seda, et *ploki allkirja* loob efektiivne allkirjastaja — ülaltoodud `bad-pocx-assignment-sig` kontroll. `bad-pocx-coinbase` reeglit ei ole olemas; coinbase saaja valib kaevandaja.
+
 **Implementatsioon:**
 - Ühendamine: `src/validation.cpp:ConnectBlock()`
 - Laiendatud valideerimine: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Võrgulevik
 - Ülesandeid hoitakse OP_RETURN väljundites (pole UTXO-d)
 - Pole kulutamisnõudeid (pole tolmu, pole tasusid hoidmise eest)
 - Jälgitakse CCoinsViewCache laiendatud olekus
-- Aktiveeritakse pärast viivitusperioodi (vaikimisi: 4 plokki)
+- Aktiveeritakse pärast viivitusperioodi (vaikimisi: 30 plokki; 4 regtestis)
 
 **Ülesannete olekud:**
 ```cpp

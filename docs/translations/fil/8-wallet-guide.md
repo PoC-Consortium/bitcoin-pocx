@@ -111,13 +111,13 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 5. Agad na ibino-broadcast ang transaksyon
 6. Nagiging aktibo ang assignment pagkatapos ng `nForgingAssignmentDelay` block:
    - Mainnet/Testnet: 30 block (~1 oras)
-   - Regtest: 4 block (~4 segundo)
+   - Regtest: 4 block (~8 minuto sa 120s na spacing)
 
 **Transaction Fee**: Default na 10× `minRelayFee` (nako-customize)
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- OP_RETURN output: `POCX` marker + plot_address + forging_address (44 byte)
+- OP_RETURN output (46-byte script, 44-byte data payload): `POCX` marker + plot_address + forging_address
 - Change output: Ibinabalik sa wallet
 
 #### Mode 2: Mag-revoke ng Assignment
@@ -136,7 +136,7 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 4. Agad na ibino-broadcast ang transaksyon
 5. Nagiging epektibo ang revocation pagkatapos ng `nForgingRevocationDelay` block:
    - Mainnet/Testnet: 720 block (~24 oras)
-   - Regtest: 8 block (~8 segundo)
+   - Regtest: 8 block (~16 minuto sa 120s na spacing)
 
 **Epekto**:
 - Ang forging address ay maaari pa ring mag-forge sa panahon ng delay period
@@ -145,7 +145,7 @@ Gumagamit ang Bitcoin-PoCX ng **BTCX** na yunit ng pera (hindi BTC):
 
 **Istruktura ng Transaksyon**:
 - Input: UTXO mula sa plot address (nagpapatunay ng pagmamay-ari)
-- OP_RETURN output: `XCOP` marker + plot_address (24 byte)
+- OP_RETURN output (26-byte script, 24-byte data payload): `XCOP` marker + plot_address
 - Change output: Ibinabalik sa wallet
 
 #### Mode 3: Suriin ang Assignment Status

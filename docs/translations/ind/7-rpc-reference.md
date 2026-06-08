@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (tepat 40 karakter hex = 20 byte; alamat tidak diterima)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Nilai Kembalian** (sukses):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // kualitas mentah dari validasi bukti
   "poc_time": 45            // waktu forge time-bended dalam detik
 }
 ```
 
-**Nilai Kembalian** (ditolak):
-```json
-{
-  "accepted": false,
-  "error": "Ketidakcocokan tanda tangan generasi"
-}
-```
+Tidak ada field `accepted`. Saat ditolak, RPC **tidak** mengembalikan objek JSON — melainkan melempar `JSONRPCError` (lihat Kode Kesalahan di bawah).
 
 **Langkah Validasi**:
 1. **Validasi Format** (gagal-cepat):
@@ -124,10 +117,11 @@ bitcoin-cli get_mining_info
    - Antri nonce untuk forging time-bended
    - Blok akan dibuat secara otomatis pada forge_time
 
-**Kode Kesalahan**:
-- `RPC_INVALID_PARAMETER`: Format tidak valid (account_id, seed) atau ketidakcocokan tinggi
+**Kode Kesalahan** (dilempar sebagai `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Format tidak valid (account_id, seed) atau ketidakcocokan tinggi (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Ketidakcocokan tanda tangan generasi atau validasi bukti gagal
 - `RPC_INVALID_ADDRESS_OR_KEY`: Tidak ada kunci privat untuk penanda tangan efektif
+- `RPC_WALLET_UNLOCK_NEEDED`: Dompet yang menyimpan kunci penanda tangan efektif terkunci (buka dengan `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Antrian pengiriman penuh
 - `RPC_INTERNAL_ERROR`: Gagal menginisialisasi scheduler PoCX
 
@@ -248,7 +242,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parameter**:
 1. `plot_address` (string, wajib) - Alamat pemilik plot (harus memiliki kunci privat, P2WPKH bech32)
 2. `forging_address` (string, wajib) - Alamat untuk menugaskan hak forging (P2WPKH bech32)
-3. `fee_rate` (numerik, opsional) - Tingkat biaya dalam BTC/kvB (default: 10x minRelayFee)
+3. `fee_rate` (numerik, opsional) - Tingkat biaya dalam BTCX/kvB (default: `0` → estimasi biaya minimum standar dompet; default 10x minRelayFee hanya berlaku untuk dialog GUI Qt, bukan RPC ini)
 
 **Nilai Kembalian**:
 ```json
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output: OP_RETURN (46 byte): marker `POCX` + plot_address (20 byte) + forging_address (20 byte)
+- Output: skrip OP_RETURN (46 byte) = opcode `OP_RETURN` + panjang push 1 byte + payload data 44 byte (marker `POCX` 4 + plot_address 20 + forging_address 20)
 - Output: Kembalian dikembalikan ke dompet
 
 **Aktivasi**:
@@ -302,7 +296,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parameter**:
 1. `plot_address` (string, wajib) - Alamat plot (harus memiliki kunci privat, P2WPKH bech32)
-2. `fee_rate` (numerik, opsional) - Tingkat biaya dalam BTC/kvB (default: 10x minRelayFee)
+2. `fee_rate` (numerik, opsional) - Tingkat biaya dalam BTCX/kvB (default: `0` → estimasi biaya minimum standar dompet; default 10x minRelayFee hanya berlaku untuk dialog GUI Qt, bukan RPC ini)
 
 **Nilai Kembalian**:
 ```json
@@ -321,7 +315,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Struktur Transaksi**:
 - Input: UTXO dari alamat plot (membuktikan kepemilikan)
-- Output: OP_RETURN (26 byte): marker `XCOP` + plot_address (20 byte)
+- Output: skrip OP_RETURN (26 byte) = opcode `OP_RETURN` + panjang push 1 byte + payload data 24 byte (marker `XCOP` 4 + plot_address 20)
 - Output: Kembalian dikembalikan ke dompet
 
 **Efek**:
@@ -516,22 +510,23 @@ while True:
     # 2. Pindai file plot (implementasi eksternal)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Kirim solusi terbaik
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Solusi diterima! Kualitas: {result['quality']}s, "
+    # 3. Kirim solusi terbaik (melempar JSONRPCError saat ditolak)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Solusi diterima! Kualitas: {result['raw_quality']}, "
               f"Waktu forge: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Ditolak: {e}")
 
     # 4. Tunggu blok berikutnya
     time.sleep(10)  # Interval polling
@@ -602,20 +597,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Pola Kesalahan Umum
 
-**Ketidakcocokan Tinggi**:
+**Ketidakcocokan Tinggi** (dilempar `RPC_INVALID_PARAMETER`, kode -8):
 ```json
 {
-  "accepted": false,
-  "error": "Ketidakcocokan tinggi: dikirim 12345, saat ini 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Solusi**: Ambil ulang info penambangan, rantai sudah maju
 
-**Ketidakcocokan Tanda Tangan Generasi**:
+**Ketidakcocokan Tanda Tangan Generasi** (dilempar `RPC_VERIFY_REJECTED`, kode -26):
 ```json
 {
-  "accepted": false,
-  "error": "Ketidakcocokan tanda tangan generasi"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Solusi**: Ambil ulang info penambangan, blok baru tiba

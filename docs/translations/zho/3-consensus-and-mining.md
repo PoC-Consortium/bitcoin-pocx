@@ -26,7 +26,7 @@ Bitcoin-PoCX 实现了一个纯容量证明共识机制，完全取代 Bitcoin �
 
 **核心特性：**
 - **节能**：挖矿使用预生成的绘图文件而非计算哈希
-- **时间弯曲截止时间**：分布转换（指数→卡方）减少长区块，改善平均区块时间
+- **时间弯曲截止时间**：分布转换（指数→Weibull，形状 k=3）减少长区块，改善平均区块时间
 - **委派支持**：绘图所有者可以将锻造权委派给其他地址
 - **原生 C++ 集成**：加密算法使用 C++ 实现用于共识验证
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **创世区块：** 使用硬编码的初始生成签名
 
-**实现：** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**实现：** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()`（从 `src/pocx/mining/block_context.cpp:GetNewBlockContext()` 调用）
 
 ### 基础目标值（难度）
 
 基础目标值是难度的倒数——值越高，挖矿越容易。
 
 **调整算法：**
-- 目标区块时间：120 秒（主网），1 秒（regtest）
+- 目标区块时间：120 秒（所有网络）
 - 调整间隔：每个区块
 - 使用最近基础目标值的移动平均
 - 限制以防止极端难度波动
@@ -112,7 +112,7 @@ PoCX 通过扩展级别（Xn）支持绘图文件中可扩展的工作量证明�
 
 **动态边界：**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // 接受的最低级别
     uint32_t nPoCXTargetCompression;  // 推荐级别
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### 步骤 2：上下文获取
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // 返回：height, generation_signature, base_target, block_hash
 ```
 
@@ -265,7 +265,7 @@ Y = scale * (X^(1/3))
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**目的：** 将指数分布转换为卡方分布。非常好的解决方案会延迟锻造（网络有时间扫描磁盘），较差的解决方案得到改善。减少长区块，保持 120 秒平均值。
+**目的：** 将指数分布转换为 Weibull 分布（形状 k=3）。非常好的解决方案会延迟锻造（网络有时间扫描磁盘），较差的解决方案得到改善。减少长区块，保持 120 秒平均值。
 
 **实现：** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -534,6 +534,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase 接收方**（非共识强制）：
+
+矿工将 coinbase 输出设置为支付给有效签名者（`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`），但这**不**由共识验证。共识仅强制*区块签名*由有效签名者生成——即上面的 `bad-pocx-assignment-sig` 检查。不存在 `bad-pocx-coinbase` 规则；coinbase 接收方由矿工选择。
+
 **实现：**
 - 连接：`src/validation.cpp:ConnectBlock()`
 - 扩展验证：`src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -594,7 +598,7 @@ ActivateBestChain（重组处理、链扩展）
 - 委派存储在 OP_RETURN 输出中（无 UTXO）
 - 无支出要求（无粉尘、无持有费用）
 - 在 CCoinsViewCache 扩展状态中跟踪
-- 延迟激活期后激活（默认：4 个区块）
+- 延迟激活期后激活（默认：30 个区块；regtest 上为 4 个）
 
 **委派状态：**
 ```cpp

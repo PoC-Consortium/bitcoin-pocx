@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Ongelma**: Perinteinen PoC-lohkoaika noudattaa eksponentiaalijakaumaa, mikä johtaa pitkiin lohkoihin kun kukaan louhija ei löydä hyvää ratkaisua.
 
-**Ratkaisu**: Jakauman muunnos eksponentiaalisesta khii-neliö-jakaumaksi kuutiojuuren avulla: `Y = skaala × (X^(1/3))`.
+**Ratkaisu**: Jakauman muunnos eksponentiaalisesta Weibull (muoto k=3) -jakaumaksi kuutiojuuren avulla: `Y = skaala × (X^(1/3))`.
 
 **Vaikutus**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Perustuu POC2-muotoon (Burstcoin) parannuksineen:
 
 ## Teknisten määrittelyjen yhteenveto
 
-- **Lohkoaika**: 120 sekuntia (mainnet), 1 sekunti (regtest)
+- **Lohkoaika**: 120 sekuntia (kaikki verkot: mainnet, testnet, regtest)
 - **Lohkopalkkio**: 10 BTC aluksi, puolittuen 1050000 lohkon välein (~4 vuotta)
 - **Kokonaistarjonta**: ~21 miljoonaa BTC (sama kuin Bitcoin)
 - **Tulevaisuustoleranssi**: 15 sekuntia (enintään 15s tulevaisuudessa olevat lohkot hyväksytään)

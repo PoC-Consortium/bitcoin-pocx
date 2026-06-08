@@ -26,7 +26,7 @@ Bitcoin-PoCX mengimplementasikan mekanisme konsensus Proof of Capacity murni seb
 
 **Properti Utama:**
 - **Hemat Energi:** Penambangan menggunakan file plot yang sudah dihasilkan sebelumnya daripada hashing komputasi
-- **Deadline Time Bended:** Transformasi distribusi (eksponensial ke chi-squared) mengurangi blok panjang, meningkatkan rata-rata waktu blok
+- **Deadline Time Bended:** Transformasi distribusi (eksponensial ke Weibull, bentuk k=3) mengurangi blok panjang, meningkatkan rata-rata waktu blok
 - **Dukungan Penugasan:** Pemilik plot dapat mendelegasikan hak forging ke alamat lain
 - **Integrasi C++ Native:** Algoritma kriptografis diimplementasikan dalam C++ untuk validasi konsensus
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Blok Genesis:** Menggunakan tanda tangan generasi awal yang di-hardcode
 
-**Implementasi:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementasi:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (dipanggil dari `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Kesulitan)
 
 Base target adalah kebalikan dari kesulitan - nilai lebih tinggi berarti penambangan lebih mudah.
 
 **Algoritma Penyesuaian:**
-- Target waktu blok: 120 detik (mainnet), 1 detik (regtest)
+- Target waktu blok: 120 detik (semua jaringan)
 - Interval penyesuaian: Setiap blok
 - Menggunakan rata-rata bergerak dari base target terbaru
 - Dibatasi untuk mencegah ayunan kesulitan ekstrem
@@ -112,7 +112,7 @@ PoCX mendukung proof-of-work yang dapat diskalakan dalam file plot melalui tingk
 
 **Batas Dinamis:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Tingkat minimum yang diterima
     uint32_t nPoCXTargetCompression;  // Tingkat yang direkomendasikan
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Langkah 2: Akuisisi Konteks
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Mengembalikan: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ di mana:
   Gamma(4/3) ~ 0.892979511
 ```
 
-**Tujuan:** Mengubah distribusi eksponensial ke chi-squared. Solusi yang sangat baik di-forge lebih lambat (jaringan punya waktu untuk memindai disk), solusi buruk ditingkatkan. Mengurangi blok panjang, mempertahankan rata-rata 120 detik.
+**Tujuan:** Mengubah distribusi eksponensial ke Weibull (bentuk k=3). Solusi yang sangat baik di-forge lebih lambat (jaringan punya waktu untuk memindai disk), solusi buruk ditingkatkan. Mengurangi blok panjang, mempertahankan rata-rata 120 detik.
 
 **Implementasi:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Penerima Coinbase** (tidak ditegakkan konsensus):
+
+Penambang menetapkan output coinbase untuk membayar penanda tangan efektif (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), tetapi ini **tidak** divalidasi oleh konsensus. Konsensus hanya menegakkan bahwa *tanda tangan blok* dihasilkan oleh penanda tangan efektif — pemeriksaan `bad-pocx-assignment-sig` di atas. Tidak ada aturan `bad-pocx-coinbase`; penerima coinbase dipilih oleh penambang.
+
 **Implementasi:**
 - Koneksi: `src/validation.cpp:ConnectBlock()`
 - Validasi yang diperluas: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Penugasan memungkinkan pemilik plot untuk mendelegasikan hak forging ke alamat l
 - Penugasan disimpan dalam output OP_RETURN (tanpa UTXO)
 - Tidak ada persyaratan pengeluaran (tidak ada dust, tidak ada biaya untuk menyimpan)
 - Dilacak di status diperluas CCoinsViewCache
-- Diaktifkan setelah periode penundaan (default: 4 blok)
+- Diaktifkan setelah periode penundaan (default: 30 blok; 4 di regtest)
 
 **Status Penugasan:**
 ```cpp

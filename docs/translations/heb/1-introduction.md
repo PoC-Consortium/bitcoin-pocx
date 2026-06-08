@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **בעיה**: זמני בלוקים מסורתיים ב-PoC עוקבים אחר התפלגות מעריכית, מה שמוביל לבלוקים ארוכים כאשר אף כורה לא מוצא פתרון טוב.
 
-**פתרון**: טרנספורמציית התפלגות ממעריכית לכי-ריבוע באמצעות שורש שלישי: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
+**פתרון**: טרנספורמציית התפלגות ממעריכית ל-Weibull (צורה k=3) באמצעות שורש שלישי: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`.
 
 **אפקט**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ cmake --build build
 
 ## סיכום מפרטים טכניים
 
-- **זמן בלוק**: 120 שניות (mainnet), שנייה אחת (regtest)
+- **זמן בלוק**: 120 שניות (כל הרשתות: mainnet, testnet, regtest)
 - **סבסידיית בלוק**: 10 BTC ראשוני, חצייה כל 1050000 בלוקים (~4 שנים)
 - **היצע כולל**: ~21 מיליון BTC (זהה ל-Bitcoin)
 - **סבילות עתיד**: 15 שניות (בלוקים עד 15 שניות קדימה מתקבלים)

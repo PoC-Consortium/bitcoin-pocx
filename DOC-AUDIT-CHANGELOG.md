@@ -41,7 +41,9 @@ labels the Time-Bending output distribution. (Keep the formula and Γ(4/3) text.
 - `3-consensus-and-mining.md:~102` — "120 seconds (mainnet), 1 second (regtest)" → "120 seconds (all networks)"
 - `6-network-parameters.md:120` — "`1` second (instant mining for testing)" → "`120` seconds (mined on demand via `generatetoaddress` in regtest)"
 - `6-network-parameters.md:173` — "Regtest: `1` second" → "Regtest: `120` seconds"
+- `6-network-parameters.md:38` — "Regtest (1s): Uses low-capacity calibration mode" → "Regtest (120s): Uses low-capacity calibration mode (base_power 2^58)"
 - `whitepaper.md:441` (§10.3 table) — "Block time target | 1 second" → "120 seconds"
+NOTE: `rebuilding-regtest.md` mentions of "1-second spacing"/"POWER_60"/"1 Hz" are an intentional POSTMORTEM of the old regtest design — DO NOT change them.
 
 ## 4. Regtest assignment-delay parentheticals (consequence of #3)
 **Why:** "~4 seconds / ~8 seconds" assumed 1-second blocks; at 120s spacing they are minutes.

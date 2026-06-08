@@ -35,7 +35,7 @@
 
 **ערכים מחושבים**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): משתמש במצב כיול קיבולת נמוכה
+- Regtest (120s): משתמש במצב כיול קיבולת נמוכה (base_power 2^58)
 
 ### הודעת בראשית
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **התאמת קושי**:
 - **חלון גלילה**: `24` בלוקים
 - **התאמה**: כל בלוק
-- **אלגוריתם**: ממוצע נע מעריכי
+- **אלגוריתם**: ממוצע נע משוקלל (בסגנון Burstcoin, תקרה של ±20% לבלוק)
 
 **עיכובי הקצאה**:
 - **הפעלה**: `30` בלוקים (~שעה)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **תזמון בלוק**:
-- **יעד זמן בלוק**: שנייה `1` (כרייה מיידית לבדיקות)
+- **יעד זמן בלוק**: `120` שניות (נכרה לפי דרישה באמצעות `generatetoaddress` ב-regtest)
 - **טווח זמן יעד**: `86400` שניות (יום אחד)
 - **MAX_FUTURE_BLOCK_TIME**: `15` שניות
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **חלון גלילה**: `24` בלוקים
 - **אפשר קושי מינימלי**: `true`
 - **ללא מיקוד מחדש**: `true`
-- **כיול קיבולת נמוכה**: `true` (משתמש בכיול 16-nonce במקום 1 TiB)
+- **כיול קיבולת נמוכה**: `true` (משתמש בכיול 64-nonce ≈ 16 MiB במקום 1 TiB)
 
 **עיכובי הקצאה**:
-- **הפעלה**: `4` בלוקים (~4 שניות)
-- **ביטול**: `8` בלוקים (~8 שניות)
+- **הפעלה**: `4` בלוקים (~8 דקות במרווח של 120 שניות)
+- **ביטול**: `8` בלוקים (~16 דקות במרווח של 120 שניות)
 
 ### פרמטרי Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **יעדי זמן בלוק**:
 - Mainnet/Testnet/Signet: `120` שניות
-- Regtest: שנייה `1`
+- Regtest: `120` שניות
 
 **TIMESTAMP_WINDOW**: `15` שניות (שווה ל-MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### פרמטרי התאמת קושי
 
 **גודל חלון גלילה**: `24` בלוקים (כל הרשתות)
-- ממוצע נע מעריכי של זמני בלוק אחרונים
+- ממוצע נע משוקלל של זמני בלוק אחרונים (בסגנון Burstcoin)
 - התאמה בכל בלוק
 - תגובתי לשינויי קיבולת
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (עיכוב הפעלה):
 - Mainnet: `30` בלוקים (~שעה)
 - Testnet: `30` בלוקים (~שעה)
-- Regtest: `4` בלוקים (~4 שניות)
+- Regtest: `4` בלוקים (~8 דקות במרווח של 120 שניות)
 
 **nForgingRevocationDelay** (עיכוב ביטול):
 - Mainnet: `720` בלוקים (~24 שעות)
 - Testnet: `720` בלוקים (~24 שעות)
-- Regtest: `8` בלוקים (~8 שניות)
+- Regtest: `8` בלוקים (~16 דקות במרווח של 120 שניות)
 
 **רציונל**:
 - עיכוב הפעלה מונע הקצאה מחדש מהירה במהלך מרוצי בלוקים

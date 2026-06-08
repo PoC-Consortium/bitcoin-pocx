@@ -112,13 +112,13 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 5. 트랜잭션 즉시 브로드캐스트
 6. `nForgingAssignmentDelay` 블록 후 할당 활성화:
    - 메인넷/테스트넷: 30 블록 (~1시간)
-   - Regtest: 4 블록 (~4초)
+   - Regtest: 4 블록 (120초 간격에서 ~8분)
 
 **트랜잭션 수수료**: 기본 `minRelayFee`의 10배 (사용자 정의 가능)
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- OP_RETURN 출력: `POCX` 마커 + plot_address + forging_address (44 바이트)
+- OP_RETURN 출력 (46바이트 스크립트, 44바이트 데이터 페이로드): `POCX` 마커 + plot_address + forging_address
 - 잔돈 출력: 지갑에 반환
 
 #### 모드 2: 할당 취소
@@ -137,7 +137,7 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 4. 트랜잭션 즉시 브로드캐스트
 5. `nForgingRevocationDelay` 블록 후 취소 유효:
    - 메인넷/테스트넷: 720 블록 (~24시간)
-   - Regtest: 8 블록 (~8초)
+   - Regtest: 8 블록 (120초 간격에서 ~16분)
 
 **효과**:
 - 지연 기간 동안 포징 주소가 여전히 포징 가능
@@ -146,7 +146,7 @@ Bitcoin-PoCX는 **BTCX** 통화 단위를 사용합니다 (BTC 아님):
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- OP_RETURN 출력: `XCOP` 마커 + plot_address (24 바이트)
+- OP_RETURN 출력 (26바이트 스크립트, 24바이트 데이터 페이로드): `XCOP` 마커 + plot_address
 - 잔돈 출력: 지갑에 반환
 
 #### 모드 3: 할당 상태 확인

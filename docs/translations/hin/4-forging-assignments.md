@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // वर्तमान असाइनमेंट प्राप्त करें
+            // वर्तमान असाइनमेंट प्राप्त करें - निरस्त करने के लिए ASSIGNED स्थिति में होना चाहिए
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Undo के लिए पुरानी स्थिति संग्रहीत करें
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Plot पते के लिए वर्तमान असाइनमें�
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 पंक्तियां] मार्कर परिभाषाएं, OP_RETURN ops, स्वामित्व जांच
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState सहायक
     │   ├── assignment_state.cpp   # असाइनमेंट स्थिति क्वेरी फ़ंक्शन
+    │   ├── replay.h               # असाइनमेंट प्रभावों का reorg/replay
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg पथ)
     │   ├── transactions.h         # वॉलेट लेनदेन निर्माण API
     │   └── transactions.cpp       # create_assignment, revoke_assignment वॉलेट फ़ंक्शन
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPCs
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis base target, compression schedule
 ```
+
+> **नोट:** विलंब स्थिरांक `nForgingAssignmentDelay` / `nForgingRevocationDelay` Bitcoin Core के `Consensus::Params` (`src/consensus/params.h`) में रहते हैं और `src/kernel/chainparams.cpp` में प्रति-नेटवर्क सेट किए जाते हैं — `pocx/consensus/params.h` में नहीं।
 
 ## प्रदर्शन विशेषताएं
 
@@ -766,9 +770,8 @@ src/
 
 ### परीक्षण कवरेज क्षेत्र
 
-- यूनिट परीक्षण: `src/test/pocx_*_tests.cpp`
-- कार्यात्मक परीक्षण: `test/functional/feature_pocx_*.py`
-- एकीकरण परीक्षण: Regtest के साथ मैन्युअल परीक्षण
+- यूनिट परीक्षण: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- एकीकरण परीक्षण: `scripts/assignments/` और `scripts/mining/` के अंतर्गत regtest shell स्क्रिप्ट
 
 ## सहमति नियम
 

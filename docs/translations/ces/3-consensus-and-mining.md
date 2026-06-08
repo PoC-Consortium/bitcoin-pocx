@@ -26,7 +26,7 @@ Bitcoin-PoCX implementuje čistý konsensuální mechanismus Proof of Capacity j
 
 **Klíčové vlastnosti:**
 - **Energeticky účinný:** Těžba používá předgenerované plot soubory místo výpočetního hashování
-- **Time-bended deadliny:** Transformace distribuce (exponenciální→chí-kvadrát) redukuje dlouhé bloky, zlepšuje průměrné časy bloků
+- **Time-bended deadliny:** Transformace distribuce (exponenciální→Weibull (shape k=3)) redukuje dlouhé bloky, zlepšuje průměrné časy bloků
 - **Podpora přiřazení:** Vlastníci plotů mohou delegovat práva na forging na jiné adresy
 - **Nativní C++ integrace:** Kryptografické algoritmy implementovány v C++ pro validaci konsenzu
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis blok:** Používá hardkódovaný počáteční generační podpis
 
-**Implementace:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementace:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (voláno z `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (obtížnost)
 
 Base target je inverzí obtížnosti - vyšší hodnoty znamenají jednodušší těžbu.
 
 **Algoritmus úpravy:**
-- Cílový čas bloku: 120 sekund (mainnet), 1 sekunda (regtest)
+- Cílový čas bloku: 120 sekund (všechny sítě)
 - Interval úpravy: Každý blok
 - Používá klouzavý průměr nedávných base targets
 - Omezeno pro prevenci extrémních výkyvů obtížnosti
@@ -112,7 +112,7 @@ PoCX podporuje škálovatelný proof-of-work v plot souborech prostřednictvím 
 
 **Dynamické hranice:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimální přijatá úroveň
     uint32_t nPoCXTargetCompression;  // Doporučená úroveň
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Krok 2: Získání kontextu
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Vrací: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ kde:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Účel:** Transformuje exponenciální na chí-kvadrát distribuci. Velmi dobrá řešení se vytvářejí později (síť má čas prohledat disky), špatná řešení jsou vylepšena. Redukuje dlouhé bloky, udržuje průměr 120s.
+**Účel:** Transformuje exponenciální na Weibull distribuci (shape k=3). Velmi dobrá řešení se vytvářejí později (síť má čas prohledat disky), špatná řešení jsou vylepšena. Redukuje dlouhé bloky, udržuje průměr 120s.
 
 **Implementace:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Příjemce Coinbase** (není vynucováno konsenzem):
+
+Těžař nastaví coinbase výstup tak, aby platil efektivnímu podpisujícímu (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ale toto **není** ověřováno konsenzem. Konsenzus vynucuje pouze to, že *podpis bloku* je vytvořen efektivním podpisujícím — výše uvedená kontrola `bad-pocx-assignment-sig`. Neexistuje žádné pravidlo `bad-pocx-coinbase`; příjemce coinbase volí těžař.
+
 **Implementace:**
 - Připojení: `src/validation.cpp:ConnectBlock()`
 - Rozšířená validace: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Přiřazení umožňují vlastníkům plotů delegovat práva na forging na jin�
 - Přiřazení uložena ve výstupech OP_RETURN (žádné UTXO)
 - Žádné požadavky na utracení (žádný dust, žádné poplatky za držení)
 - Sledováno v rozšířeném stavu CCoinsViewCache
-- Aktivováno po období zpoždění (výchozí: 4 bloky)
+- Aktivováno po období zpoždění (výchozí: 30 bloků; 4 na regtestu)
 
 **Stavy přiřazení:**
 ```cpp

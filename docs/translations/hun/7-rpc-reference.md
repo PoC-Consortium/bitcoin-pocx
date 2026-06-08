@@ -82,7 +82,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (pontosan 40 hex karakter = 20 bájt; cím nem fogadható el)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -91,19 +91,12 @@ bitcoin-cli get_mining_info
 **Visszatérési Értékek** (sikeres):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // nyers minőség a bizonyíték validációból
   "poc_time": 45            // time-bended kovácsolási idő másodpercben
 }
 ```
 
-**Visszatérési Értékek** (elutasított):
-```json
-{
-  "accepted": false,
-  "error": "Generációs aláírás eltérés"
-}
-```
+Nincs `accepted` mező. Elutasításkor az RPC **nem** ad vissza JSON objektumot — `JSONRPCError`-t dob (lásd Hibakódok alább).
 
 **Validációs Lépések**:
 1. **Formátum Validáció** (gyors-hiba):
@@ -122,10 +115,11 @@ bitcoin-cli get_mining_info
    - Nonce sorba állítása time-bended kovácsoláshoz
    - Blokk automatikusan létrehozva a kovácsolási időben
 
-**Hibakódok**:
-- `RPC_INVALID_PARAMETER`: Érvénytelen formátum (account_id, seed) vagy magasság eltérés
+**Hibakódok** (`JSONRPCError`-ként dobva):
+- `RPC_INVALID_PARAMETER`: Érvénytelen formátum (account_id, seed) vagy magasság eltérés (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generációs aláírás eltérés vagy bizonyíték validáció sikertelen
 - `RPC_INVALID_ADDRESS_OR_KEY`: Nincs privát kulcs az effektív aláíróhoz
+- `RPC_WALLET_UNLOCK_NEEDED`: Az effektív aláíró kulcsát tartó tárca zárolva van (oldd fel a `walletpassphrase`-szel)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Beküldési sor megtelt
 - `RPC_INTERNAL_ERROR`: PoCX ütemező inicializálása sikertelen
 
@@ -246,7 +240,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Paraméterek**:
 1. `plot_address` (string, kötelező) - Plot tulajdonos címe (privát kulccsal kell rendelkeznie, P2WPKH bech32)
 2. `forging_address` (string, kötelező) - Cím, ahova a kovácsolási jogok delegálva lesznek (P2WPKH bech32)
-3. `fee_rate` (numerikus, opcionális) - Díj ráta BTC/kvB-ben (alapértelmezett: 10× minRelayFee)
+3. `fee_rate` (numerikus, opcionális) - Díj ráta BTCX/kvB-ben (alapértelmezett: `0` → a tárca standard minimum-díj becslése; a 10× minRelayFee alapértelmezés csak a Qt GUI párbeszédablakra vonatkozik, erre az RPC-re nem)
 
 **Visszatérési Értékek**:
 ```json
@@ -267,7 +261,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Tranzakció Szerkezet**:
 - Bemenet: UTXO a plot címről (tulajdonjog bizonyítása)
-- Kimenet: OP_RETURN (46 bájt): `POCX` jelölő + plot_address (20 bájt) + forging_address (20 bájt)
+- Kimenet: OP_RETURN szkript (46 bájt) = `OP_RETURN` opcode + 1 bájtos push hossz + 44 bájtos adatcsomag (`POCX` jelölő 4 + plot_address 20 + forging_address 20)
 - Kimenet: Visszajáró visszaadva a tárcának
 
 **Aktiválás**:
@@ -300,7 +294,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Paraméterek**:
 1. `plot_address` (string, kötelező) - Plot cím (privát kulccsal kell rendelkeznie, P2WPKH bech32)
-2. `fee_rate` (numerikus, opcionális) - Díj ráta BTC/kvB-ben (alapértelmezett: 10× minRelayFee)
+2. `fee_rate` (numerikus, opcionális) - Díj ráta BTCX/kvB-ben (alapértelmezett: `0` → a tárca standard minimum-díj becslése; a 10× minRelayFee alapértelmezés csak a Qt GUI párbeszédablakra vonatkozik, erre az RPC-re nem)
 
 **Visszatérési Értékek**:
 ```json
@@ -319,7 +313,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Tranzakció Szerkezet**:
 - Bemenet: UTXO a plot címről (tulajdonjog bizonyítása)
-- Kimenet: OP_RETURN (26 bájt): `XCOP` jelölő + plot_address (20 bájt)
+- Kimenet: OP_RETURN szkript (26 bájt) = `OP_RETURN` opcode + 1 bájtos push hossz + 24 bájtos adatcsomag (`XCOP` jelölő 4 + plot_address 20)
 - Kimenet: Visszajáró visszaadva a tárcának
 
 **Hatás**:
@@ -514,22 +508,23 @@ while True:
     # 2. Plotfájlok átnézése (külső implementáció)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Legjobb megoldás beküldése
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Megoldás elfogadva! Minőség: {result['quality']}mp, "
+    # 3. Legjobb megoldás beküldése (elutasításkor JSONRPCError-t dob)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Megoldás elfogadva! Minőség: {result['raw_quality']}, "
               f"Kovácsolási idő: {result['poc_time']}mp")
+    except JSONRPCError as e:
+        print(f"Elutasítva: {e}")
 
     # 4. Várakozás a következő blokkra
     time.sleep(10)  # Lekérdezési intervallum
@@ -600,20 +595,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Gyakori Hiba Minták
 
-**Magasság Eltérés**:
+**Magasság Eltérés** (dobott `RPC_INVALID_PARAMETER`, kód -8):
 ```json
 {
-  "accepted": false,
-  "error": "Magasság eltérés: beküldött 12345, aktuális 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Megoldás**: Kérje le újra a bányászati információkat, a lánc előrehaladt
 
-**Generációs Aláírás Eltérés**:
+**Generációs Aláírás Eltérés** (dobott `RPC_VERIFY_REJECTED`, kód -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generációs aláírás eltérés"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Megoldás**: Kérje le újra a bányászati információkat, új blokk érkezett

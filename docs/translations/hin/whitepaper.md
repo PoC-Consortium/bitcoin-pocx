@@ -12,7 +12,7 @@ Bitcoin का Proof-of-Work (PoW) सहमति मजबूत सुरक�
 
 हमारा कार्यान्वयन कई प्रमुख नवाचार प्रस्तुत करता है:
 (1) एक कठोर plot प्रारूप जो मौजूदा PoC सिस्टमों में सभी ज्ञात time–memory-tradeoff हमलों को समाप्त करता है, यह सुनिश्चित करते हुए कि प्रभावी माइनिंग शक्ति प्रतिबद्ध स्टोरेज क्षमता के सख्त अनुपात में रहे;
-(2) Time-Bending एल्गोरिथ्म, जो deadline वितरण को exponential से chi-squared में रूपांतरित करता है, माध्य को बदले बिना block-time variance को कम करता है;
+(2) Time-Bending एल्गोरिथ्म, जो deadline वितरण को exponential से Weibull (आकार k=3) में रूपांतरित करता है, माध्य को बदले बिना block-time variance को कम करता है;
 (3) एक OP_RETURN-आधारित forging-assignment तंत्र जो non-custodial पूल माइनिंग सक्षम करता है; और
 (4) Dynamic compression scaling, जो hardware में सुधार के साथ दीर्घकालिक सुरक्षा मार्जिन बनाए रखने के लिए halving अनुसूचियों के अनुरूप plot-generation कठिनाई बढ़ाता है।
 
@@ -297,14 +297,16 @@ Validators यह लागू करते हैं कि block signature eff
 
 अनुसूची नेटवर्क के आर्थिक प्रोत्साहनों, विशेष रूप से block reward halvings, के साथ संरेखित होती है। जैसे-जैसे प्रति block पुरस्कार घटता है, न्यूनतम level धीरे-धीरे बढ़ता है, plotting प्रयास और माइनिंग potential के बीच संतुलन को संरक्षित करता है:
 
-| अवधि | वर्ष | Halvings | न्यूनतम Scaling | Plot कार्य गुणक |
+| अवधि | वर्ष | Halvings | न्यूनतम Scaling | Plot कार्य (POC2 बेसलाइन की तुलना में) |
 |------|------|----------|-----------------|------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2× baseline |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4× baseline |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8× baseline |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16× baseline |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32× baseline |
-| Epoch 5 | 124+ | 31+ | X6 | 64× baseline |
+| Epoch 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+गुणक कॉलम को अनहार्डन्ड **POC2** बेसलाइन के सापेक्ष व्यक्त किया गया है। चूँकि हार्डन्ड X1 प्रारूप पहले से ही POC2 का 2× कार्य समाहित करता है, स्तर Xn, 2ⁿ × POC2 के बराबर है — समतुल्य रूप से 2^(n-1) × X1, जो खंड 3.5 की प्रति-स्तर परिभाषा से मेल खाता है।
 
 Miners वैकल्पिक रूप से वर्तमान न्यूनतम से एक level अधिक plots तैयार कर सकते हैं, जिससे उन्हें आगे की योजना बनाने और नेटवर्क के अगले epoch में transition होने पर तत्काल upgrades से बचने की अनुमति मिलती है। यह वैकल्पिक चरण block संभावना के मामले में अतिरिक्त लाभ प्रदान नहीं करता—यह केवल एक smoother संचालन transition की अनुमति देता है।
 
@@ -438,11 +440,11 @@ PoCX Bitcoin के network infrastructure पर build करता है औ�
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Default port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Block time target | 1 सेकंड |
+| Block time target | 120 सेकंड |
 | Halving interval | 500 blocks |
 | Assignment activation | 4 blocks |
 | Assignment revocation | 8 blocks |
-| Low-capacity mode | Enabled (~4 MB plots) |
+| Low-capacity mode | Enabled (~16 MiB plots, 64 nonces) |
 
 ---
 

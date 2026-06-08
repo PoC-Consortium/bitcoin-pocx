@@ -112,13 +112,13 @@ Bitcoin-PoCX používá měnovou jednotku **BTCX** (ne BTC):
 5. Transakce okamžitě vysílána
 6. Přiřazení aktivní po `nForgingAssignmentDelay` blocích:
    - Mainnet/Testnet: 30 bloků (~1 hodina)
-   - Regtest: 4 bloky (~4 sekundy)
+   - Regtest: 4 bloky (~8 minut při rozestupu 120s)
 
 **Transakční poplatek**: Výchozí 10× `minRelayFee` (přizpůsobitelný)
 
 **Struktura transakce**:
 - Vstup: UTXO z adresy plotu (prokazuje vlastnictví)
-- Výstup OP_RETURN: marker `POCX` + plot_address + forging_address (46 bajtů)
+- Výstup OP_RETURN (46bajtový skript, 44bajtová datová část): marker `POCX` + plot_address + forging_address
 - Výstup pro zbytek: Vrácen do peněženky
 
 #### Režim 2: Revokovat přiřazení
@@ -137,7 +137,7 @@ Bitcoin-PoCX používá měnovou jednotku **BTCX** (ne BTC):
 4. Transakce okamžitě vysílána
 5. Revokace účinná po `nForgingRevocationDelay` blocích:
    - Mainnet/Testnet: 720 bloků (~24 hodin)
-   - Regtest: 8 bloků (~8 sekund)
+   - Regtest: 8 bloků (~16 minut při rozestupu 120s)
 
 **Efekt**:
 - Forging adresa může stále provádět forging během období zpoždění
@@ -146,7 +146,7 @@ Bitcoin-PoCX používá měnovou jednotku **BTCX** (ne BTC):
 
 **Struktura transakce**:
 - Vstup: UTXO z adresy plotu (prokazuje vlastnictví)
-- Výstup OP_RETURN: marker `XCOP` + plot_address (26 bajtů)
+- Výstup OP_RETURN (26bajtový skript, 24bajtová datová část): marker `XCOP` + plot_address
 - Výstup pro zbytek: Vrácen do peněženky
 
 #### Režim 3: Zkontrolovat stav přiřazení

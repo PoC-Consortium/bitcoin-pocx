@@ -26,7 +26,7 @@ Bitcoin-PoCX implementerer en ren Proof of Capacity-konsensusmekanisme som fulls
 
 **Nøkkelegenskaper:**
 - **Energieffektiv:** Mining bruker forhåndsgenererte plotfiler i stedet for beregningsmessig hashing
-- **Time-bended deadlines:** Fordelingstransformasjon (eksponentiell→kjikvadrat) reduserer lange blokker, forbedrer gjennomsnittlige blokktider
+- **Time-bended deadlines:** Fordelingstransformasjon (eksponentiell→Weibull, formparameter k=3) reduserer lange blokker, forbedrer gjennomsnittlige blokktider
 - **Tildelingsstøtte:** Ploteiere kan delegere forging-rettigheter til andre adresser
 - **Native C++-integrasjon:** Kryptografiske algoritmer implementert i C++ for konsensusvalidering
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis-blokk:** Bruker en hardkodet initial generasjonssignatur
 
-**Implementasjon:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementasjon:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (kalt fra `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base target (vanskelighetsgrad)
 
 Base target er det inverse av vanskelighetsgrad - høyere verdier betyr enklere mining.
 
 **Justeringsalgoritme:**
-- Målblokktid: 120 sekunder (mainnet), 1 sekund (regtest)
+- Målblokktid: 120 sekunder (alle nettverk)
 - Justeringsintervall: Hver blokk
 - Bruker glidende gjennomsnitt av nylige base targets
 - Begrenset for å forhindre ekstreme vanskelighetsvingninger
@@ -112,7 +112,7 @@ PoCX støtter skalerbar proof-of-work i plotfiler gjennom skaleringsnivåer (Xn)
 
 **Dynamiske grenser:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimum akseptert nivå
     uint32_t nPoCXTargetCompression;  // Anbefalt nivå
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) avvis;
 
 #### Trinn 2: Kontekstanskaffelse
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Returnerer: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ der:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Formål:** Transformerer eksponentiell til kjikvadratfordeling. Veldig gode løsninger forger senere (nettverket har tid til å skanne disker), dårlige løsninger forbedres. Reduserer lange blokker, opprettholder 120s gjennomsnitt.
+**Formål:** Transformerer eksponentiell til Weibull-fordeling (formparameter k=3). Veldig gode løsninger forger senere (nettverket har tid til å skanne disker), dårlige løsninger forbedres. Reduserer lange blokker, opprettholder 120s gjennomsnitt.
 
 **Implementasjon:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Coinbase-mottaker** (ikke håndhevet av konsensus):
+
+Mineren setter coinbase-utdataen til å betale den effektive signereren (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), men dette valideres **ikke** av konsensus. Konsensus håndhever kun at *blokksignaturen* produseres av den effektive signereren — `bad-pocx-assignment-sig`-sjekken ovenfor. Det finnes ingen `bad-pocx-coinbase`-regel; coinbase-mottakeren velges av mineren.
+
 **Implementasjon:**
 - Forbindelse: `src/validation.cpp:ConnectBlock()`
 - Utvidet validering: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Tildelinger lar ploteiere delegere forging-rettigheter til andre adresser mens d
 - Tildelinger lagret i OP_RETURN-utdata (ingen UTXO)
 - Ingen brukskrav (ingen støv, ingen gebyrer for å holde)
 - Sporet i CCoinsViewCache utvidet tilstand
-- Aktivert etter forsinkelsesperiode (standard: 4 blokker)
+- Aktivert etter forsinkelsesperiode (standard: 30 blokker; 4 på regtest)
 
 **Tildelingstilstander:**
 ```cpp

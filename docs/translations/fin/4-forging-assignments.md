@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Hae nykyinen delegointi
+            // Hae nykyinen delegointi - peruuttaminen edellyttää ASSIGNED-tilaa
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Tallenna vanha tila kumoamista varten
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ Palauttaa plotin osoitteen nykyisen delegointitilan:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Merkkimäärittelyt, OP_RETURN-operaatiot, omistajuustarkistus
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState-apufunktiot
     │   ├── assignment_state.cpp   # Delegointitilan kyselyfunktiot
+    │   ├── replay.h               # Delegointivaikutusten uudelleenjärjestely/toisto
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg-polku)
     │   ├── transactions.h         # Lompakon transaktion luonti-API
     │   └── transactions.cpp       # create_assignment, revoke_assignment lompakkofunktiot
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPC:t
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis-perustavoite, pakkausaikataulu
 ```
+
+> **Huom:** Delegoinnin viivevakiot `nForgingAssignmentDelay` / `nForgingRevocationDelay` sijaitsevat Bitcoin Coren `Consensus::Params`-rakenteessa (`src/consensus/params.h`) ja asetetaan verkkokohtaisesti tiedostossa `src/kernel/chainparams.cpp` — ei tiedostossa `pocx/consensus/params.h`.
 
 ## Suorituskykyominaisuudet
 
@@ -766,9 +770,8 @@ Missä n = plotin delegointien määrä (tyypillisesti pieni, < 10)
 
 ### Testien kattavuusalueet
 
-- Yksikkötestit: `src/test/pocx_*_tests.cpp`
-- Toiminnalliset testit: `test/functional/feature_pocx_*.py`
-- Integraatiotestit: Manuaalinen testaus regtestillä
+- Yksikkötestit: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integraatiotestit: regtest-skriptit hakemistoissa `scripts/assignments/` ja `scripts/mining/`
 
 ## Konsensussäännöt
 

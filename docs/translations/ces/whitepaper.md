@@ -12,7 +12,7 @@ Konsenzus Proof-of-Work (PoW) Bitcoinu poskytuje robustní bezpečnost, ale spot
 
 Naše implementace zavádí několik klíčových inovací:
 (1) Zpevněný formát plotů, který eliminuje všechny známé útoky časově-paměťovými kompromisy v existujících PoC systémech, čímž zajišťuje, že efektivní těžební výkon zůstává striktně úměrný vázané úložné kapacitě;
-(2) Algoritmus Time-Bending, který transformuje distribuce deadlinů z exponenciální na chí-kvadrát, čímž snižuje varianci času bloků bez změny průměru;
+(2) Algoritmus Time-Bending, který transformuje distribuce deadlinů z exponenciální na Weibull (shape k=3), čímž snižuje varianci času bloků bez změny průměru;
 (3) Mechanismus forging přiřazení založený na OP_RETURN umožňující non-custodial poolovou těžbu; a
 (4) Dynamické škálování komprese, které zvyšuje obtížnost generování plotů v souladu s harmonogramy halvingů pro udržení dlouhodobých bezpečnostních marží s tím, jak se hardware zlepšuje.
 
@@ -297,14 +297,16 @@ Pro zachování zamýšlené bezpečnostní marže PoCX implementuje harmonogram
 
 Harmonogram je sladěn s ekonomickými pobídkami sítě, zejména halvingy odměn za bloky. Jak odměna za blok klesá, minimální úroveň se postupně zvyšuje, zachovávajíc rovnováhu mezi úsilím plottování a těžebním potenciálem:
 
-| Období | Roky | Halvingy | Min škálování | Multiplikátor práce plotu |
+| Období | Roky | Halvingy | Min škálování | Práce plotu (vs. baseline POC2) |
 |--------|------|----------|---------------|---------------------------|
-| Epocha 0 | 0-4 | 0 | X1 | 2× baseline |
-| Epocha 1 | 4-12 | 1-2 | X2 | 4× baseline |
-| Epocha 2 | 12-28 | 3-6 | X3 | 8× baseline |
-| Epocha 3 | 28-60 | 7-14 | X4 | 16× baseline |
-| Epocha 4 | 60-124 | 15-30 | X5 | 32× baseline |
-| Epocha 5 | 124+ | 31+ | X6 | 64× baseline |
+| Epocha 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epocha 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epocha 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epocha 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epocha 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epocha 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Sloupec s násobitelem je vyjádřen relativně k nezpevněnému základnímu formátu **POC2**. Protože zpevněný formát X1 již vkládá 2× práce POC2, úroveň Xn se rovná 2ⁿ × POC2 — ekvivalentně 2^(n-1) × X1, v souladu s definicí pro každou úroveň v Sekci 3.5.
 
 Těžaři mohou volitelně připravit ploty překračující aktuální minimum o jednu úroveň, což jim umožňuje plánovat dopředu a vyhnout se okamžitým upgradům, když síť přejde na další epochu. Tento volitelný krok neposkytuje žádnou další výhodu z hlediska pravděpodobnosti bloku — pouze umožňuje hladší provozní přechod.
 
@@ -438,11 +440,11 @@ Tabulky níže shrnují výsledná nastavení pro mainnet, testnet a regtest, zd
 | Magic bajty | `0xfa 0xbf 0xb5 0xda` |
 | Výchozí port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Cílový čas bloku | 1 sekunda |
+| Cílový čas bloku | 120 sekund |
 | Interval halvingu | 500 bloků |
 | Aktivace přiřazení | 4 bloky |
 | Revokace přiřazení | 8 bloků |
-| Režim nízké kapacity | Povolen (~4 MB ploty) |
+| Režim nízké kapacity | Povolen (~16 MiB ploty, 64 nonces) |
 
 ---
 

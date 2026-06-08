@@ -107,7 +107,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (tarkalleen 40 heksamerkkiä = 20 tavua; osoitetta ei hyväksytä)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -116,19 +116,12 @@ bitcoin-cli get_mining_info
 **Palautusarvot** (onnistuminen):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // aikataivutettu forging-aika sekunteina
 }
 ```
 
-**Palautusarvot** (hylätty):
-```json
-{
-  "accepted": false,
-  "error": "Generoinnin allekirjoitus ei täsmää"
-}
-```
+`accepted`-kenttää ei ole. Hylkäyksen yhteydessä RPC **ei** palauta JSON-objektia — se heittää `JSONRPCError`-virheen (katso virhekoodit alla).
 
 **Validointivaiheet**:
 1. **Muotovalidointi** (nopea epäonnistuminen):
@@ -147,10 +140,11 @@ bitcoin-cli get_mining_info
    - Jonota nonce aikataivutettua forgingia varten
    - Lohko luodaan automaattisesti forge_time-aikana
 
-**Virhekoodit**:
-- `RPC_INVALID_PARAMETER`: Kelvoton muoto (account_id, seed) tai korkeusero
+**Virhekoodit** (heitetään muodossa `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Kelvoton muoto (account_id, seed) tai korkeusero (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generoinnin allekirjoitusero tai todisteen validointi epäonnistui
 - `RPC_INVALID_ADDRESS_OR_KEY`: Ei yksityistä avainta tehokkaalle allekirjoittajalle
+- `RPC_WALLET_UNLOCK_NEEDED`: Tehokkaan allekirjoittajan avaimen sisältävä lompakko on lukittu (avaa komennolla `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Lähetysjono täynnä
 - `RPC_INTERNAL_ERROR`: PoCX-ajastimen alustus epäonnistui
 
@@ -273,7 +267,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parametrit**:
 1. `plot_address` (merkkijono, vaadittu) - Plotin omistajan osoite (on omistettava yksityinen avain, P2WPKH bech32)
 2. `forging_address` (merkkijono, vaadittu) - Osoite jolle forging-oikeudet delegoidaan (P2WPKH bech32)
-3. `fee_rate` (numeerinen, valinnainen) - Maksuaste BTC/kvB (oletus: 10× minRelayFee)
+3. `fee_rate` (numeerinen, valinnainen) - Maksuaste BTCX/kvB (oletus: `0` → lompakon vakiomuotoinen vähimmäismaksuarvio; 10× minRelayFee -oletus koskee vain Qt GUI -valintaikkunaa, ei tätä RPC:tä)
 
 **Palautusarvot**:
 ```json
@@ -294,7 +288,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaktiorakenne**:
 - Syöte: UTXO plotin osoitteesta (todistaa omistajuuden)
-- Tuloste: OP_RETURN (46 tavua): `POCX`-merkki + plot_address (20 tavua) + forging_address (20 tavua)
+- Tuloste: OP_RETURN-skripti (46 tavua) = `OP_RETURN`-opkoodi + 1 tavun push-pituus + 44 tavun datakuorma (`POCX`-merkki 4 + plot_address 20 + forging_address 20)
 - Tuloste: Vaihtoraha palautetaan lompakkoon
 
 **Aktivointi**:
@@ -328,7 +322,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parametrit**:
 1. `plot_address` (merkkijono, vaadittu) - Plotin osoite (on omistettava yksityinen avain, P2WPKH bech32)
-2. `fee_rate` (numeerinen, valinnainen) - Maksuaste BTC/kvB (oletus: 10× minRelayFee)
+2. `fee_rate` (numeerinen, valinnainen) - Maksuaste BTCX/kvB (oletus: `0` → lompakon vakiomuotoinen vähimmäismaksuarvio; 10× minRelayFee -oletus koskee vain Qt GUI -valintaikkunaa, ei tätä RPC:tä)
 
 **Palautusarvot**:
 ```json
@@ -347,7 +341,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaktiorakenne**:
 - Syöte: UTXO plotin osoitteesta (todistaa omistajuuden)
-- Tuloste: OP_RETURN (26 tavua): `XCOP`-merkki + plot_address (20 tavua)
+- Tuloste: OP_RETURN-skripti (26 tavua) = `OP_RETURN`-opkoodi + 1 tavun push-pituus + 24 tavun datakuorma (`XCOP`-merkki 4 + plot_address 20)
 - Tuloste: Vaihtoraha palautetaan lompakkoon
 
 **Vaikutus**:
@@ -541,22 +535,23 @@ while True:
     # 2. Skannaa plottitiedostot (ulkoinen toteutus)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Lähetä paras ratkaisu
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"Ratkaisu hyväksytty! Laatu: {result['quality']}s, "
+    # 3. Lähetä paras ratkaisu (heittää JSONRPCError-virheen hylkäyksessä)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"Ratkaisu hyväksytty! Laatu: {result['raw_quality']}, "
               f"Forging-aika: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Hylätty: {e}")
 
     # 4. Odota seuraavaa lohkoa
     time.sleep(10)  # Kyselyväli
@@ -627,20 +622,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Yleiset virhemallit
 
-**Korkeusero**:
+**Korkeusero** (heitetään `RPC_INVALID_PARAMETER`, koodi -8):
 ```json
 {
-  "accepted": false,
-  "error": "Korkeusero: lähetetty 12345, nykyinen 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Ratkaisu**: Hae louhintatiedot uudelleen, ketju eteni
 
-**Generoinnin allekirjoitusero**:
+**Generoinnin allekirjoitusero** (heitetään `RPC_VERIFY_REJECTED`, koodi -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generoinnin allekirjoitus ei täsmää"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Ratkaisu**: Hae louhintatiedot uudelleen, uusi lohko saapui

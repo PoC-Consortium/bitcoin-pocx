@@ -12,7 +12,7 @@ El consenso de Prueba de Trabajo (PoW) de Bitcoin proporciona seguridad robusta 
 
 Nuestra implementación introduce varias innovaciones clave:
 (1) Un formato de parcela endurecido que elimina todos los ataques conocidos de compensación tiempo-memoria en sistemas PoC existentes, asegurando que el poder de minería efectivo permanezca estrictamente proporcional a la capacidad de almacenamiento comprometida;
-(2) El algoritmo de flexión temporal, que transforma las distribuciones de plazos de exponencial a chi-cuadrado, reduciendo la varianza del tiempo de bloque sin alterar la media;
+(2) El algoritmo de flexión temporal, que transforma las distribuciones de plazos de exponencial a Weibull (parámetro de forma k=3), reduciendo la varianza del tiempo de bloque sin alterar la media;
 (3) Un mecanismo de asignación de forjado basado en OP_RETURN que permite minería en pool sin custodia; y
 (4) Escalado de compresión dinámico, que aumenta la dificultad de generación de parcelas en alineación con los programas de halving para mantener márgenes de seguridad a largo plazo a medida que mejora el hardware.
 
@@ -297,14 +297,16 @@ Para preservar el margen de seguridad previsto, PoCX implementa un programa de e
 
 El programa se alinea con los incentivos económicos de la red, particularmente los halvings de recompensa de bloque. A medida que la recompensa por bloque disminuye, el nivel mínimo aumenta gradualmente, preservando el equilibrio entre el esfuerzo de graficado y el potencial de minería:
 
-| Período | Años | Halvings | Escalado mín | Multiplicador de trabajo de parcela |
+| Período | Años | Halvings | Escalado mín | Trabajo de parcela (vs. línea base POC2) |
 |---------|------|----------|--------------|-------------------------------------|
-| Época 0 | 0-4 | 0 | X1 | 2× línea base |
-| Época 1 | 4-12 | 1-2 | X2 | 4× línea base |
-| Época 2 | 12-28 | 3-6 | X3 | 8× línea base |
-| Época 3 | 28-60 | 7-14 | X4 | 16× línea base |
-| Época 4 | 60-124 | 15-30 | X5 | 32× línea base |
-| Época 5 | 124+ | 31+ | X6 | 64× línea base |
+| Época 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Época 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Época 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Época 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Época 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Época 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+La columna del multiplicador se expresa respecto a la línea base **POC2** sin endurecer. Dado que el formato endurecido X1 ya incorpora 2× el trabajo de POC2, el nivel Xn equivale a 2ⁿ × POC2 — equivalentemente 2^(n-1) × X1, coincidiendo con la definición por nivel de la Sección 3.5.
 
 Los mineros pueden opcionalmente preparar parcelas que excedan el mínimo actual por un nivel, permitiéndoles planificar con anticipación y evitar actualizaciones inmediatas cuando la red transiciona a la siguiente época. Este paso opcional no confiere ventaja adicional en términos de probabilidad de bloque; simplemente permite una transición operacional más suave.
 
@@ -438,11 +440,11 @@ Las tablas a continuación resumen las configuraciones resultantes de mainnet, t
 | Bytes mágicos | `0xfa 0xbf 0xb5 0xda` |
 | Puerto predeterminado | 18444 |
 | HRP Bech32 | `rpocx` |
-| Objetivo de tiempo de bloque | 1 segundo |
+| Objetivo de tiempo de bloque | 120 segundos |
 | Intervalo de halving | 500 bloques |
 | Activación de asignación | 4 bloques |
 | Revocación de asignación | 8 bloques |
-| Modo baja capacidad | Habilitado (~4 MB parcelas) |
+| Modo baja capacidad | Habilitado (~16 MiB parcelas, 64 nonces) |
 
 ---
 

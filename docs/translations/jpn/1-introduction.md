@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **問題**: 従来のPoC ブロック時間は指数分布に従い、良い解を見つけるマイナーがいない場合に長いブロックが発生。
 
-**解決策**: 立方根を使用した指数分布からカイ二乗分布への変換: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`
+**解決策**: 立方根を使用した指数分布からWeibull分布（形状 k=3）への変換: `Y = scale × (X^(1/3))` where `X = raw_quality / base_target`
 
 **効果**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ POC2形式（Burstcoin）に基づき、以下の強化を実施:
 
 ## 技術仕様概要
 
-- **ブロック時間**: 120秒（メインネット）、1秒（regtest）
+- **ブロック時間**: 120秒（全ネットワーク: メインネット、テストネット、regtest）
 - **ブロック報酬**: 初期10 BTC、1050000ブロックごとに半減（約4年）
 - **総供給量**: 約2100万BTC（Bitcoinと同じ）
 - **将来許容範囲**: 15秒（最大15秒先のブロックを受け入れ）

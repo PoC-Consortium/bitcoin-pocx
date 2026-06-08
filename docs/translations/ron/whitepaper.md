@@ -12,7 +12,7 @@ Consensul Proof-of-Work (PoW) al Bitcoin oferă securitate robustă, dar consum�
 
 Implementarea noastră introduce mai multe inovații cheie:
 (1) Un format de plot întărit care elimină toate atacurile cunoscute de compromis timp-memorie din sistemele PoC existente, asigurând că puterea efectivă de minerit rămâne strict proporțională cu capacitatea de stocare angajată;
-(2) Algoritmul Time-Bending, care transformă distribuțiile deadline-urilor din exponențiale în chi-pătrat, reducând varianța timpului de bloc fără a modifica media;
+(2) Algoritmul Time-Bending, care transformă distribuțiile deadline-urilor din exponențiale în Weibull (parametru de formă k=3), reducând varianța timpului de bloc fără a modifica media;
 (3) Un mecanism de atribuire a forjării bazat pe OP_RETURN care permite mineritul în pool non-custodial; și
 (4) Scalarea dinamică a compresiei, care crește dificultatea generării plot-urilor în aliniere cu calendarele de înjumătățire pentru a menține marjele de securitate pe termen lung pe măsură ce hardware-ul se îmbunătățește.
 
@@ -297,14 +297,16 @@ Pentru a păstra marja de securitate intenționată, PoCX implementează un cale
 
 Calendarul se aliniază cu stimulentele economice ale rețelei, în special înjumătățirile recompenselor de bloc. Pe măsură ce recompensa per bloc scade, nivelul minim crește treptat, păstrând echilibrul între efortul de creare a plot-urilor și potențialul de minerit:
 
-| Perioadă | Ani | Înjumătățiri | Scalare min | Multiplicator muncă plot |
+| Perioadă | Ani | Înjumătățiri | Scalare min | Muncă plot (față de linia de bază POC2) |
 |----------|-----|--------------|-------------|--------------------------|
-| Epoca 0 | 0-4 | 0 | X1 | 2× linie de bază |
-| Epoca 1 | 4-12 | 1-2 | X2 | 4× linie de bază |
-| Epoca 2 | 12-28 | 3-6 | X3 | 8× linie de bază |
-| Epoca 3 | 28-60 | 7-14 | X4 | 16× linie de bază |
-| Epoca 4 | 60-124 | 15-30 | X5 | 32× linie de bază |
-| Epoca 5 | 124+ | 31+ | X6 | 64× linie de bază |
+| Epoca 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoca 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoca 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoca 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoca 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoca 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Coloana multiplicatorului este exprimată în raport cu linia de bază **POC2** neîntărită. Deoarece formatul întărit X1 înglobează deja 2× munca POC2, nivelul Xn este egal cu 2ⁿ × POC2 — echivalent cu 2^(n-1) × X1, în conformitate cu definiția per nivel din Secțiunea 3.5.
 
 Minerii pot opțional pregăti plot-uri care depășesc minimul curent cu un nivel, permițându-le să planifice în avans și să evite actualizări imediate când rețeaua tranziționează la următoarea epocă. Acest pas opțional nu conferă avantaj suplimentar în termeni de probabilitate de bloc - permite doar o tranziție operațională mai lină.
 
@@ -438,11 +440,11 @@ Tabelele de mai jos rezumă setările rezultate pentru mainnet, testnet și regt
 | Octeți magici | `0xfa 0xbf 0xb5 0xda` |
 | Port implicit | 18444 |
 | HRP Bech32 | `rpocx` |
-| Ținta timp bloc | 1 secundă |
+| Ținta timp bloc | 120 secunde |
 | Interval înjumătățire | 500 blocuri |
 | Activare atribuire | 4 blocuri |
 | Revocare atribuire | 8 blocuri |
-| Mod capacitate redusă | Activat (plot-uri de ~4 MB) |
+| Mod capacitate redusă | Activat (plot-uri de ~16 MiB, 64 nonce-uri) |
 
 ---
 

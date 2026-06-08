@@ -112,13 +112,13 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 5. Transaktion udsendes ojeblikkelig
 6. Assignment aktiv efter `nForgingAssignmentDelay` blokke:
    - Mainnet/Testnet: 30 blokke (~1 time)
-   - Regtest: 4 blokke (~4 sekunder)
+   - Regtest: 4 blokke (~8 minutter ved 120s-afstand)
 
 **Transaktionsgebyr**: Standard 10x `minRelayFee` (kan tilpasses)
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- OP_RETURN-output: `POCX`-markor + plot_address + forging_address (44 bytes)
+- OP_RETURN-output (46-byte script, 44-byte datapayload): `POCX`-markor + plot_address + forging_address
 - Byttepenge-output: Returneret til wallet
 
 #### Tilstand 2: Tilbagekald assignment
@@ -137,7 +137,7 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 4. Transaktion udsendes ojeblikkelig
 5. Tilbagekaldelse traeder i kraft efter `nForgingRevocationDelay` blokke:
    - Mainnet/Testnet: 720 blokke (~24 timer)
-   - Regtest: 8 blokke (~8 sekunder)
+   - Regtest: 8 blokke (~16 minutter ved 120s-afstand)
 
 **Effekt**:
 - Forging-adresse kan stadig forge i forsinkelsesperiode
@@ -146,7 +146,7 @@ Bitcoin-PoCX bruger **BTCX**-valutaenhed (ikke BTC):
 
 **Transaktionsstruktur**:
 - Input: UTXO fra plotadresse (beviser ejerskab)
-- OP_RETURN-output: `XCOP`-markor + plot_address (24 bytes)
+- OP_RETURN-output (26-byte script, 24-byte datapayload): `XCOP`-markor + plot_address
 - Byttepenge-output: Returneret til wallet
 
 #### Tilstand 3: Kontroller assignment-status

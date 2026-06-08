@@ -105,7 +105,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (정확히 40 16진수 문자 = 20바이트; 주소는 허용되지 않음)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -114,19 +114,12 @@ bitcoin-cli get_mining_info
 **반환값** (성공):
 ```json
 {
-  "accepted": true,
-  "raw_quality": 120,       // raw quality from proof validation
+  "raw_quality": 120,       // 증명 검증에서 나온 원시 품질
   "poc_time": 45            // 시간 왜곡된 포징 시간 (초)
 }
 ```
 
-**반환값** (거부):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+`accepted` 필드는 없습니다. 거부 시 RPC는 JSON 객체를 반환하지 **않고** `JSONRPCError`를 던집니다(아래 오류 코드 참조).
 
 **검증 단계**:
 1. **형식 검증** (빠른 실패):
@@ -145,10 +138,11 @@ bitcoin-cli get_mining_info
    - 시간 왜곡 포징을 위해 논스 큐에 추가
    - forge_time에 블록이 자동 생성됨
 
-**오류 코드**:
-- `RPC_INVALID_PARAMETER`: 잘못된 형식 (account_id, seed) 또는 높이 불일치
+**오류 코드** (`JSONRPCError`로 던져짐):
+- `RPC_INVALID_PARAMETER`: 잘못된 형식 (account_id, seed) 또는 높이 불일치 (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: 생성 서명 불일치 또는 증명 검증 실패
 - `RPC_INVALID_ADDRESS_OR_KEY`: 유효 서명자의 개인키 없음
+- `RPC_WALLET_UNLOCK_NEEDED`: 유효 서명자의 키를 보유한 지갑이 잠겨 있음 (`walletpassphrase`로 잠금 해제)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: 제출 큐 가득 참
 - `RPC_INTERNAL_ERROR`: PoCX 스케줄러 초기화 실패
 
@@ -269,7 +263,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **매개변수**:
 1. `plot_address` (문자열, 필수) - 플롯 소유자 주소 (개인키 소유 필수, P2WPKH bech32)
 2. `forging_address` (문자열, 필수) - 포징 권한을 할당할 주소 (P2WPKH bech32)
-3. `fee_rate` (숫자, 선택) - BTC/kvB 단위 수수료율 (기본: minRelayFee의 10배)
+3. `fee_rate` (숫자, 선택) - BTCX/kvB 단위 수수료율 (기본: `0` → 지갑의 표준 최소 수수료 추정치; minRelayFee의 10배 기본값은 Qt GUI 대화상자에만 적용되며 이 RPC에는 적용되지 않음)
 
 **반환값**:
 ```json
@@ -290,7 +284,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- 출력: OP_RETURN (46 바이트): `POCX` 마커 + plot_address (20 바이트) + forging_address (20 바이트)
+- 출력: OP_RETURN 스크립트 (46 바이트) = `OP_RETURN` 옵코드 + 1바이트 푸시 길이 + 44바이트 데이터 페이로드 (`POCX` 마커 4 + plot_address 20 + forging_address 20)
 - 출력: 지갑에 반환되는 잔돈
 
 **활성화**:
@@ -323,7 +317,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **매개변수**:
 1. `plot_address` (문자열, 필수) - 플롯 주소 (개인키 소유 필수, P2WPKH bech32)
-2. `fee_rate` (숫자, 선택) - BTC/kvB 단위 수수료율 (기본: minRelayFee의 10배)
+2. `fee_rate` (숫자, 선택) - BTCX/kvB 단위 수수료율 (기본: `0` → 지갑의 표준 최소 수수료 추정치; minRelayFee의 10배 기본값은 Qt GUI 대화상자에만 적용되며 이 RPC에는 적용되지 않음)
 
 **반환값**:
 ```json
@@ -342,7 +336,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **트랜잭션 구조**:
 - 입력: 플롯 주소의 UTXO (소유권 증명)
-- 출력: OP_RETURN (26 바이트): `XCOP` 마커 + plot_address (20 바이트)
+- 출력: OP_RETURN 스크립트 (26 바이트) = `OP_RETURN` 옵코드 + 1바이트 푸시 길이 + 24바이트 데이터 페이로드 (`XCOP` 마커 4 + plot_address 20)
 - 출력: 지갑에 반환되는 잔돈
 
 **효과**:
@@ -537,22 +531,23 @@ while True:
     # 2. 플롯 파일 스캔 (외부 구현)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. 최적의 솔루션 제출
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
-        print(f"솔루션 수락됨! 품질: {result['quality']}초, "
+    # 3. 최적의 솔루션 제출 (거부 시 JSONRPCError 발생)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
+        print(f"솔루션 수락됨! 품질: {result['raw_quality']}, "
               f"포징 시간: {result['poc_time']}초")
+    except JSONRPCError as e:
+        print(f"거부됨: {e}")
 
     # 4. 다음 블록 대기
     time.sleep(10)  # 폴링 간격
@@ -623,20 +618,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### 일반적인 오류 패턴
 
-**높이 불일치**:
+**높이 불일치** (`RPC_INVALID_PARAMETER`, 코드 -8 발생):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **해결책**: 채굴 정보 다시 가져오기, 체인이 앞으로 이동함
 
-**생성 서명 불일치**:
+**생성 서명 불일치** (`RPC_VERIFY_REJECTED`, 코드 -26 발생):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **해결책**: 채굴 정보 다시 가져오기, 새 블록 도착

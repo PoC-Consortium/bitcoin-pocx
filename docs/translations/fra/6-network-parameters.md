@@ -35,7 +35,7 @@ Référence complète pour la configuration réseau Bitcoin-PoCX sur tous les ty
 
 **Valeurs calculées** :
 - Mainnet/Testnet/Signet (120s) : `36650387592`
-- Regtest (1s) : Utilise le mode de calibrage basse capacité
+- Regtest (120s) : Utilise le mode de calibrage basse capacité (base_power 2^58)
 
 ### Message Genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Ajustement de difficulté** :
 - **Fenêtre glissante** : `24` blocs
 - **Ajustement** : À chaque bloc
-- **Algorithme** : Moyenne mobile exponentielle
+- **Algorithme** : Moyenne mobile pondérée (style Burstcoin, plafond de ±20 % par bloc)
 
 **Délais d'assignation** :
 - **Activation** : `30` blocs (~1 heure)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY : `239`
 
 **Timing des blocs** :
-- **Temps de bloc cible** : `1` seconde (minage instantané pour les tests)
+- **Temps de bloc cible** : `120` secondes (miné à la demande via `generatetoaddress` en regtest)
 - **Durée cible** : `86400` secondes (1 jour)
 - **MAX_FUTURE_BLOCK_TIME** : `15` secondes
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Fenêtre glissante** : `24` blocs
 - **Autoriser difficulté min** : `true`
 - **Pas de reciblage** : `true`
-- **Calibrage basse capacité** : `true` (utilise un calibrage de 16 nonces au lieu de 1 Tio)
+- **Calibrage basse capacité** : `true` (utilise un calibrage de 64 nonces ≈ 16 MiB au lieu de 1 Tio)
 
 **Délais d'assignation** :
-- **Activation** : `4` blocs (~4 secondes)
-- **Révocation** : `8` blocs (~8 secondes)
+- **Activation** : `4` blocs (~8 minutes à un espacement de 120s)
+- **Révocation** : `8` blocs (~16 minutes à un espacement de 120s)
 
 ### Paramètres Signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Temps de bloc cibles** :
 - Mainnet/Testnet/Signet : `120` secondes
-- Regtest : `1` seconde
+- Regtest : `120` secondes
 
 **TIMESTAMP_WINDOW** : `15` secondes (égal à MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Paramètres d'ajustement de difficulté
 
 **Taille de fenêtre glissante** : `24` blocs (tous les réseaux)
-- Moyenne mobile exponentielle des temps de bloc récents
+- Moyenne mobile pondérée des temps de bloc récents (style Burstcoin)
 - Ajustement à chaque bloc
 - Réactif aux changements de capacité
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (délai d'activation) :
 - Mainnet : `30` blocs (~1 heure)
 - Testnet : `30` blocs (~1 heure)
-- Regtest : `4` blocs (~4 secondes)
+- Regtest : `4` blocs (~8 minutes à un espacement de 120s)
 
 **nForgingRevocationDelay** (délai de révocation) :
 - Mainnet : `720` blocs (~24 heures)
 - Testnet : `720` blocs (~24 heures)
-- Regtest : `8` blocs (~8 secondes)
+- Regtest : `8` blocs (~16 minutes à un espacement de 120s)
 
 **Justification** :
 - Le délai d'activation empêche la réassignation rapide pendant les courses de blocs

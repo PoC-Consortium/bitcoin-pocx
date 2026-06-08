@@ -12,7 +12,7 @@ Bitcoin'in İş Kanıtı (PoW) konsensüsü güçlü güvenlik sağlar, ancak s�
 
 Uygulamamız birkaç önemli yenilik sunar:
 (1) Mevcut PoC sistemlerindeki tüm bilinen zaman-bellek değiş tokuşu saldırılarını ortadan kaldıran güçlendirilmiş plot formatı, etkili madencilik gücünün taahhüt edilen depolama kapasitesiyle kesinlikle orantılı kalmasını sağlar;
-(2) Son tarih dağılımlarını üstelden ki-kareye dönüştüren Zaman Bükme algoritması, ortalamayı değiştirmeden blok süresi varyansını azaltır;
+(2) Son tarih dağılımlarını üstelden Weibull'a (şekil parametresi k=3) dönüştüren Zaman Bükme algoritması, ortalamayı değiştirmeden blok süresi varyansını azaltır;
 (3) Velayet gerektirmeyen havuz madenciliğini mümkün kılan OP_RETURN tabanlı dövme-atama mekanizması; ve
 (4) Donanım geliştikçe uzun vadeli güvenlik marjlarını korumak için plot üretim zorluğunu yarılanma programlarıyla uyumlu şekilde artıran dinamik sıkıştırma ölçeklendirmesi.
 
@@ -297,14 +297,16 @@ Amaçlanan güvenlik marjını korumak için, PoCX bir ölçeklendirme programı
 
 Program, ağın ekonomik teşvikleriyle, özellikle blok ödülü yarılanmalarıyla uyumludur. Blok başına ödül azaldıkça, minimum seviye kademeli olarak artar, plot çabası ile madencilik potansiyeli arasındaki dengeyi korur:
 
-| Dönem | Yıllar | Yarılanmalar | Min Ölçeklendirme | Plot İşi Çarpanı |
+| Dönem | Yıllar | Yarılanmalar | Min Ölçeklendirme | Plot İşi (POC2 temeline göre) |
 |-------|--------|--------------|-------------------|------------------|
-| Dönem 0 | 0-4 | 0 | X1 | 2× temel |
-| Dönem 1 | 4-12 | 1-2 | X2 | 4× temel |
-| Dönem 2 | 12-28 | 3-6 | X3 | 8× temel |
-| Dönem 3 | 28-60 | 7-14 | X4 | 16× temel |
-| Dönem 4 | 60-124 | 15-30 | X5 | 32× temel |
-| Dönem 5 | 124+ | 31+ | X6 | 64× temel |
+| Dönem 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Dönem 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Dönem 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Dönem 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Dönem 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Dönem 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Çarpan sütunu, güçlendirilmemiş **POC2** temeline göre ifade edilmiştir. Güçlendirilmiş X1 formatı zaten POC2'nin 2 katı işi gömdüğünden, Xn seviyesi 2ⁿ × POC2'ye eşittir — eşdeğer olarak 2^(n-1) × X1, Bölüm 3.5'teki seviye başına tanımla uyumludur.
 
 Madenciler isteğe bağlı olarak mevcut minimumun bir seviye üstünde plot'lar hazırlayabilir, bu da önceden planlamalarına ve ağ bir sonraki döneme geçtiğinde anında yükseltmelerden kaçınmalarına olanak tanır. Bu isteğe bağlı adım, blok olasılığı açısından ek avantaj sağlamaz - yalnızca daha düzgün bir operasyonel geçişe izin verir.
 
@@ -438,11 +440,11 @@ Aşağıdaki tablolar, PoCX'in Bitcoin'in çekirdek parametrelerini depolama ba�
 | Sihirli baytlar | `0xfa 0xbf 0xb5 0xda` |
 | Varsayılan port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Blok süresi hedefi | 1 saniye |
+| Blok süresi hedefi | 120 saniye |
 | Yarılanma aralığı | 500 blok |
 | Atama aktivasyonu | 4 blok |
 | Atama iptali | 8 blok |
-| Düşük kapasite modu | Etkin (~4 MB plot'lar) |
+| Düşük kapasite modu | Etkin (~16 MiB plot'lar, 64 nonce) |
 
 ---
 

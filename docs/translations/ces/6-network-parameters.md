@@ -35,7 +35,7 @@ Kompletní reference pro konfiguraci sítě Bitcoin-PoCX napříč všemi typy s
 
 **Vypočítané hodnoty**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Používá režim kalibrace nízké kapacity
+- Regtest (120s): Používá režim kalibrace nízké kapacity (base_power 2^58)
 
 ### Genesis zpráva
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Úprava obtížnosti**:
 - **Klouzavé okno**: `24` bloků
 - **Úprava**: Každý blok
-- **Algoritmus**: Exponenciální klouzavý průměr
+- **Algoritmus**: Vážený klouzavý průměr (ve stylu Burstcoin, limit ±20% na blok)
 
 **Zpoždění přiřazení**:
 - **Aktivace**: `30` bloků (~1 hodina)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Časování bloků**:
-- **Cílový čas bloku**: `1` sekunda (okamžitá těžba pro testování)
+- **Cílový čas bloku**: `120` sekund (těží se na vyžádání přes `generatetoaddress` v regtestu)
 - **Cílový časový rozsah**: `86400` sekund (1 den)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekund
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Klouzavé okno**: `24` bloků
 - **Povolit min obtížnost**: `true`
 - **Bez retargetingu**: `true`
-- **Kalibrace nízké kapacity**: `true` (používá 16-nonce kalibraci místo 1 TiB)
+- **Kalibrace nízké kapacity**: `true` (používá 64-nonce kalibraci ≈ 16 MiB místo 1 TiB)
 
 **Zpoždění přiřazení**:
-- **Aktivace**: `4` bloky (~4 sekundy)
-- **Revokace**: `8` bloků (~8 sekund)
+- **Aktivace**: `4` bloky (~8 minut při rozestupu 120s)
+- **Revokace**: `8` bloků (~16 minut při rozestupu 120s)
 
 ### Parametry signetu
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Cílové časy bloků**:
 - Mainnet/Testnet/Signet: `120` sekund
-- Regtest: `1` sekunda
+- Regtest: `120` sekund
 
 **TIMESTAMP_WINDOW**: `15` sekund (rovná se MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Parametry úpravy obtížnosti
 
 **Velikost klouzavého okna**: `24` bloků (všechny sítě)
-- Exponenciální klouzavý průměr nedávných časů bloků
+- Vážený klouzavý průměr nedávných časů bloků (ve stylu Burstcoin)
 - Úprava při každém bloku
 - Reaguje na změny kapacity
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (zpoždění aktivace):
 - Mainnet: `30` bloků (~1 hodina)
 - Testnet: `30` bloků (~1 hodina)
-- Regtest: `4` bloky (~4 sekundy)
+- Regtest: `4` bloky (~8 minut při rozestupu 120s)
 
 **nForgingRevocationDelay** (zpoždění revokace):
 - Mainnet: `720` bloků (~24 hodin)
 - Testnet: `720` bloků (~24 hodin)
-- Regtest: `8` bloků (~8 sekund)
+- Regtest: `8` bloků (~16 minut při rozestupu 120s)
 
 **Zdůvodnění**:
 - Zpoždění aktivace zabraňuje rychlému přeřazení během závodů o bloky

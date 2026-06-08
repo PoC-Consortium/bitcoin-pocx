@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Получение текущего делегирования
+            // Получение текущего делегирования — должно быть в состоянии ASSIGNED для отзыва
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Сохранение старого состояния для отмены
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # Определения маркеров, операции OP_RETURN, проверка владения
     │   ├── assignment_state.h     # Хелперы GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Функции запроса состояния делегирования
+    │   ├── replay.h               # Реорг/повтор эффектов делегирования
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (путь реорга)
     │   ├── transactions.h         # API создания транзакций кошелька
     │   └── transactions.cpp       # Функции кошелька create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPC create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, базовая цель генезиса, расписание компрессии
 ```
+
+> **Примечание:** Константы задержки делегирования `nForgingAssignmentDelay` / `nForgingRevocationDelay` находятся в `Consensus::Params` Bitcoin Core (`src/consensus/params.h`) и задаются для каждой сети в `src/kernel/chainparams.cpp` — а не в `pocx/consensus/params.h`.
 
 ## Характеристики производительности
 
@@ -766,9 +770,8 @@ src/
 
 ### Области покрытия тестами
 
-- Модульные тесты: `src/test/pocx_*_tests.cpp`
-- Функциональные тесты: `test/functional/feature_pocx_*.py`
-- Интеграционные тесты: Ручное тестирование с regtest
+- Модульные тесты: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Интеграционные тесты: regtest shell-скрипты в `scripts/assignments/` и `scripts/mining/`
 
 ## Правила консенсуса
 

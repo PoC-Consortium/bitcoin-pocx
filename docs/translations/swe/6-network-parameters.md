@@ -35,7 +35,7 @@ Fullständig referens för Bitcoin-PoCX-nätverkskonfiguration över alla nätve
 
 **Beräknade värden**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Använder lågkapacitetskalibreringläge
+- Regtest (120s): Använder lågkapacitetskalibreringläge (base_power 2^58)
 
 ### Genesismeddelande
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Svårighetsjustering**:
 - **Rullande fönster**: `24` block
 - **Justering**: Varje block
-- **Algoritm**: Exponentiellt glidande medelvärde
+- **Algoritm**: Viktat glidande medelvärde (Burstcoin-stil, ±20% per block-tak)
 
 **Tilldelningsfördröjningar**:
 - **Aktivering**: `30` block (~1 timme)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Blocktiming**:
-- **Blocktidsmål**: `1` sekund (omedelbar mining för testning)
+- **Blocktidsmål**: `120` sekunder (minas på begäran via `generatetoaddress` i regtest)
 - **Måltidsrymd**: `86400` sekunder (1 dag)
 - **MAX_FUTURE_BLOCK_TIME**: `15` sekunder
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Rullande fönster**: `24` block
 - **Tillåt minimsvårighet**: `true`
 - **Ingen omjustering**: `true`
-- **Lågkapacitetskalibrering**: `true` (använder 16-nonce-kalibrering istället för 1 TiB)
+- **Lågkapacitetskalibrering**: `true` (använder 64-nonce-kalibrering ≈ 16 MiB istället för 1 TiB)
 
 **Tilldelningsfördröjningar**:
-- **Aktivering**: `4` block (~4 sekunder)
-- **Återkallelse**: `8` block (~8 sekunder)
+- **Aktivering**: `4` block (~8 minuter vid 120s-avstånd)
+- **Återkallelse**: `8` block (~16 minuter vid 120s-avstånd)
 
 ### Signet-parametrar
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Blocktidsmål**:
 - Mainnet/Testnet/Signet: `120` sekunder
-- Regtest: `1` sekund
+- Regtest: `120` sekunder
 
 **TIMESTAMP_WINDOW**: `15` sekunder (lika med MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Svårighetsjusteringsparametrar
 
 **Rullande fönsterstorlek**: `24` block (alla nätverk)
-- Exponentiellt glidande medelvärde av senaste blocktider
+- Viktat glidande medelvärde av senaste blocktider (Burstcoin-stil)
 - Justering varje block
 - Responsiv för kapacitetsändringar
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (aktiveringsfördröjning):
 - Mainnet: `30` block (~1 timme)
 - Testnet: `30` block (~1 timme)
-- Regtest: `4` block (~4 sekunder)
+- Regtest: `4` block (~8 minuter vid 120s-avstånd)
 
 **nForgingRevocationDelay** (återkallelsefördröjning):
 - Mainnet: `720` block (~24 timmar)
 - Testnet: `720` block (~24 timmar)
-- Regtest: `8` block (~8 sekunder)
+- Regtest: `8` block (~16 minuter vid 120s-avstånd)
 
 **Motivering**:
 - Aktiveringsfördröjning förhindrar snabb omtilldelning under blockraces

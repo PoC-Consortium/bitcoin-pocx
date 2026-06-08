@@ -35,7 +35,7 @@ Referință completă pentru configurarea rețelei Bitcoin-PoCX în toate tipuri
 
 **Valori calculate**:
 - Mainnet/Testnet/Signet (120s): `36650387592`
-- Regtest (1s): Folosește modul de calibrare pentru capacitate redusă
+- Regtest (120s): Folosește modul de calibrare pentru capacitate redusă (base_power 2^58)
 
 ### Mesajul genesis
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Ajustarea dificultății**:
 - **Fereastră rulantă**: `24` blocuri
 - **Ajustare**: La fiecare bloc
-- **Algoritm**: Medie mobilă exponențială
+- **Algoritm**: Medie mobilă ponderată (stil Burstcoin, limită de ±20% per bloc)
 
 **Întârzieri atribuiri**:
 - **Activare**: `30` blocuri (~1 oră)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Sincronizarea blocurilor**:
-- **Ținta timp bloc**: `1` secundă (minerit instantaneu pentru testare)
+- **Ținta timp bloc**: `120` secunde (minat la cerere prin `generatetoaddress` în regtest)
 - **Interval țintă**: `86400` secunde (1 zi)
 - **MAX_FUTURE_BLOCK_TIME**: `15` secunde
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Fereastră rulantă**: `24` blocuri
 - **Permite dificultate minimă**: `true`
 - **Fără re-țintire**: `true`
-- **Calibrare capacitate redusă**: `true` (folosește calibrare de 16 nonce-uri în loc de 1 TiB)
+- **Calibrare capacitate redusă**: `true` (folosește calibrare de 64 nonce-uri ≈ 16 MiB în loc de 1 TiB)
 
 **Întârzieri atribuiri**:
-- **Activare**: `4` blocuri (~4 secunde)
-- **Revocare**: `8` blocuri (~8 secunde)
+- **Activare**: `4` blocuri (~8 minute la spațiere de 120s)
+- **Revocare**: `8` blocuri (~16 minute la spațiere de 120s)
 
 ### Parametri signet
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Ținte timp bloc**:
 - Mainnet/Testnet/Signet: `120` secunde
-- Regtest: `1` secundă
+- Regtest: `120` secunde
 
 **TIMESTAMP_WINDOW**: `15` secunde (egal cu MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Parametri de ajustare a dificultății
 
 **Dimensiunea ferestrei rulante**: `24` blocuri (toate rețelele)
-- Medie mobilă exponențială a timpilor recenți ai blocurilor
+- Medie mobilă ponderată a timpilor recenți ai blocurilor (stil Burstcoin)
 - Ajustare la fiecare bloc
 - Reactiv la schimbările de capacitate
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (întârziere de activare):
 - Mainnet: `30` blocuri (~1 oră)
 - Testnet: `30` blocuri (~1 oră)
-- Regtest: `4` blocuri (~4 secunde)
+- Regtest: `4` blocuri (~8 minute la spațiere de 120s)
 
 **nForgingRevocationDelay** (întârziere de revocare):
 - Mainnet: `720` blocuri (~24 ore)
 - Testnet: `720` blocuri (~24 ore)
-- Regtest: `8` blocuri (~8 secunde)
+- Regtest: `8` blocuri (~16 minute la spațiere de 120s)
 
 **Rațiune**:
 - Întârzierea de activare previne reatribuirea rapidă în timpul curselor de blocuri

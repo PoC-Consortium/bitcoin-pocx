@@ -12,7 +12,7 @@ Bitcoins Proof-of-Work (PoW)-Konsens bietet robuste Sicherheit, verbraucht jedoc
 
 Unsere Implementierung führt mehrere wichtige Innovationen ein:
 (1) Ein gehärtetes Plot-Format, das alle bekannten Zeit-Speicher-Kompromiss-Angriffe in bestehenden PoC-Systemen eliminiert und sicherstellt, dass die effektive Mining-Leistung strikt proportional zur zugewiesenen Speicherkapazität bleibt;
-(2) Den Time-Bending-Algorithmus, der Deadline-Verteilungen von exponentiell zu Chi-Quadrat transformiert und so die Blockzeit-Varianz ohne Änderung des Mittelwerts reduziert;
+(2) Den Time-Bending-Algorithmus, der Deadline-Verteilungen von exponentiell zu Weibull (shape k=3) transformiert und so die Blockzeit-Varianz ohne Änderung des Mittelwerts reduziert;
 (3) Einen OP_RETURN-basierten Forging-Zuweisungsmechanismus für nicht-verwahrtes Pool-Mining; und
 (4) Dynamische Kompressionsskalierung, die die Plot-Generierungsschwierigkeit entsprechend der Halving-Zeitpläne erhöht, um langfristige Sicherheitsmargen bei fortschreitender Hardware-Entwicklung zu erhalten.
 
@@ -297,14 +297,16 @@ Um die beabsichtigte Sicherheitsmarge zu erhalten, implementiert PoCX einen Skal
 
 Der Zeitplan richtet sich nach den wirtschaftlichen Anreizen des Netzwerks, insbesondere Blockbelohnungs-Halvings. Mit abnehmender Belohnung pro Block steigt das Mindestlevel allmählich und bewahrt die Balance zwischen Plotting-Aufwand und Mining-Potenzial:
 
-| Periode | Jahre | Halvings | Min-Skalierung | Plot-Arbeitsmultiplikator |
+| Periode | Jahre | Halvings | Min-Skalierung | Plot-Arbeit (vs. POC2-Basislinie) |
 |---------|-------|----------|----------------|---------------------------|
-| Epoche 0 | 0-4 | 0 | X1 | 2× Baseline |
-| Epoche 1 | 4-12 | 1-2 | X2 | 4× Baseline |
-| Epoche 2 | 12-28 | 3-6 | X3 | 8× Baseline |
-| Epoche 3 | 28-60 | 7-14 | X4 | 16× Baseline |
-| Epoche 4 | 60-124 | 15-30 | X5 | 32× Baseline |
-| Epoche 5 | 124+ | 31+ | X6 | 64× Baseline |
+| Epoche 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoche 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoche 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoche 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoche 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoche 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Die Multiplikatorspalte ist relativ zur ungehärteten **POC2**-Basislinie ausgedrückt. Da das gehärtete X1-Format bereits 2× die Arbeit von POC2 einbettet, entspricht Stufe Xn genau 2ⁿ × POC2 — gleichbedeutend mit 2^(n-1) × X1, was der Definition pro Stufe in Abschnitt 3.5 entspricht.
 
 Miner können optional Plots vorbereiten, die das aktuelle Minimum um eine Stufe überschreiten, was ihnen ermöglicht, vorauszuplanen und sofortige Upgrades zu vermeiden, wenn das Netzwerk zur nächsten Epoche wechselt. Dieser optionale Schritt bietet keinen zusätzlichen Vorteil in Bezug auf Blockwahrscheinlichkeit – er ermöglicht lediglich einen reibungsloseren betrieblichen Übergang.
 
@@ -438,11 +440,11 @@ Die folgenden Tabellen fassen die resultierenden Mainnet-, Testnet- und Regtest-
 | Magic Bytes | `0xfa 0xbf 0xb5 0xda` |
 | Standardport | 18444 |
 | Bech32 HRP | `rpocx` |
-| Blockzeit-Ziel | 1 Sekunde |
+| Blockzeit-Ziel | 120 Sekunden |
 | Halving-Intervall | 500 Blöcke |
 | Zuweisungsaktivierung | 4 Blöcke |
 | Zuweisungswiderruf | 8 Blöcke |
-| Low-Capacity-Modus | Aktiviert (~4 MB Plots) |
+| Low-Capacity-Modus | Aktiviert (~16 MiB Plots, 64 Nonces) |
 
 ---
 

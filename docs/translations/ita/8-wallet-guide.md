@@ -111,13 +111,13 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 5. La transazione viene trasmessa immediatamente
 6. L'assegnazione diventa attiva dopo `nForgingAssignmentDelay` blocchi:
    - Mainnet/Testnet: 30 blocchi (~1 ora)
-   - Regtest: 4 blocchi (~4 secondi)
+   - Regtest: 4 blocchi (~8 minuti a spaziatura di 120s)
 
 **Fee della transazione**: Default 10× `minRelayFee` (personalizzabile)
 
 **Struttura della transazione**:
 - Input: UTXO dall'indirizzo del plot (dimostra la proprietà)
-- Output OP_RETURN: marcatore `POCX` + plot_address + forging_address (44 byte)
+- Output OP_RETURN (script di 46 byte, payload dati di 44 byte): marcatore `POCX` + plot_address + forging_address
 - Output resto: Restituito al wallet
 
 #### Modalità 2: Revoca assegnazione
@@ -136,7 +136,7 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 4. La transazione viene trasmessa immediatamente
 5. La revoca diventa effettiva dopo `nForgingRevocationDelay` blocchi:
    - Mainnet/Testnet: 720 blocchi (~24 ore)
-   - Regtest: 8 blocchi (~8 secondi)
+   - Regtest: 8 blocchi (~16 minuti a spaziatura di 120s)
 
 **Effetto**:
 - L'indirizzo di forging può ancora forgiare durante il periodo di ritardo
@@ -145,7 +145,7 @@ Bitcoin-PoCX usa l'unità di valuta **BTCX** (non BTC):
 
 **Struttura della transazione**:
 - Input: UTXO dall'indirizzo del plot (dimostra la proprietà)
-- Output OP_RETURN: marcatore `XCOP` + plot_address (24 byte)
+- Output OP_RETURN (script di 26 byte, payload dati di 24 byte): marcatore `XCOP` + plot_address
 - Output resto: Restituito al wallet
 
 #### Modalità 3: Controlla stato assegnazione

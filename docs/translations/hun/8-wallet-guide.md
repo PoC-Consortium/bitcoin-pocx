@@ -112,13 +112,13 @@ A Bitcoin-PoCX **BTCX** pénznem egységet használ (nem BTC):
 5. Tranzakció azonnal közvetítve
 6. Megbízás aktív `nForgingAssignmentDelay` blokk után:
    - Mainnet/Testnet: 30 blokk (~1 óra)
-   - Regtest: 4 blokk (~4 másodperc)
+   - Regtest: 4 blokk (~8 perc 120mp-es ütemezésnél)
 
 **Tranzakciós Díj**: Alapértelmezett 10× `minRelayFee` (testre szabható)
 
 **Tranzakció Szerkezet**:
 - Bemenet: UTXO a plot címről (tulajdonjog bizonyítása)
-- OP_RETURN kimenet: `POCX` jelölő + plot_address + forging_address (46 bájt)
+- OP_RETURN kimenet (46 bájtos szkript, 44 bájtos adatcsomag): `POCX` jelölő + plot_address + forging_address
 - Visszajáró kimenet: Visszaadva a tárcának
 
 #### 2. Mód: Megbízás Visszavonása
@@ -137,7 +137,7 @@ A Bitcoin-PoCX **BTCX** pénznem egységet használ (nem BTC):
 4. Tranzakció azonnal közvetítve
 5. Visszavonás hatályos `nForgingRevocationDelay` blokk után:
    - Mainnet/Testnet: 720 blokk (~24 óra)
-   - Regtest: 8 blokk (~8 másodperc)
+   - Regtest: 8 blokk (~16 perc 120mp-es ütemezésnél)
 
 **Hatás**:
 - Kovácsolási cím továbbra is kovácsolhat a késleltetési időszakban
@@ -146,7 +146,7 @@ A Bitcoin-PoCX **BTCX** pénznem egységet használ (nem BTC):
 
 **Tranzakció Szerkezet**:
 - Bemenet: UTXO a plot címről (tulajdonjog bizonyítása)
-- OP_RETURN kimenet: `XCOP` jelölő + plot_address (26 bájt)
+- OP_RETURN kimenet (26 bájtos szkript, 24 bájtos adatcsomag): `XCOP` jelölő + plot_address
 - Visszajáró kimenet: Visszaadva a tárcának
 
 #### 3. Mód: Megbízás Állapot Ellenőrzése

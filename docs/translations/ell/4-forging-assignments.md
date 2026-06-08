@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Λήψη τρέχουσας ανάθεσης
+            // Λήψη τρέχουσας ανάθεσης - πρέπει να είναι σε κατάσταση ASSIGNED για ανάκληση
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Αποθήκευση παλιάς κατάστασης για αναίρεση
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 γραμμές] Ορισμοί δεικτών, λειτουργίες OP_RETURN, έλεγχος ιδιοκτησίας
     │   ├── assignment_state.h     # Βοηθοί GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # Συναρτήσεις ερωτήματος κατάστασης ανάθεσης
+    │   ├── replay.h               # Reorg/επανάληψη εφέ ανάθεσης
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (διαδρομή reorg)
     │   ├── transactions.h         # API δημιουργίας συναλλαγής πορτοφολιού
     │   └── transactions.cpp       # Συναρτήσεις πορτοφολιού create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPCs create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, base target genesis, πρόγραμμα συμπίεσης
 ```
+
+> **Σημείωση:** Οι σταθερές καθυστέρησης ανάθεσης `nForgingAssignmentDelay` / `nForgingRevocationDelay` βρίσκονται στο `Consensus::Params` του Bitcoin Core (`src/consensus/params.h`) και ορίζονται ανά δίκτυο στο `src/kernel/chainparams.cpp` — όχι στο `pocx/consensus/params.h`.
 
 ## Χαρακτηριστικά Επιδόσεων
 
@@ -766,9 +770,8 @@ src/
 
 ### Περιοχές Κάλυψης Δοκιμών
 
-- Unit tests: `src/test/pocx_*_tests.cpp`
-- Functional tests: `test/functional/feature_pocx_*.py`
-- Integration tests: Χειροκίνητες δοκιμές με regtest
+- Unit tests: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integration tests: regtest shell scripts στα `scripts/assignments/` και `scripts/mining/`
 
 ## Κανόνες Συναίνεσης
 

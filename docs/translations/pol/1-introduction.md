@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problem**: Tradycyjne czasy bloków PoC podlegają rozkładowi wykładniczemu, co prowadzi do długich bloków, gdy żaden górnik nie znajduje dobrego rozwiązania.
 
-**Rozwiązanie**: Transformacja rozkładu z wykładniczego do chi-kwadrat przy użyciu pierwiastka sześciennego: `Y = skala × (X^(1/3))`.
+**Rozwiązanie**: Transformacja rozkładu z wykładniczego do Weibulla (parametr kształtu k=3) przy użyciu pierwiastka sześciennego: `Y = skala × (X^(1/3))`.
 
 **Efekt**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Oparty na formacie POC2 (Burstcoin) z ulepszeniami:
 
 ## Podsumowanie specyfikacji technicznych
 
-- **Czas bloku**: 120 sekund (mainnet), 1 sekunda (regtest)
+- **Czas bloku**: 120 sekund (wszystkie sieci: mainnet, testnet, regtest)
 - **Dotacja blokowa**: 10 BTC początkowe, halving co 1050000 bloków (~4 lata)
 - **Całkowita podaż**: ~21 milionów BTC (tak jak Bitcoin)
 - **Tolerancja przyszłości**: 15 sekund (bloki do 15s w przyszłości akceptowane)

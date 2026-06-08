@@ -111,13 +111,13 @@ Bitcoin-PoCX izmanto **BTCX** valūtas vienību (nevis BTC):
 5. Darījums tiek pārraidīts nekavējoties
 6. Piešķīrums aktīvs pēc `nForgingAssignmentDelay` blokiem:
    - Mainnet/Testnet: 30 bloki (~1 stunda)
-   - Regtest: 4 bloki (~4 sekundes)
+   - Regtest: 4 bloki (~8 minūtes pie 120s intervāla)
 
 **Darījuma maksa**: Noklusējums 10× `minRelayFee` (pielāgojama)
 
 **Darījuma struktūra**:
 - Ievade: UTXO no plotfaila adreses (pierāda īpašumtiesības)
-- OP_RETURN izvade: `POCX` marķieris + plot_address + forging_address (46 baiti)
+- OP_RETURN izvade (46 baitu skripts, 44 baitu datu lietderīgā krava): `POCX` marķieris + plot_address + forging_address
 - Atlikuma izvade: Atgriezts maciņā
 
 #### 2. režīms: Atsaukt piešķīrumu
@@ -136,7 +136,7 @@ Bitcoin-PoCX izmanto **BTCX** valūtas vienību (nevis BTC):
 4. Darījums tiek pārraidīts nekavējoties
 5. Atsaukšana stājas spēkā pēc `nForgingRevocationDelay` blokiem:
    - Mainnet/Testnet: 720 bloki (~24 stundas)
-   - Regtest: 8 bloki (~8 sekundes)
+   - Regtest: 8 bloki (~16 minūtes pie 120s intervāla)
 
 **Efekts**:
 - Kalšanas adrese joprojām var kalst aizkaves periodā
@@ -145,7 +145,7 @@ Bitcoin-PoCX izmanto **BTCX** valūtas vienību (nevis BTC):
 
 **Darījuma struktūra**:
 - Ievade: UTXO no plotfaila adreses (pierāda īpašumtiesības)
-- OP_RETURN izvade: `XCOP` marķieris + plot_address (26 baiti)
+- OP_RETURN izvade (26 baitu skripts, 24 baitu datu lietderīgā krava): `XCOP` marķieris + plot_address
 - Atlikuma izvade: Atgriezts maciņā
 
 #### 3. režīms: Pārbaudīt piešķīruma statusu

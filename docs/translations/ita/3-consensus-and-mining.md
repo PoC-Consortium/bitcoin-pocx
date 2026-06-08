@@ -26,7 +26,7 @@ Bitcoin-PoCX implementa un meccanismo di consenso Proof of Capacity puro come so
 
 **Proprietà chiave:**
 - **Efficiente dal punto di vista energetico:** Il mining utilizza file plot pre-generati invece dell'hashing computazionale
-- **Deadline con Time Bending:** Trasformazione della distribuzione (esponenziale→chi-quadrato) riduce i blocchi lunghi, migliora i tempi medi di blocco
+- **Deadline con Time Bending:** Trasformazione della distribuzione (esponenziale→Weibull, forma k=3) riduce i blocchi lunghi, migliora i tempi medi di blocco
 - **Supporto alle assegnazioni:** I proprietari dei plot possono delegare i diritti di forging ad altri indirizzi
 - **Integrazione nativa in C++:** Algoritmi crittografici implementati in C++ per la validazione del consenso
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Blocco genesis:** Utilizza una generation signature iniziale codificata staticamente
 
-**Implementazione:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementazione:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (chiamata da `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Difficoltà)
 
 Il base target è l'inverso della difficoltà - valori più alti significano mining più facile.
 
 **Algoritmo di regolazione:**
-- Tempo di blocco target: 120 secondi (mainnet), 1 secondo (regtest)
+- Tempo di blocco target: 120 secondi (tutte le reti)
 - Intervallo di regolazione: Ogni blocco
 - Utilizza la media mobile dei base target recenti
 - Limitato per prevenire oscillazioni estreme della difficoltà
@@ -112,7 +112,7 @@ PoCX supporta il proof-of-work scalabile nei file plot attraverso i livelli di s
 
 **Limiti dinamici:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Livello minimo accettato
     uint32_t nPoCXTargetCompression;  // Livello raccomandato
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Passo 2: Acquisizione del contesto
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Restituisce: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ dove:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Scopo:** Trasforma la distribuzione esponenziale in chi-quadrato. Le soluzioni molto buone vengono forgiate più tardi (la rete ha tempo di scansionare i dischi), le soluzioni scadenti vengono migliorate. Riduce i blocchi lunghi, mantiene la media di 120s.
+**Scopo:** Trasforma la distribuzione esponenziale in Weibull (forma k=3). Le soluzioni molto buone vengono forgiate più tardi (la rete ha tempo di scansionare i dischi), le soluzioni scadenti vengono migliorate. Riduce i blocchi lunghi, mantiene la media di 120s.
 
 **Implementazione:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Destinatario Coinbase** (non imposto dal consenso):
+
+Il miner imposta l'output coinbase per pagare il firmatario effettivo (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), ma questo **non** è validato dal consenso. Il consenso impone solo che la *firma del blocco* sia prodotta dal firmatario effettivo — il controllo `bad-pocx-assignment-sig` qui sopra. Non esiste alcuna regola `bad-pocx-coinbase`; il destinatario del coinbase è scelto dal miner.
+
 **Implementazione:**
 - Connessione: `src/validation.cpp:ConnectBlock()`
 - Validazione estesa: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Le assegnazioni permettono ai proprietari dei plot di delegare i diritti di forg
 - Le assegnazioni sono memorizzate in output OP_RETURN (nessun UTXO)
 - Nessun requisito di spesa (nessun dust, nessuna fee per mantenere)
 - Tracciate nello stato esteso di CCoinsViewCache
-- Attivate dopo un periodo di ritardo (default: 4 blocchi)
+- Attivate dopo un periodo di ritardo (default: 30 blocchi; 4 su regtest)
 
 **Stati delle assegnazioni:**
 ```cpp

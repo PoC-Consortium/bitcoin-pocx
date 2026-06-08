@@ -107,13 +107,13 @@ Bitcoin-PoCX inatumia kitengo cha sarafu **BTCX** (sio BTC):
 5. Muamala unatangazwa mara moja
 6. Ugawaji unakuwa hai baada ya bloku `nForgingAssignmentDelay`:
    - Mainnet/Testnet: bloku 30 (~saa 1)
-   - Regtest: bloku 4 (~sekunde 4)
+   - Regtest: bloku 4 (~dakika 8 kwa nafasi ya 120s)
 
 **Ada ya Muamala**: Default 10× `minRelayFee` (inaweza kusanidiwa)
 
 **Muundo wa Muamala**:
 - Ingizo: UTXO kutoka anwani ya plot (inathibitisha umiliki)
-- Tokeo la OP_RETURN: Alama ya `POCX` + plot_address + forging_address (byte 46)
+- Tokeo la OP_RETURN: Alama ya `POCX` + plot_address + forging_address (skripti ya byte 46, mzigo wa data wa byte 44)
 - Tokeo la chenji: Inarudi kwa pochi
 
 #### Hali ya 2: Batilisha Ugawaji
@@ -132,7 +132,7 @@ Bitcoin-PoCX inatumia kitengo cha sarafu **BTCX** (sio BTC):
 4. Muamala unatangazwa mara moja
 5. Kubatilisha kunakuwa hai baada ya bloku `nForgingRevocationDelay`:
    - Mainnet/Testnet: bloku 720 (~saa 24)
-   - Regtest: bloku 8 (~sekunde 8)
+   - Regtest: bloku 8 (~dakika 16 kwa nafasi ya 120s)
 
 **Athari**:
 - Anwani ya kuunda bado inaweza kuunda wakati wa kipindi cha ucheleweshaji
@@ -141,7 +141,7 @@ Bitcoin-PoCX inatumia kitengo cha sarafu **BTCX** (sio BTC):
 
 **Muundo wa Muamala**:
 - Ingizo: UTXO kutoka anwani ya plot (inathibitisha umiliki)
-- Tokeo la OP_RETURN: Alama ya `XCOP` + plot_address (byte 26)
+- Tokeo la OP_RETURN: Alama ya `XCOP` + plot_address (skripti ya byte 26, mzigo wa data wa byte 24)
 - Tokeo la chenji: Inarudi kwa pochi
 
 #### Hali ya 3: Angalia Hali ya Ugawaji

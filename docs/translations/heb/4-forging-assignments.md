@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // קבלת הקצאה נוכחית
+            // קבלת הקצאה נוכחית - חייבת להיות במצב ASSIGNED כדי לבטל
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // אחסון מצב ישן ל-undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -612,7 +612,7 @@ bitcoin-cli get_assignment "pocx1qplot..."
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -688,6 +688,8 @@ src/
     │   ├── opcodes.cpp            # [259 שורות] הגדרות סמנים, פעולות OP_RETURN, בדיקת בעלות
     │   ├── assignment_state.h     # עוזרי GetEffectiveSigner, GetAssignmentState
     │   ├── assignment_state.cpp   # פונקציות שאילתת מצב הקצאה
+    │   ├── replay.h               # ארגון מחדש/שחזור של אפקטי הקצאה
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (נתיב reorg)
     │   ├── transactions.h         # API יצירת עסקת ארנק
     │   └── transactions.cpp       # פונקציות ארנק create_assignment, revoke_assignment
     │
@@ -698,8 +700,10 @@ src/
     │   └── assignments_wallet.cpp # RPCs create_assignment, revoke_assignment
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, base target בראשית, לוח זמני דחיסה
 ```
+
+> **הערה:** קבועי העיכוב `nForgingAssignmentDelay` / `nForgingRevocationDelay` נמצאים ב-`Consensus::Params` של Bitcoin Core (`src/consensus/params.h`) ונקבעים לכל רשת ב-`src/kernel/chainparams.cpp` — לא ב-`pocx/consensus/params.h`.
 
 ## מאפייני ביצועים
 
@@ -766,9 +770,8 @@ src/
 
 ### אזורי כיסוי בדיקות
 
-- בדיקות יחידה: `src/test/pocx_*_tests.cpp`
-- בדיקות פונקציונליות: `test/functional/feature_pocx_*.py`
-- בדיקות אינטגרציה: בדיקה ידנית עם regtest
+- בדיקות יחידה: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- בדיקות אינטגרציה: סקריפטי shell של regtest תחת `scripts/assignments/` ו-`scripts/mining/`
 
 ## כללי קונצנזוס
 

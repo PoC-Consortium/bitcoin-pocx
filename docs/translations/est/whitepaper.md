@@ -12,7 +12,7 @@ Bitcoin'i tööst tuletatud tõestuse (Proof-of-Work, PoW) konsensus pakub tugev
 
 Meie implementatsioon tutvustab mitmeid põhilisi uuendusi:
 (1) Karastatud graafikuvorming, mis elimineerib kõik teadaolevad aja-mälu kompromissrünnakud olemasolevates PoC süsteemides, tagades, et efektiivne kaevandusvõimsus jääb rangelt proportsionaalseks pühendatud hoiustusmahtuvusega;
-(2) Ajapainde algoritm, mis teisendab tähtaegade jaotused eksponentsiaalsest hii-ruut jaotuseks, vähendades plokkide aja varieeruvust keskmist muutmata;
+(2) Ajapainde algoritm, mis teisendab tähtaegade jaotused eksponentsiaalsest Weibull (kuju k=3) jaotuseks, vähendades plokkide aja varieeruvust keskmist muutmata;
 (3) OP_RETURN-põhine sepistamisülesannete mehhanism, mis võimaldab mitte-hoiustavat basseinikaevandamist; ja
 (4) Dünaamiline kompressiooni skaleerimine, mis suurendab graafikugenereerimise raskust vastavalt poolnemise graafikutele, et säilitada pikaajalisi ohutuspiire riistvara paranedes.
 
@@ -297,14 +297,16 @@ Kavandatud ohutuspiiri säilitamiseks implementeerib PoCX skaleerimisgraafiku: g
 
 Graafik joondub võrgu majanduslike stiimulitega, eriti ploki tasu poolnemistega. Kui tasu ploki kohta väheneb, minimaalne tase järk-järgult suureneb, säilitades tasakaalu graafikukoostamise pingutuse ja kaevandamise potentsiaali vahel:
 
-| Periood | Aastad | Poolnemised | Min skaleerimine | Graafiku töö kordaja |
+| Periood | Aastad | Poolnemised | Min skaleerimine | Graafiku töö (vs POC2 baastase) |
 |---------|--------|-------------|------------------|----------------------|
-| Epohh 0 | 0-4 | 0 | X1 | 2× baastase |
-| Epohh 1 | 4-12 | 1-2 | X2 | 4× baastase |
-| Epohh 2 | 12-28 | 3-6 | X3 | 8× baastase |
-| Epohh 3 | 28-60 | 7-14 | X4 | 16× baastase |
-| Epohh 4 | 60-124 | 15-30 | X5 | 32× baastase |
-| Epohh 5 | 124+ | 31+ | X6 | 64× baastase |
+| Epohh 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epohh 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epohh 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epohh 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epohh 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epohh 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+Kordaja veerg on väljendatud karastamata **POC2** baastaseme suhtes. Kuna karastatud X1 vorming sisaldab juba 2× POC2 tööd, võrdub tase Xn 2ⁿ × POC2 — samaväärselt 2^(n-1) × X1, mis vastab tasemepõhisele definitsioonile jaotises 3.5.
 
 Kaevandajad võivad valikuliselt valmistada graafikuid, mis ületavad praegust miinimumi ühe taseme võrra, võimaldades neil planeerida ette ja vältida koheseid uuendusi, kui võrk läheb üle järgmisesse epohhi. See valikuline samm ei anna täiendavat eelist ploki tõenäosuse osas - see lihtsalt võimaldab sujuvamat operatiivset üleminekut.
 
@@ -438,11 +440,11 @@ Allolevad tabelid võtavad kokku tuleneva mainnet'i, testivõrgu ja regtest'i se
 | Maagilised baidid | `0xfa 0xbf 0xb5 0xda` |
 | Vaikeport | 18444 |
 | Bech32 HRP | `rpocx` |
-| Plokkide aja sihtmärk | 1 sekund |
+| Plokkide aja sihtmärk | 120 sekundit |
 | Poolnemise intervall | 500 plokki |
 | Ülesande aktiveerimine | 4 plokki |
 | Ülesande tühistamine | 8 plokki |
-| Madala mahtuvuse režiim | Lubatud (~4 MB graafikud) |
+| Madala mahtuvuse režiim | Lubatud (~16 MiB graafikud, 64 nonce'i) |
 
 ---
 

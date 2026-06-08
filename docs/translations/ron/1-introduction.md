@@ -78,7 +78,7 @@ bitcoin-pocx/
 
 **Problema**: Timpii blocurilor PoC tradiționale urmează o distribuție exponențială, ducând la blocuri lungi când niciun miner nu găsește o soluție bună.
 
-**Soluția**: Transformarea distribuției din exponențială în chi-pătrat folosind rădăcina cubică: `Y = scala × (X^(1/3))`.
+**Soluția**: Transformarea distribuției din exponențială în Weibull (parametru de formă k=3) folosind rădăcina cubică: `Y = scala × (X^(1/3))`.
 
 **Efectul**: Extremely fast blocks are delayed and extremely slow blocks are shortened, reducing variance while preserving average block time at 120 seconds.
 
@@ -254,7 +254,7 @@ Bazat pe formatul POC2 (Burstcoin) cu îmbunătățiri:
 
 ## Rezumatul specificațiilor tehnice
 
-- **Timp bloc**: 120 secunde (mainnet), 1 secundă (regtest)
+- **Timp bloc**: 120 secunde (toate rețelele: mainnet, testnet, regtest)
 - **Subvenție bloc**: 10 BTC inițial, înjumătățire la fiecare 1050000 blocuri (~4 ani)
 - **Ofertă totală**: ~21 milioane BTC (la fel ca Bitcoin)
 - **Toleranță viitor**: 15 secunde (blocurile cu până la 15s în avans sunt acceptate)

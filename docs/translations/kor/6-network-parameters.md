@@ -35,7 +35,7 @@
 
 **계산된 값**:
 - 메인넷/테스트넷/시그넷 (120초): `36650387592`
-- Regtest (1초): 저용량 캘리브레이션 모드 사용
+- Regtest (120초): 저용량 캘리브레이션 모드 사용 (base_power 2^58)
 
 ### 제네시스 메시지
 
@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **난이도 조정**:
 - **롤링 윈도우**: `24` 블록
 - **조정**: 매 블록
-- **알고리즘**: 지수 이동 평균
+- **알고리즘**: 가중 이동 평균 (Burstcoin 스타일, 블록당 ±20% 캡)
 
 **할당 지연**:
 - **활성화**: `30` 블록 (~1시간)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **블록 타이밍**:
-- **블록 시간 목표**: `1`초 (테스트용 즉시 채굴)
+- **블록 시간 목표**: `120`초 (regtest에서 `generatetoaddress`로 온디맨드 채굴)
 - **목표 시간 범위**: `86400`초 (1일)
 - **MAX_FUTURE_BLOCK_TIME**: `15`초
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **롤링 윈도우**: `24` 블록
 - **최소 난이도 허용**: `true`
 - **재타겟팅 없음**: `true`
-- **저용량 캘리브레이션**: `true` (1 TiB 대신 16-논스 캘리브레이션 사용)
+- **저용량 캘리브레이션**: `true` (1 TiB 대신 64-논스 캘리브레이션 ≈ 16 MiB 사용)
 
 **할당 지연**:
-- **활성화**: `4` 블록 (~4초)
-- **취소**: `8` 블록 (~8초)
+- **활성화**: `4` 블록 (120초 간격에서 ~8분)
+- **취소**: `8` 블록 (120초 간격에서 ~16분)
 
 ### 시그넷 매개변수
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **블록 시간 목표**:
 - 메인넷/테스트넷/시그넷: `120`초
-- Regtest: `1`초
+- Regtest: `120`초
 
 **TIMESTAMP_WINDOW**: `15`초 (MAX_FUTURE_BLOCK_TIME과 동일)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### 난이도 조정 매개변수
 
 **롤링 윈도우 크기**: `24` 블록 (모든 네트워크)
-- 최근 블록 시간의 지수 이동 평균
+- 최근 블록 시간의 가중 이동 평균 (Burstcoin 스타일)
 - 매 블록 조정
 - 용량 변화에 대응
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (활성화 지연):
 - 메인넷: `30` 블록 (~1시간)
 - 테스트넷: `30` 블록 (~1시간)
-- Regtest: `4` 블록 (~4초)
+- Regtest: `4` 블록 (120초 간격에서 ~8분)
 
 **nForgingRevocationDelay** (취소 지연):
 - 메인넷: `720` 블록 (~24시간)
 - 테스트넷: `720` 블록 (~24시간)
-- Regtest: `8` 블록 (~8초)
+- Regtest: `8` 블록 (120초 간격에서 ~16분)
 
 **근거**:
 - 활성화 지연은 블록 경쟁 중 빠른 재할당 방지

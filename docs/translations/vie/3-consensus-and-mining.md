@@ -26,7 +26,7 @@ Bitcoin-PoCX triển khai một cơ chế đồng thuận Proof of Capacity thu�
 
 **Các Thuộc tính Chính:**
 - **Tiết kiệm Năng lượng:** Đào sử dụng các tệp plot được tạo trước thay vì hash tính toán
-- **Deadline được Time Bend:** Biến đổi phân phối (mũ→chi bình phương) giảm khối dài, cải thiện thời gian khối trung bình
+- **Deadline được Time Bend:** Biến đổi phân phối (mũ→Weibull, hình dạng k=3) giảm khối dài, cải thiện thời gian khối trung bình
 - **Hỗ trợ Ủy quyền:** Chủ sở hữu plot có thể ủy quyền quyền forging cho các địa chỉ khác
 - **Tích hợp C++ Native:** Các thuật toán mật mã được triển khai trong C++ để xác thực đồng thuận
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Khối Genesis:** Sử dụng chữ ký sinh khởi tạo được hardcode
 
-**Triển khai:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Triển khai:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (được gọi từ `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Mục tiêu Cơ sở (Độ khó)
 
 Mục tiêu cơ sở là nghịch đảo của độ khó - giá trị cao hơn nghĩa là đào dễ hơn.
 
 **Thuật toán Điều chỉnh:**
-- Thời gian khối mục tiêu: 120 giây (mainnet), 1 giây (regtest)
+- Thời gian khối mục tiêu: 120 giây (tất cả các mạng)
 - Khoảng điều chỉnh: Mỗi khối
 - Sử dụng trung bình trượt của các mục tiêu cơ sở gần đây
 - Được giới hạn để ngăn dao động độ khó cực đoan
@@ -112,7 +112,7 @@ PoCX hỗ trợ proof-of-work có thể mở rộng trong các tệp plot thông
 
 **Giới hạn Động:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Cấp độ tối thiểu được chấp nhận
     uint32_t nPoCXTargetCompression;  // Cấp độ khuyến nghị
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Bước 2: Lấy Ngữ cảnh
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Trả về: height, generation_signature, base_target, block_hash
 ```
 
@@ -272,7 +272,7 @@ trong đó:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Mục đích:** Biến đổi phân phối mũ thành chi bình phương. Các lời giải rất tốt được forge muộn hơn (mạng có thời gian quét đĩa), các lời giải kém được cải thiện. Giảm khối dài, duy trì trung bình 120 giây.
+**Mục đích:** Biến đổi phân phối mũ thành Weibull (hình dạng k=3). Các lời giải rất tốt được forge muộn hơn (mạng có thời gian quét đĩa), các lời giải kém được cải thiện. Giảm khối dài, duy trì trung bình 120 giây.
 
 **Triển khai:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -565,6 +565,10 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
+**Người nhận Coinbase** (không được đồng thuận thực thi):
+
+Thợ đào đặt đầu ra coinbase để trả cho người ký hiệu quả (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), nhưng điều này **không** được đồng thuận xác thực. Đồng thuận chỉ thực thi rằng *chữ ký khối* được tạo bởi người ký hiệu quả — kiểm tra `bad-pocx-assignment-sig` ở trên. Không có quy tắc `bad-pocx-coinbase`; người nhận coinbase do thợ đào lựa chọn.
+
 **Triển khai:**
 - Kết nối: `src/validation.cpp:ConnectBlock()`
 - Xác thực mở rộng: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
@@ -625,7 +629,7 @@ Lan truyền Mạng
 - Ủy quyền được lưu trong đầu ra OP_RETURN (không có UTXO)
 - Không yêu cầu chi tiêu (không dust, không phí giữ)
 - Theo dõi trong trạng thái mở rộng CCoinsViewCache
-- Được kích hoạt sau khoảng trễ (mặc định: 4 khối)
+- Được kích hoạt sau khoảng trễ (mặc định: 30 khối; 4 trên regtest)
 
 **Các Trạng thái Ủy quyền:**
 ```cpp
