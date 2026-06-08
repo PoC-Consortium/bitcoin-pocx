@@ -110,13 +110,13 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 5. Transaction broadcast immediately
 6. Assignment active after `nForgingAssignmentDelay` blocks:
    - Mainnet/Testnet: 30 blocks (~1 hour)
-   - Regtest: 4 blocks (~4 seconds)
+   - Regtest: 4 blocks (~8 minutes at 120s spacing)
 
 **Transaction Fee**: Default 10× `minRelayFee` (customizable)
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- OP_RETURN output: `POCX` marker + plot_address + forging_address (44 bytes)
+- OP_RETURN output (46-byte script, 44-byte data payload): `POCX` marker + plot_address + forging_address
 - Change output: Returned to wallet
 
 #### Mode 2: Revoke Assignment
@@ -135,7 +135,7 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 4. Transaction broadcast immediately
 5. Revocation effective after `nForgingRevocationDelay` blocks:
    - Mainnet/Testnet: 720 blocks (~24 hours)
-   - Regtest: 8 blocks (~8 seconds)
+   - Regtest: 8 blocks (~16 minutes at 120s spacing)
 
 **Effect**:
 - Forging address can still forge during delay period
@@ -144,7 +144,7 @@ Bitcoin-PoCX uses **BTCX** currency unit (not BTC):
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- OP_RETURN output: `XCOP` marker + plot_address (24 bytes)
+- OP_RETURN output (26-byte script, 24-byte data payload): `XCOP` marker + plot_address
 - Change output: Returned to wallet
 
 #### Mode 3: Check Assignment Status

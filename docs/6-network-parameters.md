@@ -70,7 +70,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **Difficulty Adjustment**:
 - **Rolling Window**: `24` blocks
 - **Adjustment**: Every block
-- **Algorithm**: Exponential moving average
+- **Algorithm**: Weighted moving average (Burstcoin-style, ±20% per-block cap)
 
 **Assignment Delays**:
 - **Activation**: `30` blocks (~1 hour)
@@ -117,7 +117,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - SECRET_KEY: `239`
 
 **Block Timing**:
-- **Block Time Target**: `1` second (instant mining for testing)
+- **Block Time Target**: `120` seconds (mined on demand via `generatetoaddress` in regtest)
 - **Target Timespan**: `86400` seconds (1 day)
 - **MAX_FUTURE_BLOCK_TIME**: `15` seconds
 
@@ -129,11 +129,11 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 - **Rolling Window**: `24` blocks
 - **Allow Min Difficulty**: `true`
 - **No Retargeting**: `true`
-- **Low Capacity Calibration**: `true` (uses 16-nonce calibration instead of 1 TiB)
+- **Low Capacity Calibration**: `true` (uses 64-nonce calibration ≈ 16 MiB instead of 1 TiB)
 
 **Assignment Delays**:
-- **Activation**: `4` blocks (~4 seconds)
-- **Revocation**: `8` blocks (~8 seconds)
+- **Activation**: `4` blocks (~8 minutes at 120s spacing)
+- **Revocation**: `8` blocks (~16 minutes at 120s spacing)
 
 ### Signet Parameters
 
@@ -170,7 +170,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 
 **Block Time Targets**:
 - Mainnet/Testnet/Signet: `120` seconds
-- Regtest: `1` second
+- Regtest: `120` seconds
 
 **TIMESTAMP_WINDOW**: `15` seconds (equals MAX_FUTURE_BLOCK_TIME)
 
@@ -179,7 +179,7 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 ### Difficulty Adjustment Parameters
 
 **Rolling Window Size**: `24` blocks (all networks)
-- Exponential moving average of recent block times
+- Weighted moving average of recent block times (Burstcoin-style)
 - Every-block adjustment
 - Responsive to capacity changes
 
@@ -190,12 +190,12 @@ Each network has its own genesis message. See `src/kernel/chainparams.cpp` for d
 **nForgingAssignmentDelay** (activation delay):
 - Mainnet: `30` blocks (~1 hour)
 - Testnet: `30` blocks (~1 hour)
-- Regtest: `4` blocks (~4 seconds)
+- Regtest: `4` blocks (~8 minutes at 120s spacing)
 
 **nForgingRevocationDelay** (revocation delay):
 - Mainnet: `720` blocks (~24 hours)
 - Testnet: `720` blocks (~24 hours)
-- Regtest: `8` blocks (~8 seconds)
+- Regtest: `8` blocks (~16 minutes at 120s spacing)
 
 **Rationale**:
 - Activation delay prevents rapid reassignment during block races

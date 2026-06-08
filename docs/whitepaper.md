@@ -12,7 +12,7 @@ Bitcoin's Proof-of-Work (PoW) consensus provides robust security but consumes su
 
 Our implementation introduces several key innovations:
 (1) A hardened plot format that eliminates all known time–memory-tradeoff attacks in existing PoC systems, ensuring that effective mining power remains strictly proportional to committed storage capacity;
-(2) The Time-Bending algorithm, which transforms deadline distributions from exponential to chi-squared, reducing block-time variance without altering the mean;
+(2) The Time-Bending algorithm, which transforms deadline distributions from exponential to Weibull (shape k=3), reducing block-time variance without altering the mean;
 (3) An OP_RETURN-based forging-assignment mechanism enabling non-custodial pool mining; and
 (4) Dynamic compression scaling, which increases plot-generation difficulty in alignment with halving schedules to maintain long-term security margins as hardware improves.
 
@@ -297,14 +297,16 @@ To preserve the intended security margin, PoCX implements a scaling schedule: th
 
 The schedule aligns with the network's economic incentives, particularly block reward halvings. As the reward per block decreases, the minimum level gradually increases, preserving the balance between plotting effort and mining potential:
 
-| Period | Years | Halvings | Min Scaling | Plot Work Multiplier |
+| Period | Years | Halvings | Min Scaling | Plot Work (vs POC2 baseline) |
 |--------|-------|----------|-------------|---------------------|
-| Epoch 0 | 0-4 | 0 | X1 | 2× baseline |
-| Epoch 1 | 4-12 | 1-2 | X2 | 4× baseline |
-| Epoch 2 | 12-28 | 3-6 | X3 | 8× baseline |
-| Epoch 3 | 28-60 | 7-14 | X4 | 16× baseline |
-| Epoch 4 | 60-124 | 15-30 | X5 | 32× baseline |
-| Epoch 5 | 124+ | 31+ | X6 | 64× baseline |
+| Epoch 0 | 0-4 | 0 | X1 | 2× POC2 |
+| Epoch 1 | 4-12 | 1-2 | X2 | 4× POC2 |
+| Epoch 2 | 12-28 | 3-6 | X3 | 8× POC2 |
+| Epoch 3 | 28-60 | 7-14 | X4 | 16× POC2 |
+| Epoch 4 | 60-124 | 15-30 | X5 | 32× POC2 |
+| Epoch 5 | 124+ | 31+ | X6 | 64× POC2 |
+
+The multiplier column is expressed relative to the unhardened **POC2** baseline. Since the hardened X1 format already embeds 2× the work of POC2, level Xn equals 2ⁿ × POC2 — equivalently 2^(n-1) × X1, matching the per-level definition in Section 3.5.
 
 Miners may optionally prepare plots exceeding the current minimum by one level, allowing them to plan ahead and avoid immediate upgrades when the network transitions to the next epoch. This optional step does not confer additional advantage in terms of block probability—it merely allows a smoother operational transition.
 
@@ -438,11 +440,11 @@ The tables below summarize the resulting mainnet, testnet, and regtest settings,
 | Magic bytes | `0xfa 0xbf 0xb5 0xda` |
 | Default port | 18444 |
 | Bech32 HRP | `rpocx` |
-| Block time target | 1 second |
+| Block time target | 120 seconds |
 | Halving interval | 500 blocks |
 | Assignment activation | 4 blocks |
 | Assignment revocation | 8 blocks |
-| Low-capacity mode | Enabled (~4 MB plots) |
+| Low-capacity mode | Enabled (~16 MiB plots, 64 nonces) |
 
 ---
 

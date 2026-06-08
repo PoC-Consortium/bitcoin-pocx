@@ -87,7 +87,7 @@ bitcoin-cli get_mining_info
 2. `height` (numeric, required) - Block height
 3. `generation_signature` (string hex, required) - Generation signature (64 characters)
 4. `base_target` (numeric, required) - Base target for this block
-5. `account_id` (string, required) - Account ID (20-byte hex or address)
+5. `account_id` (string, required) - Account ID (exactly 40 hex characters = 20 bytes; an address is not accepted)
 6. `seed` (string, required) - Plot seed (64 hex characters = 32 bytes)
 7. `nonce` (numeric, required) - Mining nonce
 8. `compression` (numeric, required) - Compression level used (1-6)
@@ -96,19 +96,12 @@ bitcoin-cli get_mining_info
 **Return Values** (success):
 ```json
 {
-  "accepted": true,
   "raw_quality": 120,       // raw quality from proof validation
   "poc_time": 45            // time-bended forge time in seconds
 }
 ```
 
-**Return Values** (rejected):
-```json
-{
-  "accepted": false,
-  "error": "Generation signature mismatch"
-}
-```
+There is no `accepted` field. On rejection the RPC does **not** return a JSON object — it throws a `JSONRPCError` (see Error Codes below).
 
 **Validation Steps**:
 1. **Format Validation** (fail-fast):
@@ -129,10 +122,11 @@ bitcoin-cli get_mining_info
    - Queue nonce for time-bended forging
    - Block will be created automatically at forge_time
 
-**Error Codes**:
-- `RPC_INVALID_PARAMETER`: Invalid format (account_id, seed) or height mismatch
+**Error Codes** (thrown as `JSONRPCError`):
+- `RPC_INVALID_PARAMETER`: Invalid format (account_id, seed) or height mismatch (`"Invalid height: expected X, got Y"`)
 - `RPC_VERIFY_REJECTED`: Generation signature mismatch or proof validation failed
 - `RPC_INVALID_ADDRESS_OR_KEY`: No private key for effective signer
+- `RPC_WALLET_UNLOCK_NEEDED`: Wallet holding the effective signer's key is locked (unlock with `walletpassphrase`)
 - `RPC_CLIENT_IN_INITIAL_DOWNLOAD`: Submission queue full
 - `RPC_INTERNAL_ERROR`: Failed to initialize PoCX scheduler
 
@@ -255,7 +249,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 **Parameters**:
 1. `plot_address` (string, required) - Plot owner address (must own private key, P2WPKH bech32)
 2. `forging_address` (string, required) - Address to assign forging rights to (P2WPKH bech32)
-3. `fee_rate` (numeric, optional) - Fee rate in BTC/kvB (default: 10× minRelayFee)
+3. `fee_rate` (numeric, optional) - Fee rate in BTCX/kvB (default: `0` → wallet's standard minimum-fee estimate; the 10× minRelayFee default applies only to the Qt GUI dialog, not this RPC)
 
 **Return Values**:
 ```json
@@ -276,7 +270,7 @@ bitcoin-cli get_assignment "pocx1qplot..." 800000
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- Output: OP_RETURN (46 bytes): `POCX` marker + plot_address (20 bytes) + forging_address (20 bytes)
+- Output: OP_RETURN script (46 bytes) = `OP_RETURN` opcode + 1-byte push length + 44-byte data payload (`POCX` marker 4 + plot_address 20 + forging_address 20)
 - Output: Change returned to wallet
 
 **Activation**:
@@ -310,7 +304,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Parameters**:
 1. `plot_address` (string, required) - Plot address (must own private key, P2WPKH bech32)
-2. `fee_rate` (numeric, optional) - Fee rate in BTC/kvB (default: 10× minRelayFee)
+2. `fee_rate` (numeric, optional) - Fee rate in BTCX/kvB (default: `0` → wallet's standard minimum-fee estimate; the 10× minRelayFee default applies only to the Qt GUI dialog, not this RPC)
 
 **Return Values**:
 ```json
@@ -329,7 +323,7 @@ bitcoin-cli create_assignment "pocx1qplot..." "pocx1qforger..." 0.0001
 
 **Transaction Structure**:
 - Input: UTXO from plot address (proves ownership)
-- Output: OP_RETURN (26 bytes): `XCOP` marker + plot_address (20 bytes)
+- Output: OP_RETURN script (26 bytes) = `OP_RETURN` opcode + 1-byte push length + 24-byte data payload (`XCOP` marker 4 + plot_address 20)
 - Output: Change returned to wallet
 
 **Effect**:
@@ -524,22 +518,23 @@ while True:
     # 2. Scan plot files (external implementation)
     best_nonce = scan_plots(gen_sig, height)
 
-    # 3. Submit best solution
-    result = rpc_call("submit_nonce", [
-        info["block_hash"],
-        height,
-        gen_sig,
-        base_target,
-        best_nonce["account_id"],
-        best_nonce["seed"],
-        best_nonce["nonce"],
-        best_nonce["compression"],
-        best_nonce["raw_quality"]
-    ])
-
-    if result["accepted"]:
+    # 3. Submit best solution (raises JSONRPCError on rejection)
+    try:
+        result = rpc_call("submit_nonce", [
+            info["block_hash"],
+            height,
+            gen_sig,
+            base_target,
+            best_nonce["account_id"],
+            best_nonce["seed"],
+            best_nonce["nonce"],
+            best_nonce["compression"],
+            best_nonce["raw_quality"]
+        ])
         print(f"Solution accepted! Quality: {result['raw_quality']}, "
               f"Forge time: {result['poc_time']}s")
+    except JSONRPCError as e:
+        print(f"Rejected: {e}")
 
     # 4. Wait for next block
     time.sleep(10)  # Poll interval
@@ -610,20 +605,20 @@ echo $TX | jq '.vout[] | select(.scriptPubKey.asm | startswith("OP_RETURN 504f43
 
 ### Common Error Patterns
 
-**Height Mismatch**:
+**Height Mismatch** (thrown `RPC_INVALID_PARAMETER`, code -8):
 ```json
 {
-  "accepted": false,
-  "error": "Height mismatch: submitted 12345, current 12346"
+  "code": -8,
+  "message": "Invalid height: expected 12346, got 12345"
 }
 ```
 **Solution**: Re-fetch mining info, chain moved forward
 
-**Generation Signature Mismatch**:
+**Generation Signature Mismatch** (thrown `RPC_VERIFY_REJECTED`, code -26):
 ```json
 {
-  "accepted": false,
-  "error": "Generation signature mismatch"
+  "code": -26,
+  "message": "Generation signature mismatch"
 }
 ```
 **Solution**: Re-fetch mining info, new block arrived

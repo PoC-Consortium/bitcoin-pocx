@@ -198,10 +198,10 @@ for (const auto& tx : block.vtx) {
             if (!VerifyPlotOwnership(tx, plot_addr, view))
                 return state.Invalid("bad-revocation-ownership");
 
-            // Get current assignment
+            // Get current assignment - must be in ASSIGNED state to revoke
             auto existing = view.GetForgingAssignment(plot_addr, height);
-            if (!existing || existing->revoked)
-                return state.Invalid("no-assignment-to-revoke");
+            if (!existing || existing->GetStateAtHeight(height) != ForgingState::ASSIGNED)
+                return state.Invalid("cannot-revoke-inactive");
 
             // Store old state for undo
             blockundo.vforgingundo.emplace_back(UndoType::REVOKED, *existing);
@@ -609,7 +609,7 @@ Returns current assignment status for a plot address:
   "forging_address": "pocx1qforger...",
   "assignment_txid": "abc123...",
   "assignment_height": 100,
-  "activation_height": 244,
+  "activation_height": 130,
   "revoked": false
 }
 ```
@@ -685,6 +685,8 @@ src/
     │   ├── opcodes.cpp            #Marker definitions, OP_RETURN ops, ownership check
     │   ├── assignment_state.h     # GetEffectiveSigner, GetAssignmentState helpers
     │   ├── assignment_state.cpp   # Assignment state query functions
+    │   ├── replay.h               # Reorg/replay of assignment effects
+    │   ├── replay.cpp             # ApplyAssignmentEffectsForReplay (reorg path)
     │   ├── transactions.h         # Wallet transaction creation API
     │   └── transactions.cpp       # create_assignment, revoke_assignment wallet functions
     │
@@ -695,8 +697,10 @@ src/
     │   └── assignments_wallet.cpp # create_assignment, revoke_assignment RPCs
     │
     └── consensus/
-        └── params.h               # nForgingAssignmentDelay, nForgingRevocationDelay
+        └── params.h               # PoCXCompressionBounds, genesis base target, compression schedule
 ```
+
+> **Note:** The assignment delay constants `nForgingAssignmentDelay` / `nForgingRevocationDelay` live in Bitcoin Core's `Consensus::Params` (`src/consensus/params.h`) and are set per-network in `src/kernel/chainparams.cpp` — not in `pocx/consensus/params.h`.
 
 ## Performance Characteristics
 
@@ -763,9 +767,8 @@ Where n = number of assignments for a plot (typically small, < 10)
 
 ### Test Coverage Areas
 
-- Unit tests: `src/test/pocx_*_tests.cpp`
-- Functional tests: `test/functional/feature_pocx_*.py`
-- Integration tests: Manual testing with regtest
+- Unit tests: `src/test/pocx_tests.cpp`, `src/test/pocx_simd_tests.cpp`
+- Integration tests: regtest shell scripts under `scripts/assignments/` and `scripts/mining/`
 
 ## Consensus Rules
 

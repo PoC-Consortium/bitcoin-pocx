@@ -26,7 +26,7 @@ Bitcoin-PoCX implements a pure Proof of Capacity consensus mechanism as a comple
 
 **Key Properties:**
 - **Energy Efficient:** Mining uses pre-generated plot files instead of computational hashing
-- **Time Bended Deadlines:** Distribution transformation (exponential→chi-squared) reduces long blocks, improves average block times
+- **Time Bended Deadlines:** Distribution transformation (exponential→Weibull, shape k=3) reduces long blocks, improves average block times
 - **Assignment Support:** Plot owners can delegate forging rights to other addresses
 - **Native C++ Integration:** Cryptographic algorithms implemented in C++ for consensus validation
 
@@ -92,14 +92,14 @@ generationSignature = dSHA256(prev_generationSignature || prev_account_id_20byte
 
 **Genesis Block:** Uses a hardcoded initial generation signature
 
-**Implementation:** `src/pocx/mining/block_context.cpp:GetNewBlockContext()`
+**Implementation:** `src/pocx/consensus/difficulty.cpp:GetNextGenerationSignature()` (called from `src/pocx/mining/block_context.cpp:GetNewBlockContext()`)
 
 ### Base Target (Difficulty)
 
 Base target is the inverse of difficulty - higher values mean easier mining.
 
 **Adjustment Algorithm:**
-- Targets block time: 120 seconds (mainnet), 1 second (regtest)
+- Targets block time: 120 seconds (all networks)
 - Adjustment interval: Every block
 - Uses moving average of recent base targets
 - Clamped to prevent extreme difficulty swings
@@ -112,7 +112,7 @@ PoCX supports scalable proof-of-work in plot files through scaling levels (Xn).
 
 **Dynamic Bounds:**
 ```cpp
-struct CompressionBounds {
+struct PoCXCompressionBounds {
     uint32_t nPoCXMinCompression;     // Minimum accepted level
     uint32_t nPoCXTargetCompression;  // Recommended level
 };
@@ -197,7 +197,7 @@ if (seed.length() != 64 || !IsHex(seed)) reject;
 
 #### Step 2: Context Acquisition
 ```cpp
-auto context = pocx::consensus::GetNewBlockContext(chainman);
+auto context = pocx::mining::GetNewBlockContext(chainman);
 // Returns: height, generation_signature, base_target, block_hash
 ```
 
@@ -278,7 +278,7 @@ where:
   Gamma(4/3) ≈ 0.892979511
 ```
 
-**Purpose:** Transforms exponential to chi-squared distribution. Very good solutions forge later (network has time to scan disks), poor solutions improved. Reduces long blocks, maintains 120s average.
+**Purpose:** Transforms exponential to Weibull (shape k=3) distribution. Very good solutions forge later (network has time to scan disks), poor solutions improved. Reduces long blocks, maintains 120s average.
 
 **Implementation:** `src/pocx/algorithms/time_bending.cpp:CalculateTimeBendedDeadline()`
 
@@ -558,18 +558,11 @@ std::array<uint8_t, 20> GetEffectiveSigner(
 }
 ```
 
-**Coinbase Payment Validation** (in `ContextualCheckBlock`, not `ConnectBlock`):
-```cpp
-#ifdef ENABLE_POCX
-    // Coinbase output must pay the effective signer (plot owner or assignee)
-    if (coinbase_account != signer_account) {
-        return state.Invalid(BLOCK_CONSENSUS, "bad-pocx-coinbase");
-    }
-#endif
-```
+**Coinbase Recipient** (not consensus-enforced):
+
+The miner sets the coinbase output to pay the effective signer (`src/pocx/mining/block_builder.cpp:CreateCoinbaseScript()`), but this is **not** validated by consensus. Consensus enforces only that the *block signature* is produced by the effective signer — the `bad-pocx-assignment-sig` check above. There is no `bad-pocx-coinbase` rule; the coinbase recipient is chosen by the miner.
 
 **Implementation:**
-- Coinbase validation: `src/validation.cpp:ContextualCheckBlock()`
 - Connection: `src/validation.cpp:ConnectBlock()`
 - Extended validation: `src/pocx/consensus/signature.cpp:VerifyPoCXBlockCompactSignature()`
 - Assignment logic: `src/pocx/assignments/assignment_state.cpp:GetEffectiveSigner()`
@@ -629,7 +622,7 @@ Assignments allow plot owners to delegate forging rights to other addresses whil
 - Assignments stored in OP_RETURN outputs (no UTXO)
 - No spending requirements (no dust, no fees for holding)
 - Tracked in CCoinsViewCache extended state
-- Activated after delay period (default: 4 blocks)
+- Activated after delay period (default: 30 blocks; 4 on regtest)
 
 **Assignment States:**
 ```cpp
