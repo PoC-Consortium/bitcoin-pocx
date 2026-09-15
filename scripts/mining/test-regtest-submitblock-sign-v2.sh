@@ -27,14 +27,14 @@
 #   pocxProof{ seed(32) account_id(20) compression(4) nonce(8) quality(8) }=72
 #   vchPubKey(33) vchSignature(65)  => 286 bytes total.
 # So in the serialized block hex (2 chars/byte):
-#   hashMerkleRoot = chars [136,200)   vchSignature = chars [442,572)
+#   hashMerkleRoot = chars [72,136)   vchSignature = chars [442,572)
 # vchSignature is the last header field; the tx section follows it.
 
 set -e
 
-BITCOIN_DIR="bitcoin"
-BITCOIN_CLI="$BITCOIN_DIR/build/bin/bitcoin-cli"
-BITCOIND="$BITCOIN_DIR/build/bin/bitcoind"
+BITCOIN_DIR="${BITCOIN_DIR:-bitcoin}"
+BITCOIN_CLI="${BITCOIN_CLI:-$BITCOIN_DIR/build/bin/bitcoin-cli}"
+BITCOIND="${BITCOIND:-$BITCOIN_DIR/build/bin/bitcoind}"
 DATADIR="$HOME/.bitcoin-pocx/regtestv2-submitblock-sign"
 
 # The regtest forging key (src/pocx/regtest/forging.cpp kRegtestForgingPrivKey,
@@ -66,6 +66,7 @@ for i in 1 2 3 4 5; do
 done
 
 CLI="$BITCOIN_CLI -regtest -datadir=$DATADIR"
+trap '$CLI stop >/dev/null 2>&1 || true' EXIT
 MOCK=$(date +%s)
 $CLI setmocktime "$MOCK" >/dev/null
 
@@ -87,7 +88,9 @@ echo "Effective signer (forging) address: $FORGING_ADDR"
 
 import_forging_key() {  # $1 = wallet name (descriptor wallet, with private keys)
     $CLI createwallet "$1" false true "" false true >/dev/null
-    $CLI -rpcwallet="$1" importdescriptors "[{\"desc\": \"$PRIVKEY_DESC\", \"timestamp\": \"now\"}]" >/dev/null
+    local imported
+    imported=$($CLI -rpcwallet="$1" importdescriptors "[{\"desc\": \"$PRIVKEY_DESC\", \"timestamp\": \"now\"}]")
+    echo "$imported" | jq -e 'length == 1 and .[0].success == true' >/dev/null || fail "forging key import failed: $imported"
 }
 
 bump_time() { MOCK=$((MOCK + 600)); $CLI setmocktime "$MOCK" >/dev/null; }
@@ -302,8 +305,10 @@ if segwit: full += bytes([0x00, 0x01])
 full += ser_vins(vins) + ser_vouts(new_vouts) + wit_bytes + bytes(locktime)
 
 hdr = bytearray(b[:HDR])
-hdr[68:100] = merkle        # hashMerkleRoot
+hdr[36:68] = merkle         # hashMerkleRoot (after version + previous hash)
 hdr[221:286] = bytes(65)    # vchSignature -> zero
+# Only the Merkle root and signature may change; preserve time, height and proof.
+assert hdr[:36] == b[:36] and hdr[68:221] == b[68:221], "unrelated header fields changed"
 print((bytes(hdr) + wr_varint(1) + bytes(full)).hex())
 PY
 )
