@@ -28,9 +28,9 @@
 
 set -e
 
-BITCOIN_DIR="bitcoin"
-BITCOIN_CLI="$BITCOIN_DIR/build/bin/bitcoin-cli"
-BITCOIND="$BITCOIN_DIR/build/bin/bitcoind"
+BITCOIN_DIR="${BITCOIN_DIR:-bitcoin}"
+BITCOIN_CLI="${BITCOIN_CLI:-$BITCOIN_DIR/build/bin/bitcoin-cli}"
+BITCOIND="${BITCOIND:-$BITCOIN_DIR/build/bin/bitcoind}"
 DATADIR="$HOME/.bitcoin-pocx/regtestv2-submitnonce-payout"
 
 # WIF for the regtest forging key (src/pocx/regtest/forging.cpp kRegtestForgingPrivKey).
@@ -57,6 +57,7 @@ for i in 1 2 3 4 5; do
 done
 
 CLI="$BITCOIN_CLI -regtest -datadir=$DATADIR"
+trap '$CLI stop >/dev/null 2>&1 || true' EXIT
 $CLI setmocktime "$(date +%s)" >/dev/null
 
 fail() {
@@ -73,9 +74,11 @@ CHECKSUM=$(echo "$DESC_INFO" | jq -r '.checksum')
 PRIVKEY_DESC="wpkh($FORGING_WIF)#$CHECKSUM"
 FORGING_ADDR=$($CLI deriveaddresses "$PUBKEY_DESC" | jq -r '.[0]')
 
-# createwallet: name, disable_private_keys, blank, passphrase, avoid_reuse, descriptors
-$CLI createwallet keyed false true "" false true >/dev/null
-$CLI -rpcwallet=keyed importdescriptors "[{\"desc\": \"$PRIVKEY_DESC\", \"timestamp\": \"now\"}]" >/dev/null
+# Keep the default descriptors/keypool for the second payout address, then import
+# the fixed regtest forging key in addition to those generated keys.
+$CLI createwallet keyed false false "" false true >/dev/null
+IMPORTED=$($CLI -rpcwallet=keyed importdescriptors "[{\"desc\": \"$PRIVKEY_DESC\", \"timestamp\": \"now\"}]")
+echo "$IMPORTED" | jq -e 'length == 1 and .[0].success == true' >/dev/null || fail "forging key import failed: $IMPORTED"
 ACCOUNT=$($CLI -rpcwallet=keyed getaddressinfo "$FORGING_ADDR" | jq -r '.witness_program')
 [ -n "$ACCOUNT" ] && [ "$ACCOUNT" != "null" ] || fail "could not derive account_id (witness_program)"
 ADDR2=$($CLI -rpcwallet=keyed getnewaddress)
